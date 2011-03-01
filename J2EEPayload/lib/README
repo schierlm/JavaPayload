@@ -1,0 +1,19 @@
+OBTAINING LIBRARIES
+===================
+
+To compile JavaPayload, you will need the following libraries, also
+available from the binary release:
+
+ObjectWeb ASM version 3.2, available from http://asm.ow2.org/
+  -> asm-3.2.jar
+
+JavaPayload 0.2, available from this website
+  -> JavaPayload.jar
+
+jTCPfwd 0.5, available from http://jtcpfwd.sourceforge.net/
+  -> jTCPfwd.jar
+
+A few libraries available from most EJB containers and/or servlet containers
+  -> apache-apr-socket.jar
+  -> ejb.jar
+  -> servlet-api-2.2.jar

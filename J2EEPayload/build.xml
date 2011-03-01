@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<project name="J2EEPayload" default="jar">
+
+	<property name="LIB" value="lib" />
+
+	<target name="clean">
+		<delete dir="build" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="build" />
+		<javac srcdir="src" destdir="build" source="1.1" target="1.1" debug="yes">
+			<classpath>
+				<pathelement path="${LIB}/JavaPayload.jar" />
+				<pathelement path="${LIB}/servlet-api-2.2.jar" />
+				<pathelement path="${LIB}/ejb.jar" />
+				<pathelement path="${LIB}/asm-3.2.jar" />
+				<pathelement path="${LIB}/jTCPfwd.jar" />
+				<pathelement path="${LIB}/apache-apr-socket.jar" />
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar destfile="J2EEPayload.jar" basedir="build" />
+	</target>
+</project>
