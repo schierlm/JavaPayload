@@ -39,17 +39,21 @@ import java.util.jar.Manifest;
 public class AgentJarBuilder {
 
 	public static void main(String[] args) throws Exception {
-		if (args.length != 1) {
-			System.out.println("Usage: java javapayload.builder.AgentJarBuilder <stager>");
+		if (args.length == 0) {
+			System.out.println("Usage: java javapayload.builder.AgentJarBuilder <stager> [<moreStagers...>]");
 			return;
 		}
-		final String stager = args[0];
-
-		final Class[] classes = new Class[] { javapayload.loader.AgentJarLoader.class, javapayload.stager.Stager.class, Class.forName("javapayload.stager." + stager) };
-
+		StringBuffer jarName = new StringBuffer("Agent"); 
+		final Class[] classes = new Class[args.length+2];
+		classes[0] = javapayload.loader.AgentJarLoader.class;
+		classes[1] = javapayload.stager.Stager.class;
+		for (int i = 0; i < args.length; i++) {
+			jarName.append('_').append(args[i]);
+			classes[i+2] = Class.forName("javapayload.stager." + args[i]);
+		}
 		final Manifest manifest = new Manifest();
 		manifest.getMainAttributes().putValue("Agent-Class", "javapayload.loader.AgentJarLoader");
 		manifest.getMainAttributes().putValue("Premain-Class", "javapayload.loader.AgentJarLoader");
-		JarBuilder.buildJar("Agent_" + args[0] + ".jar", classes, manifest);
+		JarBuilder.buildJar(jarName.append(".jar").toString(), classes, manifest, null);
 	}
 }

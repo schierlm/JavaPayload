@@ -39,22 +39,87 @@ import java.io.PrintStream;
 import javapayload.handler.stage.StageHandler;
 
 public abstract class StagerHandler {
+	
 	public static void main(String[] args) throws Exception {
-		final String stager = args[0];
-		String stage = null;
+		boolean stageFound = false;
 		for (int i = 0; i < args.length - 1; i++) {
 			if (args[i].equals("--")) {
-				stage = args[i + 1];
+				stageFound = true;
 			}
 		}
-		if (stage == null) {
+		if (!stageFound) {
 			System.out.println("Usage: java javapayload.handler.stager.StagerHandler <stager> [stageroptions] -- <stage> [stageoptions]");
 			return;
 		}
-		final StageHandler stageHandler = (StageHandler) Class.forName("javapayload.handler.stage." + stage).newInstance();
-		final StagerHandler stagerHandler = (StagerHandler) Class.forName("javapayload.handler.stager." + stager).newInstance();
-		stagerHandler.handle(stageHandler, args, System.err);
+		new Loader(args).handle(System.err, null);
 	}
 
-	public abstract void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception;
+	// may have side effects on the parameters!
+	protected boolean prepare(String[] parametersToPrepare) throws Exception {
+		return false;
+	}
+
+	protected abstract void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception;
+	protected abstract boolean needHandleBeforeStart();
+
+	public static class Loader {
+		private final String[] args;
+		public final StageHandler stageHandler;
+		private final StagerHandler stagerHandler;
+		
+		public Loader(String[] args) throws Exception {
+			this.args = args;
+			String stager = args[0];
+			String stage = null;
+			for (int i = 0; i < args.length - 1; i++) {
+				if (args[i].equals("--")) {
+					stage = args[i + 1];
+				}
+			}
+			if (stage == null) {
+				throw new IllegalArgumentException("No stage given");
+			}
+			stageHandler = (StageHandler) Class.forName("javapayload.handler.stage." + stage).newInstance();
+			stagerHandler = (StagerHandler) Class.forName("javapayload.handler.stager." + stager).newInstance();
+		}
+		
+		public void handle(PrintStream errorStream, Object extraArg) throws Exception {
+			if (stagerHandler.prepare(args)) {
+				errorStream.print("Stager changed parameters:");
+				for (int i = 0; i < args.length; i++) {
+					errorStream.print(" "+args[i]);
+				}
+				errorStream.println();
+			}
+			handleInternal(errorStream, extraArg);
+		}
+		
+		public String[] getArgs() {
+			return args;
+		}
+		
+		private void handleInternal(PrintStream errorStream, Object extraArg) throws Exception {
+			stagerHandler.handle(stageHandler, args, errorStream, extraArg);
+		}
+		
+		public void handleBefore(final PrintStream errorStream, final Object extraArg) throws Exception {
+			if (stagerHandler.needHandleBeforeStart()) {
+				stagerHandler.prepare(args);
+				new Thread(new Runnable() {
+					public void run() {
+						try {
+							handleInternal(errorStream, extraArg);
+						} catch (final Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				}).start();
+			}
+		}
+		
+		public void handleAfter(PrintStream errorStream, Object extraArg) throws Exception {
+			if (!stagerHandler.needHandleBeforeStart())
+				handleInternal(errorStream, extraArg);
+		}
+	}
 }

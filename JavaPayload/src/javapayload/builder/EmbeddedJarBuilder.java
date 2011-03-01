@@ -50,6 +50,6 @@ public class EmbeddedJarBuilder {
 		for (int i = 0; i < args.length; i++) {
 			manifest.getMainAttributes().putValue("Argument-" + i, args[i]);
 		}
-		JarBuilder.buildJar("embedded.jar", classes, manifest);
+		JarBuilder.buildJar("embedded.jar", classes, manifest, null);
 	}
 }

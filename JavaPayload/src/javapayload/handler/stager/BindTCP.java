@@ -41,8 +41,10 @@ import javapayload.handler.stage.StageHandler;
 
 public class BindTCP extends StagerHandler {
 
-	public void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
 		final Socket s = new Socket(parameters[1], Integer.parseInt(parameters[2]));
 		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
 	}
+	
+	protected boolean needHandleBeforeStart() { return false; }
 }

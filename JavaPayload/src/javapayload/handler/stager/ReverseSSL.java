@@ -46,18 +46,31 @@ import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 
-public class ReverseSSL extends StagerHandler {
+public class ReverseSSL extends ListeningStagerHandler {
 
-	public void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
+	private ServerSocket sslServerSocket = null;
+	
+	protected void startListen(String[] parameters) throws Exception {
 		final SSLContext context = SSLContext.getInstance("SSL");
 		final KeyStore ks = KeyStore.getInstance("JKS");
 		ks.load(ReverseSSL.class.getResourceAsStream("keystore.jks"), "changeit".toCharArray());
 		final KeyManagerFactory kmf = KeyManagerFactory.getInstance("SunX509");
 		kmf.init(ks, "changeit".toCharArray());
 		context.init(kmf.getKeyManagers(), new TrustManager[0], new SecureRandom());
-		final ServerSocket ss = context.getServerSocketFactory().createServerSocket(Integer.parseInt(parameters[2]));
-		final Socket s = ss.accept();
-		ss.close();
+		sslServerSocket = context.getServerSocketFactory().createServerSocket(Integer.parseInt(parameters[2]));
+	}
+	
+	protected Object acceptSocket() throws Exception {
+		return sslServerSocket.accept();
+	}
+	
+	protected void stopListen() throws Exception {
+		sslServerSocket.close();
+		sslServerSocket = null;
+	}
+	
+	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
+		Socket s = (Socket) socket;
 		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
 	}
 }

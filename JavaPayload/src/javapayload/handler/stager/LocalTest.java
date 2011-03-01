@@ -48,15 +48,15 @@ public class LocalTest extends StagerHandler implements Runnable {
 	private OutputStream out;
 	private PrintStream errorStream;
 
-	public void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
 		this.parameters = parameters;
 		this.errorStream = errorStream;
 		final PipedInputStream localIn = new PipedInputStream();
 		final PipedOutputStream localOut = new PipedOutputStream();
-		out = new PipedOutputStream(localIn);
+		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn));
 		in = new PipedInputStream(localOut);
 		new Thread(this).start();
-		stageHandler.handle(localOut, localIn, parameters);
+		stageHandler.handle(new WrappedPipedOutputStream(localOut), localIn, parameters);
 	}
 
 	public void run() {
@@ -65,5 +65,9 @@ public class LocalTest extends StagerHandler implements Runnable {
 		} catch (final Exception ex) {
 			ex.printStackTrace(errorStream);
 		}
+	}
+	
+	protected boolean needHandleBeforeStart() {
+		return true;
 	}
 }

@@ -31,15 +31,50 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.handler.stager;
 
-package javapayload.handler.stage;
+import java.io.InputStream;
+import java.io.PrintStream;
 
-public class Shell extends StageHandler {
-	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Shell.class };
+import javapayload.handler.stage.StageHandler;
+
+public class MultiListen extends StagerHandler {
+
+	ListeningStagerHandler realHandler = null;
+	
+	protected boolean prepare(String[] parametersToPrepare) throws Exception {
+		String[] realParameters = new String[parametersToPrepare.length-1];
+		System.arraycopy(parametersToPrepare, 1, realParameters, 0, realParameters.length);
+		realHandler = (ListeningStagerHandler) Class.forName("javapayload.handler.stager." + realParameters[0]).newInstance();
+		boolean result = realHandler.prepare(realParameters);
+		if (result) {
+			System.arraycopy(realParameters, 0, parametersToPrepare, 1, realParameters.length);
+		}
+		return result;
 	}
 	
-	protected StageHandler createClone() {
-		return new Shell();
+	protected void handle(StageHandler stageHandler, String[] parameters, final PrintStream errorStream, Object extraArg) throws Exception {
+		String[] realParameters = new String[parameters.length-1];
+		System.arraycopy(parameters, 1, realParameters, 0, realParameters.length);
+		if (realHandler == null) {
+			realHandler = (ListeningStagerHandler) Class.forName("javapayload.handler.stager." + realParameters[0]).newInstance();
+		}
+		final InputStream waitIn = stageHandler.consoleIn;
+		new Thread(new Runnable() {
+			public void run() {
+				try {
+					while(waitIn.read() != -1)
+						;
+					realHandler.stopMulti();
+				} catch (Exception ex) {
+					ex.printStackTrace(errorStream);
+				}
+			}
+		}).start();
+		realHandler.handleMulti(stageHandler, realParameters, errorStream);
+	}
+
+	protected boolean needHandleBeforeStart() {
+		return true;
 	}
 }

@@ -34,12 +34,12 @@
 
 package javapayload.handler.stage;
 
-public class Shell extends StageHandler {
+public class SystemInfo extends StageHandler {
 	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Shell.class };
+		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.SystemInfo.class };
 	}
 	
 	protected StageHandler createClone() {
-		return new Shell();
+		return new SystemInfo();
 	}
 }

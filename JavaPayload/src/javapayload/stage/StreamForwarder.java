@@ -34,12 +34,13 @@
 
 package javapayload.stage;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
 public class StreamForwarder extends Thread {
-	public static void forward(InputStream in, OutputStream out) throws Exception {
+	public static void forward(InputStream in, OutputStream out) throws IOException {
 		try {
 			final byte[] buf = new byte[4096];
 			int length;
@@ -72,6 +73,8 @@ public class StreamForwarder extends Thread {
 		try {
 			forward(in, out);
 		} catch (final Throwable ex) {
+			if (stackTraceOut == null)
+				throw new RuntimeException(ex);
 			ex.printStackTrace(new PrintStream(stackTraceOut));
 		}
 	}

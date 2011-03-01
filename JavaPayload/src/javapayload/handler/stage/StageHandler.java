@@ -38,15 +38,16 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 
 import javapayload.stage.StreamForwarder;
 
 public abstract class StageHandler {
+	
 	// overwrite them if you want to redirect the stream elsewhere
 	public InputStream consoleIn = System.in;
-
-	public OutputStream consoleOut = System.out;
-	public OutputStream consoleErr = System.err;
+	public PrintStream consoleOut = System.out;
+	public PrintStream consoleErr = System.err;
 
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
 	}
@@ -66,11 +67,27 @@ public abstract class StageHandler {
 		}
 		out.writeInt(0);
 		out.flush();
-
+		handleStreams(out, in, parameters);
+	}
+	
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 		customUpload(out, parameters);
-		final StreamForwarder sf = new StreamForwarder(consoleIn, rawOut, consoleErr);
+		final StreamForwarder sf = new StreamForwarder(consoleIn, out, consoleErr);
 		sf.setDaemon(true);
 		sf.start();
 		StreamForwarder.forward(in, consoleOut);
 	}
+
+
+	public final StageHandler createClone(PrintStream newConsole) {
+		StageHandler result = createClone();
+		result.consoleIn = consoleIn;
+		result.consoleOut = newConsole;
+		result.consoleErr = newConsole;
+		return result;
+	}
+	
+	// require explicit implementation to make sure they can really be cloned,
+	// no implicit Cloneable!
+	protected abstract StageHandler createClone();
 }

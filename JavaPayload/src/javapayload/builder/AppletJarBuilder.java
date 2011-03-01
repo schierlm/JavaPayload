@@ -38,12 +38,18 @@ import java.util.jar.Manifest;
 
 public class AppletJarBuilder {
 	public static void main(String[] args) throws Exception {
-		if (args.length != 1) {
-			System.out.println("Usage: java javapayload.builder.AppletJarBuilder <stager>");
+		if (args.length == 0) {
+			System.out.println("Usage: java javapayload.builder.AppletJarBuilder <stager> [<moreStagers...>]");
 			return;
 		}
-		final Class[] classes = new Class[] { javapayload.loader.AppletLoader.class, javapayload.stager.Stager.class, Class.forName("javapayload.stager." + args[0]) };
-
-		JarBuilder.buildJar("Applet_" + args[0] + ".jar", classes, new Manifest());
+		StringBuffer jarName = new StringBuffer("Applet");
+		final Class[] classes = new Class[args.length+2];
+		classes[0] = javapayload.loader.AppletLoader.class;
+		classes[1] = javapayload.stager.Stager.class;
+		for (int i = 0; i < args.length; i++) {
+			jarName.append('_').append(args[i]);
+			classes[i+2] = Class.forName("javapayload.stager." + args[i]);
+		}
+		JarBuilder.buildJar(jarName.append(".jar").toString(), classes, new Manifest(), null);
 	}
 }

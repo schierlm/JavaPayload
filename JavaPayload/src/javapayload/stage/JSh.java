@@ -56,7 +56,7 @@ public class JSh implements Stage, Runnable {
 	// job[0] = name (String)
 	// job[1] = raw object (Socket or Process or Stream) for closing
 	// job[2] = OutputStream to forward user input to
-	// job[3..length-1] = JshJshStreamForwarders to redirect output
+	// job[3..length-1] = JshStreamForwarders to redirect output
 	private final List jobs = new ArrayList();
 
 	private PipedOutputStream signalStream;
@@ -288,13 +288,13 @@ public class JSh implements Stage, Runnable {
 						pout.println("  Usage: cd <path>");
 					} else if (params == "ls") {
 						pout.println("ls: list directory.");
-						pout.println("  Usage: cd <path>");
+						pout.println("  Usage: ls");
 					} else if (params == "exec") {
 						pout.println("exec: execute native command.");
 						pout.println("  Usage: exec <command>");
 					} else if (params == "cat") {
 						pout.println("cat: show text file.");
-						pout.println("  Usage: exec <filename>");
+						pout.println("  Usage: cat <filename>");
 					} else if (params == "wget") {
 						pout.println("wget: download file.");
 						pout.println("  Usage: wget <URL> <filename>");
@@ -309,7 +309,7 @@ public class JSh implements Stage, Runnable {
 						pout.println("  Usage: jobs [index]");
 					} else if (params == "exit") {
 						pout.println("exit: Exit JSh.");
-						pout.println("  Usage: paste <filename>");
+						pout.println("  Usage: exit");
 					} else {
 						pout.println("help: show information about commands.");
 						pout.println("  Usage: help [command]");
@@ -341,5 +341,6 @@ public class JSh implements Stage, Runnable {
 			}
 		}
 		ss.terminate();
+		pout.close();
 	}
 }

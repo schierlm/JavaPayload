@@ -37,6 +37,7 @@ package javapayload.builder;
 import java.util.Arrays;
 
 import com.sun.jdi.ArrayReference;
+import com.sun.jdi.ByteValue;
 import com.sun.jdi.ClassObjectReference;
 import com.sun.jdi.ClassType;
 import com.sun.jdi.Method;
@@ -102,17 +103,21 @@ public class JDWPClassInjector {
 	 *            the "class file".
 	 * @param argsForInstantiate
 	 *            arguments to instantiate the class with, or <code>null</code> to not instantiate it
+	 * @return the {@link ClassType} instance
 	 */
-	public void inject(byte[] clazz, String argsForInstantiate) throws Exception {
+	public ClassType inject(byte[] clazz, String argsForInstantiate) throws Exception {
 
 		// build a byte array and fill it
 		final ArrayReference array = buildArray(_byte, clazz.length);
+		ByteValue[] byteValues = new ByteValue[clazz.length];
 		for (int i = 0; i < clazz.length; i++) {
-			array.setValue(i, virtualMachine.mirrorOf(clazz[i]));
+			byteValues[i] = virtualMachine.mirrorOf(clazz[i]);
 		}
+		array.setValues(Arrays.asList(byteValues));
 
 		// load the class with the class loader
 		final ObjectReference loadedClazz = (ObjectReference) invokeMethod(myClassLoader, _URLClassLoader, "defineClass", "([BII)Ljava/lang/Class;", new Value[] { array, virtualMachine.mirrorOf(0), virtualMachine.mirrorOf(clazz.length) });
+		final ClassType _clazz = (ClassType) ((ClassObjectReference) loadedClazz).reflectedType();
 
 		if (argsForInstantiate != null) {
 			// prepare the class
@@ -120,12 +125,13 @@ public class JDWPClassInjector {
 			invokeMethod(loadedClazz, _Class, "getMethods", "()[Ljava/lang/reflect/Method;", new Value[0]);
 
 			// invoke its constructor
-			final ClassType _clazz = (ClassType) ((ClassObjectReference) loadedClazz).reflectedType();
 			final ObjectReference loadedInstance = newInstance(_clazz, "()V", new Value[0]);
 
 			// invoke its go method
 			invokeMethod(loadedInstance, _clazz, "go", "(Ljava/lang/String;)V", new Value[] { virtualMachine.mirrorOf(argsForInstantiate) });
 		}
+		
+		return _clazz;
 	}
 
 	/**

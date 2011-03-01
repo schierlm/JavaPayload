@@ -38,4 +38,8 @@ public class Exec extends StageHandler {
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Exec.class };
 	}
+	
+	protected StageHandler createClone() {
+		return new Exec();
+	}
 }

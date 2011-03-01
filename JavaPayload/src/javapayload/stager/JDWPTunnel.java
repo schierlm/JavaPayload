@@ -32,14 +32,18 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stage;
+package javapayload.stager;
 
-public class Shell extends StageHandler {
-	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Shell.class };
-	}
-	
-	protected StageHandler createClone() {
-		return new Shell();
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
+
+import javapayload.loader.JDWPCommunication;
+
+public class JDWPTunnel extends Stager {
+
+	public void bootstrap(String[] parameters) throws Exception {
+		PipedInputStream pis = new PipedInputStream();
+		final JDWPCommunication comm = new JDWPCommunication(new PipedOutputStream(pis));
+		bootstrap(pis, comm, parameters);
 	}
 }
