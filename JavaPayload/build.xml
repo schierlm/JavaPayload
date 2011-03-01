@@ -8,18 +8,62 @@
 	</target>
 
 	<target name="compile">
-		<mkdir dir="build" />
-		<javac srcdir="src" destdir="build" source="1.1" target="1.1" debug="yes">
+		<mkdir dir="build/bin" />
+		<javac srcdir="src" destdir="build/bin" source="1.1" target="1.1" debug="yes">
 			<classpath>
 				<pathelement path="${LIB}/asm-3.2.jar" />
 			</classpath>
 		</javac>
-		<copy todir="build">
-			<fileset dir="src" includes="**/keystore.jks"/>
+		<copy todir="build/bin">
+			<fileset dir="src" includes="**/keystore.jks" />
 		</copy>
 	</target>
 
-	<target name="jar" depends="compile">
-		<jar destfile="JavaPayload.jar" basedir="build" />
+	<target name="dynamicstagers" depends="compile">
+		<path id="AllStagers.path">
+			<fileset dir="src/javapayload/stager">
+				<include name="*.java" />
+				<exclude name="LocalTest.java" />
+				<exclude name="Stager.java" />
+				<exclude name="JDWPTunnel.java" />
+			</fileset>
+		</path>
+		<pathconvert property="AllStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
+			<chainedmapper>
+				<flattenmapper />
+				<globmapper from="*.java" to="*" />
+			</chainedmapper>
+		</pathconvert>
+		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder">
+			<classpath>
+				<path location="build/bin" />
+				<path location="${LIB}/asm-3.2.jar" />
+			</classpath>
+			<arg line="${AllStagers}" />
+		</java>
+		<unjar src="build/SpawnStagers.jar" dest="build/bin">
+			<patternset includes="**/*.class" />
+		</unjar>
+		<pathconvert property="AllSpawnStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
+			<chainedmapper>
+				<flattenmapper />
+				<globmapper from="*.java" to="Spawn*" />
+			</chainedmapper>
+		</pathconvert>
+		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder">
+			<classpath>
+				<path location="build/bin" />
+				<path location="${LIB}/asm-3.2.jar" />
+			</classpath>
+			<arg line="${AllSpawnStagers}" />
+		</java>
+		<unjar src="build/SpawnStagers.jar" dest="build/bin">
+			<patternset includes="**/*.class" />
+		</unjar>
+
+	</target>
+
+	<target name="jar" depends="dynamicstagers">
+		<jar destfile="JavaPayload.jar" basedir="build/bin" />
 	</target>
 </project>
