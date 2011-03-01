@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<project name="J2EEPayload" default="jar">
+
+	<property name="JAVAPAYLOAD" value="../JavaPayload" />
+
+	<target name="clean">
+		<delete dir="build" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="build" />
+		<javac srcdir="src" destdir="build" source="1.1" target="1.1" debug="yes">
+			<classpath>
+				<pathelement path="${JAVAPAYLOAD}/JavaPayload.jar" />
+				<pathelement path="${JAVAPAYLOAD}/lib/asm-3.2.jar" />
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar destfile="SpawnJavaPayload.jar" basedir="build" />
+	</target>
+</project>
