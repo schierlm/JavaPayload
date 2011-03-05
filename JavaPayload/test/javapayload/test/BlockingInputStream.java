@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,50 +31,37 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.test;
 
-package javapayload.handler.stager;
+import java.io.FilterInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+public class BlockingInputStream extends FilterInputStream {
+	public BlockingInputStream(InputStream in) {
+		super(in);
+	}	
 
-import javapayload.handler.stage.StageHandler;
-
-public class ReverseTCP extends ListeningStagerHandler {
-
-	private ServerSocket serverSocket = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
+	public int read() throws IOException {
+		int b = super.read();
+		while(b == -1){
+			block();
 		}
+		return b;
 	}
 	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
+	public int read(byte[] b, int off, int len) throws IOException {
+		int cnt= super.read(b, off, len);
+		while (cnt == -1)
+			block();
+		return cnt;
 	}
-	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(null);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
+
+	private synchronized void block() {
+		try {
+			wait();
+		} catch (InterruptedException ex) {
+			ex.printStackTrace();
 		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
 	}
 }

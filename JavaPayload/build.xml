@@ -2,19 +2,28 @@
 <project name="JavaPayload" default="jar">
 
 	<property name="LIB" value="lib" />
+	<property name="TOOLS" value="D:/Progs-Old/jdk160_19/lib/tools.jar" />
+	<property name="VULNERABLE_JDK_HOME" value="D:\Progs-Old\jdk150_06" />
+
+	<!-- properties used by cobertura.xml -->
+	<property name="SUFFIX1" value="" />
+	<property name="SUFFIX2" value="" />
+	<property name="SUFFIX3" value="" />
+	<path id="extraclasspath" />
+	<property name="javapayload.child.classpath" value="" />
 
 	<target name="clean">
 		<delete dir="build" />
 	</target>
 
 	<target name="compile">
-		<mkdir dir="build/bin" />
-		<javac srcdir="src" destdir="build/bin" source="1.1" target="1.1" debug="yes">
+		<mkdir dir="build/bin${SUFFIX1}" />
+		<javac srcdir="src" destdir="build/bin${SUFFIX1}" source="1.1" target="1.1" debug="yes">
 			<classpath>
 				<pathelement path="${LIB}/asm-3.2.jar" />
 			</classpath>
 		</javac>
-		<copy todir="build/bin">
+		<copy todir="build/bin${SUFFIX1}">
 			<fileset dir="src" includes="**/keystore.jks" />
 		</copy>
 	</target>
@@ -34,14 +43,29 @@
 				<globmapper from="*.java" to="*" />
 			</chainedmapper>
 		</pathconvert>
-		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder">
+		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
 			<classpath>
-				<path location="build/bin" />
+				<path location="build/bin${SUFFIX1}" />
 				<path location="${LIB}/asm-3.2.jar" />
 			</classpath>
 			<arg line="${AllStagers}" />
 		</java>
-		<unjar src="build/SpawnStagers.jar" dest="build/bin">
+		<unjar src="build/SpawnStagers.jar" dest="build/bin${SUFFIX3}">
+			<patternset includes="**/*.class" />
+		</unjar>
+		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<classpath>
+				<path location="build/bin${SUFFIX3}" />
+				<path location="build/bin${SUFFIX2}" />
+				<path location="build/bin${SUFFIX1}" />
+				<path location="${LIB}/asm-3.2.jar" />
+				<path refid="extraclasspath" />
+			</classpath>
+			<arg line="${AllStagers}" />
+		</java>
+		<unjar src="build/SpawnStagers.jar" dest="build/bin${SUFFIX2}">
 			<patternset includes="**/*.class" />
 		</unjar>
 		<pathconvert property="AllSpawnStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
@@ -50,17 +74,58 @@
 				<globmapper from="*.java" to="Spawn*" />
 			</chainedmapper>
 		</pathconvert>
-		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder">
+		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
 			<classpath>
-				<path location="build/bin" />
+				<path location="build/bin${SUFFIX3}" />
+				<path location="build/bin${SUFFIX2}" />
+				<path location="build/bin${SUFFIX1}" />
 				<path location="${LIB}/asm-3.2.jar" />
+				<path refid="extraclasspath" />
 			</classpath>
 			<arg line="${AllSpawnStagers}" />
 		</java>
-		<unjar src="build/SpawnStagers.jar" dest="build/bin">
+		<unjar src="build/SpawnStagers.jar" dest="build/bin${SUFFIX2}">
 			<patternset includes="**/*.class" />
 		</unjar>
+	</target>
 
+	<target name="compiletest" depends="dynamicstagers">
+		<mkdir dir="build/testbin" />
+		<javac srcdir="test" destdir="build/testbin" source="1.1" target="1.1" debug="yes">
+			<classpath>
+				<pathelement path="build/bin${SUFFIX1}" />
+				<pathelement path="${LIB}/asm-3.2.jar" />
+			</classpath>
+		</javac>
+		<copy todir="build/testbin">
+			<fileset dir="test" includes="javapayload/test/stagetests/*.txt" />
+		</copy>
+	</target>
+
+	<target name="test" depends="compiletest">
+		<path id="testclasspath">
+			<path location="build/bin${SUFFIX2}" />
+			<path location="build/bin${SUFFIX1}" />
+			<path location="build/testbin" />
+			<path location="${LIB}/asm-3.2.jar" />
+			<path location="${TOOLS}" />
+			<path refid="extraclasspath" />
+		</path>
+		<java fork="true" classname="javapayload.test.StagerTest" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<classpath refid="testclasspath" />
+		</java>
+		<java fork="true" classname="javapayload.test.StageTest" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<classpath refid="testclasspath" />
+		</java>
+		<java fork="true" classname="javapayload.test.BuilderTest" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<sysproperty key="javapayload.child.classpath" value="${javapayload.child.classpath}" />
+			<sysproperty key="javapayload.vulnerable.jdk" value="${VULNERABLE_JDK_HOME}" />
+			<classpath refid="testclasspath" />
+		</java>
 	</target>
 
 	<target name="jar" depends="dynamicstagers">

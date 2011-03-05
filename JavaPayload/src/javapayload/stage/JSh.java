@@ -46,7 +46,9 @@ import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Enumeration;
 import java.util.List;
 
@@ -237,7 +239,7 @@ public class JSh implements Stage, Runnable {
 					pout.println();
 					final File[] dir = pwd.listFiles();
 					for (int i = 0; i < dir.length; i++) {
-						pout.println(dir[i].getName() + "\t" + (dir[i].isDirectory() ? "[DIR]" : "" + dir[i].length()) + "\t" + dir[i].lastModified());
+						pout.println(dir[i].getName() + "\t" + (dir[i].isDirectory() ? "[DIR]" : "" + dir[i].length()) + "\t" + new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date(dir[i].lastModified())));
 					}
 				} else if (cmd == "exec") {
 					Process proc;

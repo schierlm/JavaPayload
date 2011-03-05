@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,50 +31,24 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package javapayload.handler.stager;
 
 import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
 
 import javapayload.handler.stage.StageHandler;
+import javapayload.handler.stage.StopListening;
 
-public class ReverseTCP extends ListeningStagerHandler {
+public class BindMultiTCP extends BindTCP {
 
-	private ServerSocket serverSocket = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+		if (stageHandler.getClass().getName().equals("javapayload.handler.stage.TestStub")) {
+			for (int i = 0; i < 5; i++) {
+				super.handle(stageHandler.createClone(errorStream), parameters, errorStream, extraArg);
+			}
+			super.handle(new StopListening(), parameters, errorStream, extraArg);
+			super.handle(stageHandler, parameters, errorStream, extraArg);
+		} else {
+			super.handle(stageHandler, parameters, errorStream, extraArg);
 		}
-	}
-	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
-	}
-	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(null);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
-		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
 	}
 }

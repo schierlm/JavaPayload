@@ -87,8 +87,8 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 	public void run() {
 		VirtualMachine vm = communicationClass.virtualMachine();
 		try {
-			Location interceptIn = ((Method)communicationClass.methodsByName("interceptIn").get(0)).locationOfCodeIndex(2);
-			Location interceptOut = ((Method)communicationClass.methodsByName("interceptOut").get(0)).locationOfCodeIndex(2);
+			Location interceptIn = getBreakpointLocation((Method)communicationClass.methodsByName("interceptIn").get(0));
+			Location interceptOut = getBreakpointLocation((Method)communicationClass.methodsByName("interceptOut").get(0));
 			BreakpointRequest req =  vm.eventRequestManager().createBreakpointRequest(interceptIn);
 			req.setSuspendPolicy(EventRequest.SUSPEND_EVENT_THREAD);
 			req.setEnabled(true);
@@ -153,7 +153,20 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 		vm.dispose();
 	}
 	
+	private Location getBreakpointLocation(Method method) {
+		int codeOffset = 2;
+		// dirty hack to make code coverage work
+		if (method.virtualMachine().canGetBytecodes() && method.bytecodes().length == 28) {
+			codeOffset = 25;
+		}
+		return method.locationOfCodeIndex(codeOffset);
+	}
+
 	protected boolean needHandleBeforeStart() { return false; }
+	
+	protected String getTestArguments() {
+		return null;
+	}
 	
 	public class InputInterceptHandler extends Thread {
 		

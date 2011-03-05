@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,50 +31,41 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.test;
 
-package javapayload.handler.stager;
+import java.util.Iterator;
+import java.util.Map;
 
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+/**
+ * A watchdog thread that watches if all threads terminate properly.
+ */
+public class ThreadWatchdogThread extends Thread {
 
-import javapayload.handler.stage.StageHandler;
+	private final int delay;
 
-public class ReverseTCP extends ListeningStagerHandler {
+	public ThreadWatchdogThread(int delay) {
+		super("Thread Watchdog Thread");
+		this.delay = delay;
+		setDaemon(true);
+	}
 
-	private ServerSocket serverSocket = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
+	public void run() {
+		try {
+			Thread.sleep(delay);
+			Map stackTraces = (Map) Thread.class.getMethod("getAllStackTraces", new Class[0]).invoke(null, new Object[0]);
+			for (Iterator it = stackTraces.keySet().iterator(); it.hasNext();) {
+				Thread t = (Thread) it.next();
+				if (!t.isDaemon()) {
+					System.err.println("Thread " + t.getName() + " [" + t.getThreadGroup().getName() + "] still alive!");
+					StackTraceElement[] stackTrace = (StackTraceElement[]) stackTraces.get(t);
+					for (int i = 0; i < stackTrace.length; i++) {
+						System.err.println("\tat " + stackTrace[i]);
+					}
+				}
+			}
+		} catch (Throwable t) {
+			t.printStackTrace();
 		}
-	}
-	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
-	}
-	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(null);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
-		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
-	}
+		System.exit(5);
+	};
 }

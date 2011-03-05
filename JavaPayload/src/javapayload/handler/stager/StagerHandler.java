@@ -61,11 +61,18 @@ public abstract class StagerHandler {
 
 	protected abstract void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception;
 	protected abstract boolean needHandleBeforeStart();
+	protected abstract String getTestArguments();
+	
+	public String[] getTestArgumentArray() {
+		String args = getTestArguments();
+		return args == null ? null : new String[] {args};
+	}
 
 	public static class Loader {
 		private final String[] args;
 		public final StageHandler stageHandler;
 		private final StagerHandler stagerHandler;
+		private Thread beforeThread = null;
 		
 		public Loader(String[] args) throws Exception {
 			this.args = args;
@@ -105,7 +112,7 @@ public abstract class StagerHandler {
 		public void handleBefore(final PrintStream errorStream, final Object extraArg) throws Exception {
 			if (stagerHandler.needHandleBeforeStart()) {
 				stagerHandler.prepare(args);
-				new Thread(new Runnable() {
+				beforeThread = new Thread(new Runnable() {
 					public void run() {
 						try {
 							handleInternal(errorStream, extraArg);
@@ -113,11 +120,14 @@ public abstract class StagerHandler {
 							ex.printStackTrace();
 						}
 					}
-				}).start();
+				});
+				beforeThread.start();
 			}
 		}
 		
 		public void handleAfter(PrintStream errorStream, Object extraArg) throws Exception {
+			if (beforeThread != null)
+				beforeThread.join();
 			if (!stagerHandler.needHandleBeforeStart())
 				handleInternal(errorStream, extraArg);
 		}

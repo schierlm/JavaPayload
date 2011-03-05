@@ -7,15 +7,20 @@ import java.io.*;
  */
 public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 	private final PipedOutputStream wrapped;
+	private final WrappedPipedOutputStream extraClose;
 	
 	private boolean writePending = false;
 	private byte[] data;
 	private int offsetOrArg; 
 	private int length;
-	private boolean closed = false;
+	private boolean closed = false, implicitClose = false;
 
 	public WrappedPipedOutputStream(PipedOutputStream wrapped) {
+		this(wrapped, null);
+	}
+	public WrappedPipedOutputStream(PipedOutputStream wrapped, WrappedPipedOutputStream extraClose) {
 		this.wrapped = wrapped;
+		this.extraClose = extraClose;
 		new Thread(this).start();
 	}
 	
@@ -74,6 +79,10 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 	
 	public synchronized void close() throws IOException {
 		try {
+			if (closed && implicitClose) {
+				implicitClose = false;
+				return;
+			}
 			if (closed)
 				throw new IOException("Stream is closed");
 			while (writePending) 
@@ -100,6 +109,10 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 						wrapped.flush();
 					} else if (length == -1) {
 						wrapped.close();
+						if (extraClose != null) {
+							extraClose.implicitClose = true;
+							extraClose.close();
+						}
 						break;
 					}
 				} else {

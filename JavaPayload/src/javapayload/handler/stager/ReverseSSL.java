@@ -73,4 +73,8 @@ public class ReverseSSL extends ListeningStagerHandler {
 		Socket s = (Socket) socket;
 		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
 	}
+
+	protected String getTestArguments() {
+		return "localhost 61234";
+	}
 }

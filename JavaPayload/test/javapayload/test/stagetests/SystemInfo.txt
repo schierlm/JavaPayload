@@ -1,0 +1,26 @@
+SystemInfo
+=-=
+=-=
+System properties:
+~~~~~~~~~~~~~~~~~~
+(.*
+)+
+Local address:
+~~~~~~~~~~~~~~
+Name: .*
+Canonical Name: .*
+IP Address: [0-9.]+
+
+Network interfaces:
+~~~~~~~~~~~~~~~~~~~
+lo
+  Display Name: MS TCP Loopback interface
+    Address:
+      Name: localhost
+      Canonical Name: localhost
+      IP Address: 127.0.0.1
+(.*
+)+
+External IP Address:
+~~~~~~~~~~~~~~~~~~~~
+[0-9.]+

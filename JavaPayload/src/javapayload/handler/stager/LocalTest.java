@@ -53,10 +53,11 @@ public class LocalTest extends StagerHandler implements Runnable {
 		this.errorStream = errorStream;
 		final PipedInputStream localIn = new PipedInputStream();
 		final PipedOutputStream localOut = new PipedOutputStream();
-		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn));
+		final WrappedPipedOutputStream wrappedLocalOut = new WrappedPipedOutputStream(localOut);
+		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn), wrappedLocalOut);
 		in = new PipedInputStream(localOut);
 		new Thread(this).start();
-		stageHandler.handle(new WrappedPipedOutputStream(localOut), localIn, parameters);
+		stageHandler.handle(wrappedLocalOut, localIn, parameters);
 	}
 
 	public void run() {
@@ -69,5 +70,9 @@ public class LocalTest extends StagerHandler implements Runnable {
 	
 	protected boolean needHandleBeforeStart() {
 		return true;
+	}
+	
+	protected String getTestArguments() {
+		return null;
 	}
 }

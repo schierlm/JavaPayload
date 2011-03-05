@@ -47,4 +47,8 @@ public class BindTCP extends StagerHandler {
 	}
 	
 	protected boolean needHandleBeforeStart() { return false; }
+	
+	protected String getTestArguments() {
+		return "localhost 61234";
+	}
 }

@@ -32,49 +32,10 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stager;
-
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-
-import javapayload.handler.stage.StageHandler;
-
-public class ReverseTCP extends ListeningStagerHandler {
-
-	private ServerSocket serverSocket = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
-		}
-	}
-	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
-	}
-	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(null);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
-		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
+// For testing AgentJarLoader, AttachInjector, and JDWPInjector
+public class DummyClass {
+	public static void main(String[] args) throws Exception {
+		if (args.length == 1)
+			Thread.sleep(Integer.parseInt(args[0]));
 	}
 }

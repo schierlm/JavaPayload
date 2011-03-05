@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,49 +32,52 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stager;
+package javapayload.handler.stage;
 
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.Random;
 
-import javapayload.handler.stage.StageHandler;
-
-public class ReverseTCP extends ListeningStagerHandler {
-
-	private ServerSocket serverSocket = null;
+public class TestStub extends StageHandler {
 	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
-		}
+	public static int wait = 0;
+	public boolean sendExit = false;
+	
+	public Class[] getNeededClasses() {
+		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.TestStub.class };
 	}
 	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
+	protected StageHandler createClone() {
+		// do NOT clone sendExit!
+		return new TestStub();
 	}
 	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(null);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
-		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		DataInputStream dis = new DataInputStream(in);
+		byte[] indata = new byte[4096];
+		dis.readFully(indata);
+		Thread.sleep(wait);
+		byte[] outdata = new byte[4096];
+		Random r = new Random();
+		r.nextBytes(outdata);
+		out.write(outdata);
+		out.flush();
+		MessageDigest digest = MessageDigest.getInstance("SHA-1");
+		byte[] indigest = digest.digest(indata);
+		digest.reset();
+		byte[] outdigest = digest.digest(outdata);
+		out.write(indigest);
+		out.writeBoolean(sendExit);
+		out.flush();
+		byte[] outdigest2 = new byte[outdigest.length];
+		dis.readFully(outdigest2);
+		if (!Arrays.equals(outdigest, outdigest2))
+			throw new RuntimeException("Digests do not match");
+		if (in.read() != -1)
+			throw new RuntimeException("Stream not properly closed.");
+		out.close();
 	}
 }

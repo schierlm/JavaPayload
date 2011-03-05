@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<project name="JavaPayload-Cobertura" default="cobertura">
+
+	<property name="cobertura.dir" value="D:/Progs-Michi/java/cobertura-1.9.4.1" />
+	<property name="SUFFIX1" value="-in" />
+	<property name="SUFFIX2" value="-out" />
+	<property name="SUFFIX3" value="-stagers" />
+	<property name="javapayload.child.classpath" value=";${cobertura.dir}/cobertura.jar" />
+
+	<path id="cobertura.classpath">
+		<fileset dir="${cobertura.dir}">
+			<include name="cobertura.jar" />
+			<include name="lib/**/*.jar" />
+		</fileset>
+	</path>
+
+	<taskdef classpathref="cobertura.classpath" resource="tasks.properties" />
+
+	<import file="build.xml" />
+
+	<target name="compile" depends="JavaPayload.compile">
+		<path id="extraclasspath">
+			<path refid="cobertura.classpath" />
+		</path>
+		<mkdir dir="build/bin${SUFFIX2}" />
+		<delete file="build/cobertura1.ser" />
+		<cobertura-instrument datafile="build/cobertura1.ser" todir="build/bin${SUFFIX2}">
+			<fileset dir="build/bin${SUFFIX1}">
+				<include name="**/*.class" />
+				<!-- will be sent to SpawnBindMultiTCP -->
+				<exclude name="javapayload/stage/StopListening.class" />
+			</fileset>
+		</cobertura-instrument>
+		<!-- have uninstrumented stagers handy for being called from 
+		     spawn stagers (they won't find Cobertura) -->
+		<mkdir dir="build/bin${SUFFIX3}" />
+		<copy todir="build/bin${SUFFIX3}">
+			<fileset dir="build/bin${SUFFIX1}">
+				<include name="javapayload/stager/*.class" />
+				<include name="javapayload/builder/*ClassBuilder.class" />
+			</fileset>
+		</copy>
+		<copy tofile="build/cobertura2.ser" file="build/cobertura1.ser" />
+	</target>
+
+	<target name="cobertura" depends="test">
+		<cobertura-merge datafile="build/all-cobertura.ser">
+			<fileset dir="build" includes="cobertura*.ser" />
+		</cobertura-merge>
+		<cobertura-report format="html" datafile="build/all-cobertura.ser" destdir="build/cobertura-report" srcdir="src" encoding="ISO-8859-1" />
+	</target>
+</project>

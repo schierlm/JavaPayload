@@ -1,0 +1,13 @@
+Exec cmd.exe
+=-=
+ver
+exit
+=-=
+Microsoft Windows .*
+\(C\) Copyright .* Microsoft Corp.
+
+.*>ver
+
+Microsoft Windows .*
+
+.*>exit

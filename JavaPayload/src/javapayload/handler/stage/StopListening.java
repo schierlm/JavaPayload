@@ -34,6 +34,9 @@
 
 package javapayload.handler.stage;
 
+import java.io.DataOutputStream;
+import java.io.InputStream;
+
 public class StopListening extends StageHandler {
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StopListening.class };
@@ -41,5 +44,11 @@ public class StopListening extends StageHandler {
 	
 	protected StageHandler createClone() {
 		return new StopListening();
+	}
+	
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		if (in.read() != -1)
+			throw new RuntimeException("Stream not properly closed.");
+		out.close();
 	}
 }

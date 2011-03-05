@@ -1,0 +1,50 @@
+JSh
+=-=
+help
+info
+cd test
+pwd
+ls
+cd ..
+exec cmd.exe
+exit
+~.
+paste jsh.txt
+Hello, World
+~.
+cat jsh.txt
+jobs
+exit
+=-=
+\Q! help: show information about commands.
+  Usage: help [command]
+
+Supported commands:
+    help   - show this help
+    info   - list system properties
+    pwd    - show current directory
+    cd     - change directory
+    ls     - list directory
+    exec   - execute native command
+    cat    - show text file
+    wget   - download file
+    telnet - create TCP connection
+    paste  - create text file
+    jobs   - list or continue jobs
+    exit   - Exit JSh
+
+When inside an interactive command, enter ~. on a new
+line to exit from that command. Enter ~& to background the command.
+Enter ~~ to start a line with a ~ character
+! \E(.*
+)*! .*\\test
+! .*\\test
+! ([A-Z]:\\	\[ROOT\]
+)*
+javapayload	\[DIR\]	[0-9. :-]*
+DummyClass.java	[0-9]*	[0-9. :-]*
+! .*
+! Press ~& to suspend, ~\. to stop job.
+! ! Press ~& to suspend, ~\. to stop job.
+! ! Hello, World
+! ! 

@@ -36,6 +36,7 @@ package javapayload.handler.stager;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.net.SocketException;
 
 import javapayload.handler.stage.StageHandler;
 
@@ -65,7 +66,14 @@ public abstract class ListeningStagerHandler extends StagerHandler {
 			}
 		}
 		while (multiRunning) {
-			final Object socket = acceptSocket();
+			final Object socket;
+			try {
+				socket = acceptSocket();
+			} catch (SocketException ex) {
+				if (ex.getMessage().equals("socket closed"))
+					break;
+				throw ex;
+			}
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			final StageHandler realStageHandler = stageHandler.createClone(new PrintStream(baos, true));
 			new Thread(new Runnable() {

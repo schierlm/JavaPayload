@@ -31,6 +31,10 @@ public class SpawnTemplate extends StagerHandler {
 		handler.handle(stageHandler, parameters, errorStream, extraArg);
 	}
 	
+	protected String getTestArguments() {
+		return handler.getTestArguments();
+	}
+	
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
 		
 		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Spawn");

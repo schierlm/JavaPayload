@@ -32,49 +32,45 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stager;
+package javapayload.stage;
 
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import java.io.DataInputStream;
+import java.io.OutputStream;
+import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.Random;
 
-import javapayload.handler.stage.StageHandler;
-
-public class ReverseTCP extends ListeningStagerHandler {
-
-	private ServerSocket serverSocket = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
+public class TestStub implements Stage, Runnable {
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		byte[] outdata = new byte[4096];
+		Random r = new Random();
+		r.nextBytes(outdata);
+		out.write(outdata);
+		out.flush();
+		byte[] indata = new byte[4096];
+		in.readFully(indata);
+		MessageDigest digest = MessageDigest.getInstance("SHA-1");
+		byte[] indigest = digest.digest(indata);
+		digest.reset();
+		byte[] outdigest = digest.digest(outdata);
+		out.write(indigest);
+		out.flush();
+		byte[] outdigest2 = new byte[outdigest.length];
+		in.readFully(outdigest2);
+		if (!Arrays.equals(outdigest, outdigest2))
+			throw new RuntimeException("Digests do not match");
+		if(in.readBoolean()) {
+			new Thread(this).start();
 		}
+		out.close();
 	}
 	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
-	}
-	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket();
-			serverSocket.bind(null);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
+	public void run() {
+		try {
+			Thread.sleep(100);
+			System.exit(0);
+		} catch (Exception ex) {
+			ex.printStackTrace();
 		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
 	}
 }

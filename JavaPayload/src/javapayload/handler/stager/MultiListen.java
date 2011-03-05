@@ -77,4 +77,8 @@ public class MultiListen extends StagerHandler {
 	protected boolean needHandleBeforeStart() {
 		return true;
 	}
+	
+	protected String getTestArguments() {
+		return null;
+	}
 }
