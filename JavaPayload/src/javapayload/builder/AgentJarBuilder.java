@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -40,20 +40,16 @@ public class AgentJarBuilder {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.AgentJarBuilder <stager> [<moreStagers...>]");
+			System.out.println("Usage: java javapayload.builder.AgentJarBuilder " + JarBuilder.ARGS_SYNTAX);
 			return;
 		}
-		StringBuffer jarName = new StringBuffer("Agent"); 
-		final Class[] classes = new Class[args.length+2];
-		classes[0] = javapayload.loader.AgentJarLoader.class;
-		classes[1] = javapayload.stager.Stager.class;
-		for (int i = 0; i < args.length; i++) {
-			jarName.append('_').append(args[i]);
-			classes[i+2] = Class.forName("javapayload.stager." + args[i]);
-		}
+		final Class[] baseClasses = new Class[] {
+				javapayload.loader.AgentJarLoader.class,
+				javapayload.stager.Stager.class,
+		};
 		final Manifest manifest = new Manifest();
 		manifest.getMainAttributes().putValue("Agent-Class", "javapayload.loader.AgentJarLoader");
 		manifest.getMainAttributes().putValue("Premain-Class", "javapayload.loader.AgentJarLoader");
-		JarBuilder.buildJar(jarName.append(".jar").toString(), classes, manifest, null);
+		JarBuilder.buildJarFromArgs(args, "Agent", baseClasses, manifest, null, null);
 	}
 }

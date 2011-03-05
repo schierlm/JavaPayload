@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -35,7 +35,9 @@
 package javapayload.builder;
 
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 
 import javapayload.stager.Stager;
 
@@ -181,6 +183,14 @@ public class ClassBuilder extends Stager {
 		is.close();
 	}
 
+	public static void writeClassWithoutDebugInfo(InputStream in, OutputStream out) throws IOException {
+		final ClassReader cr = new ClassReader(in);
+		final ClassWriter cw = new ClassWriter(0);
+		cr.accept(cw, ClassReader.SKIP_DEBUG);
+		in.close();
+		out.write(cw.toByteArray());
+	}
+	
 	public void bootstrap(String[] parameters) throws Exception {
 		throw new Exception("Never used!");
 	}

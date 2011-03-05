@@ -115,6 +115,7 @@ on the attacker's machine, which will be uploaded to the temp directory and exec
 <li>Integrated SpawnJavaPayload (formerly an independent download)</li>
 <li>Added StopListening stage for BindMultiTCP stager</li>
 <li>Added automated tests and a code coverage report (see the source code for details)</li>
+<li>JarBuilder, AgentJarBuilder, AppletJarBuilder, EmbeddedJarBuilder: Support stripping debug info from classes and giving a custom output filename.</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -272,6 +273,11 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 <p><i>note:</i> For all the <tt>*JarBuilder</tt> commands (except <tt>EmbeddedJarBuilder</tt>), 
 you can give as many stagers as you like. For example, if you want to have all included stagers
 in a single applet jar file, you can call <tt>java javapayload.builder.AppletJarBuilder ReverseTCP ReverseSSL BindTCP BindMultiTCP</tt>.</p>
+
+<p>In case you want to make the jars even smaller, you can give <tt>--strip</tt> as first parameter
+and all debug information will be removed from all the classes. If you don't like the standard jar output
+name, you can give a filename ending with <tt>.jar</tt> as first parameter (but after the <tt>--strip</tt>).
+This is supported for all the <tt>*JarBuilder</tt> commands, even for <tt>EmbeddedJarBuilder</tt>).</p>
 
 <h3>JDWP example</h3>
 

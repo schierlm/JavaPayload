@@ -50,6 +50,8 @@ import javapayload.builder.AgentJarBuilder;
 import javapayload.builder.AppletJarBuilder;
 import javapayload.builder.AttachInjector;
 import javapayload.builder.CVE_2008_5353_AppletJarBuilder;
+import javapayload.builder.CVE_2010_0094_AppletJarBuilder;
+import javapayload.builder.CVE_2010_0840_AppletJarBuilder;
 import javapayload.builder.ClassBuilder;
 import javapayload.builder.EmbeddedClassBuilder;
 import javapayload.builder.EmbeddedJarBuilder;
@@ -69,10 +71,14 @@ public class BuilderTest {
 				new ClassBuilderTestRunner(),
 				new EmbeddedClassBuilderTestRunner(),
 				new JarBuilderTestRunner(),
+				new StripJarBuilderTestRunner(),
 				new EmbeddedJarBuilderTestRunner(),
+				new StripEmbeddedJarBuilderTestRunner(),
 				new AgentJarBuilderTestRunner(),
 				new AppletJarBuilderTestRunner(),
 				// new CVE_2008_5353TestRunner(),
+				// new CVE_2010_0094TestRunner(),
+				// new CVE_2010_0840TestRunner(),
 				new AttachInjectorTestRunner(),
 				new JDWPInjectorTestRunner(),
 		};
@@ -243,6 +249,24 @@ public class BuilderTest {
 		public void cleanup() throws Exception {
 		}
 	}
+	
+	public static class StripJarBuilderTestRunner implements BuilderTestRunner {
+		public String getName() { return "JarBuilder (stripped)"; }
+		public int getDelay() { return 100; }
+
+		public void runBuilder(String[] args) throws Exception {
+			JarBuilder.main(new String[] { "--strip", "stripped.jar", args[0] });
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runJavaAndWait("stripped.jar", null, "javapayload.loader.StandaloneLoader", args);
+		}
+
+		public void cleanup() throws Exception {
+			if (!new File("stripped.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
 
 	public static class EmbeddedJarBuilderTestRunner implements BuilderTestRunner {
 		public String getName() { return "EmbeddedJarBuilder"; }
@@ -258,6 +282,28 @@ public class BuilderTest {
 
 		public void cleanup() throws Exception {
 			if (!new File("embedded.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
+	
+	public static class StripEmbeddedJarBuilderTestRunner implements BuilderTestRunner {
+		public String getName() { return "EmbeddedJarBuilder (stripped)"; }
+		public int getDelay() { return 100; }
+
+		public void runBuilder(String[] args) throws Exception {
+			String[] newArgs = new String[args.length+2];
+			newArgs[0] = "--strip";
+			newArgs[1] = "embstrip.jar";
+			System.arraycopy(args, 0, newArgs, 2, args.length);
+			EmbeddedJarBuilder.main(newArgs);
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runJavaAndWait("embstrip.jar", null, "javapayload.loader.EmbeddedJarLoader", new String[0]);
+		}
+
+		public void cleanup() throws Exception {
+			if (!new File("embstrip.jar").delete())
 				throw new IOException("Unable to delete file");
 		}
 	}
@@ -313,23 +359,39 @@ public class BuilderTest {
 	}
 
 	public static class CVE_2008_5353TestRunner implements BuilderTestRunner {
-		public String getName() { return "CVE_2008_5353 [kill]"; }
+		protected String getCVEName() { return "2008_5353"; }
+		public String getName() { return "CVE_"+getCVEName()+" [kill]"; }
 		public int getDelay() { return 3000; }
 
-
 		public void runBuilder(String[] args) throws Exception {
-			CVE_2008_5353_AppletJarBuilder.main(new String[] { args[0] });
+			CVE_2008_5353_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runAppletAndWait("CVE_2008_5353_Applet_" + args[0] + ".jar", "javapayload.loader.CVE_2008_5353", null, args);
-			if (!new File("CVE_2008_5353_Applet_" + args[0] + ".jar").delete())
-				throw new IOException("Unable to delete file");
+			runAppletAndWait("cve.jar", "javapayload.exploit.CVE_"+getCVEName(), null, args);
 		}
 
 		public void cleanup() throws Exception {
 			if (!new File("applettest.html").delete())
 				throw new IOException("Unable to delete file");
+			if (!new File("cve.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
+	
+	public static class CVE_2010_0094TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
+		protected String getCVEName() { return "2010_0094"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			CVE_2010_0094_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
+		}
+	}
+	
+	public static class CVE_2010_0840TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
+		protected String getCVEName() { return "2010_0840"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			CVE_2010_0840_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
 		}
 	}
 

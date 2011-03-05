@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -39,17 +39,13 @@ import java.util.jar.Manifest;
 public class AppletJarBuilder {
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.AppletJarBuilder <stager> [<moreStagers...>]");
+			System.out.println("Usage: java javapayload.builder.AppletJarBuilder "+JarBuilder.ARGS_SYNTAX);
 			return;
 		}
-		StringBuffer jarName = new StringBuffer("Applet");
-		final Class[] classes = new Class[args.length+2];
-		classes[0] = javapayload.loader.AppletLoader.class;
-		classes[1] = javapayload.stager.Stager.class;
-		for (int i = 0; i < args.length; i++) {
-			jarName.append('_').append(args[i]);
-			classes[i+2] = Class.forName("javapayload.stager." + args[i]);
-		}
-		JarBuilder.buildJar(jarName.append(".jar").toString(), classes, new Manifest(), null);
+		final Class[] baseClasses = new Class[] {
+				javapayload.loader.AppletLoader.class,
+				javapayload.stager.Stager.class,
+		};
+		JarBuilder.buildJarFromArgs(args, "Applet", baseClasses, new Manifest(), null, null);
 	}
 }
