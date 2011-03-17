@@ -9,7 +9,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 	private final PipedOutputStream wrapped;
 	private final WrappedPipedOutputStream extraClose;
 	
-	private boolean writePending = false;
+	private boolean writePending = false, threadDead = false;
 	private byte[] data;
 	private int offsetOrArg; 
 	private int length;
@@ -30,6 +30,8 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 				throw new IOException("Stream is closed");
 			while (writePending) 
 				wait();
+			if (threadDead)
+				throw new IOException("Writer thread dead");
 			data = null;
 			offsetOrArg = b;
 			length = 1;
@@ -48,6 +50,8 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 				throw new IOException("Stream is closed");
 			while (writePending) 
 				wait();
+			if (threadDead)
+				throw new IOException("Writer thread dead");
 			data = b;
 			offsetOrArg = off;
 			length = len;
@@ -66,6 +70,8 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 				throw new IOException("Stream is closed");
 			while (writePending) 
 				wait();
+			if (threadDead)
+				throw new IOException("Writer thread dead");
 			data = null;
 			length = 0;
 			writePending = true;
@@ -87,6 +93,8 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 				throw new IOException("Stream is closed");
 			while (writePending) 
 				wait();
+			if (threadDead)
+				throw new IOException("Writer thread dead");
 			data = null;
 			length = -1;
 			writePending = true;
@@ -110,8 +118,10 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 					} else if (length == -1) {
 						wrapped.close();
 						if (extraClose != null) {
-							extraClose.implicitClose = true;
-							extraClose.close();
+							synchronized(extraClose) {
+								extraClose.implicitClose = true;
+								extraClose.close();
+							}
 						}
 						break;
 					}
@@ -123,6 +133,10 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 			}
 		} catch (Exception ex) {
 			throw new RuntimeException(ex);
+		} finally {
+			threadDead = true;
+			writePending = false;
+			notifyAll();
 		}
 	}
 }

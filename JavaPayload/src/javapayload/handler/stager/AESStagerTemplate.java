@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -33,53 +33,45 @@
  */
 package javapayload.handler.stager;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintStream;
 
 import javapayload.handler.stage.StageHandler;
-import javapayload.stager.Stager;
 
-public class LocalTest extends StagerHandler implements Runnable {
+public class AESStagerTemplate extends StagerHandler {
 
-	private InputStream in;
-	private OutputStream out;
-	private PrintStream errorStream;
+	StagerHandler handler = new LocalTest();
 
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		this.errorStream = errorStream;
-		final PipedInputStream localIn = new PipedInputStream();
-		final PipedOutputStream localOut = new PipedOutputStream();
-		final WrappedPipedOutputStream wrappedLocalOut = new WrappedPipedOutputStream(localOut);
-		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn), wrappedLocalOut);
-		in = new PipedInputStream(localOut);
-		new Thread(this).start();
-		stageHandler.handle(wrappedLocalOut, localIn, parameters);
+		String[] newParameters = new String[parameters.length - 1];
+		System.arraycopy(parameters, 2, newParameters, 1, newParameters.length - 1);
+		newParameters[0] = parameters[0];
+		handler.handle(new AESStageHandler(parameters[1], stageHandler), newParameters, errorStream, extraArg);
 	}
 
-	public void run() {
-		try {
-			try {
-				if (!originalParameters[0].equals("LocalTest")) {
-					((Stager)Class.forName("javapayload.stager."+originalParameters[0]).getConstructor(new Class[] {InputStream.class, OutputStream.class}).newInstance(new Object[] {in, out})).bootstrap(originalParameters);
-					return;
-				}
-			} catch (Throwable t) {
-				// fall through
-			}
-			new javapayload.stager.LocalTest(in, out).bootstrap(originalParameters);
-		} catch (final Exception ex) {
-			ex.printStackTrace(errorStream);
+	protected boolean prepare(String[] parametersToPrepare) throws Exception {
+		String[] temp = new String[parametersToPrepare.length - 1];
+		System.arraycopy(parametersToPrepare, 2, temp, 1, temp.length - 1);
+		temp[0] = parametersToPrepare[0].substring(3);
+		boolean changed = handler.prepare(temp);
+		if (changed)
+			System.arraycopy(temp, 1, parametersToPrepare, 2, temp.length - 1);
+		if (parametersToPrepare[1].equals("#")) {
+			parametersToPrepare[1] = AESStageHandler.generatePassword();
+			changed = true;
 		}
+		return changed;
 	}
-	
+
 	protected boolean needHandleBeforeStart() {
-		return true;
+		return handler.needHandleBeforeStart();
 	}
-	
+
+	protected boolean canHandleExtraArg(Class argType) {
+		return handler.canHandleExtraArg(argType);
+	}
+
 	protected String getTestArguments() {
-		return null;
+		String handlerArgs = handler.getTestArguments();
+		return handlerArgs == null ? null : "# " + handlerArgs;
 	}
 }

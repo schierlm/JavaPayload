@@ -29,6 +29,44 @@
 	</target>
 
 	<target name="dynamicstagers" depends="compile">
+		<path id="AllStagersNoAES.path">
+			<fileset dir="src/javapayload/stager">
+				<include name="*.java" />
+				<exclude name="Stager.java" />
+			</fileset>
+		</path>
+		<pathconvert property="AllStagersNoAES" dirsep="/" pathsep=" " refid="AllStagersNoAES.path">
+			<chainedmapper>
+				<flattenmapper />
+				<globmapper from="*.java" to="*" />
+			</chainedmapper>
+		</pathconvert>
+		<java fork="true" dir="build" classname="javapayload.builder.AESStagerBuilder" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<classpath>
+				<path location="build/bin${SUFFIX2}" />
+				<path location="build/bin${SUFFIX1}" />
+				<path location="${LIB}/asm-3.2.jar" />
+				<path refid="extraclasspath" />
+			</classpath>
+			<arg line="${AllStagersNoAES}" />
+		</java>
+		<unjar src="build/AESStagers.jar" dest="build/bin${SUFFIX2}">
+			<patternset includes="**/*.class" />
+		</unjar>
+		<java fork="true" dir="build" classname="javapayload.builder.AESStagerBuilder" failonerror="true">
+			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<classpath>
+				<path location="build/bin${SUFFIX2}" />
+				<path location="build/bin${SUFFIX1}" />
+				<path location="${LIB}/asm-3.2.jar" />
+				<path refid="extraclasspath" />
+			</classpath>
+			<arg line="AESLocalTest AESReverseTCP AESJDWPTunnel" />
+		</java>
+		<unjar src="build/AESStagers.jar" dest="build/bin${SUFFIX2}">
+			<patternset includes="**/*.class" />
+		</unjar>
 		<path id="AllStagers.path">
 			<fileset dir="src/javapayload/stager">
 				<include name="*.java" />
@@ -37,12 +75,19 @@
 				<exclude name="JDWPTunnel.java" />
 			</fileset>
 		</path>
-		<pathconvert property="AllStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
+		<pathconvert property="AllNonAESStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
 			<chainedmapper>
 				<flattenmapper />
 				<globmapper from="*.java" to="*" />
 			</chainedmapper>
 		</pathconvert>
+		<pathconvert property="AllAESStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
+			<chainedmapper>
+				<flattenmapper />
+				<globmapper from="*.java" to="AES*" />
+			</chainedmapper>
+		</pathconvert>
+		<property name="AllStagers" value="${AllNonAESStagers} ${AllAESStagers}" />
 		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
 			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
 			<classpath>

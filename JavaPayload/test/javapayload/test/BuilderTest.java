@@ -457,7 +457,7 @@ public class BuilderTest {
 			injectorArgs[0] = "localhost:62468";
 			System.arraycopy(args, 0, injectorArgs, 1, args.length);
 			TestStub.wait = 1100;
-			if (args[0].equals("JDWPTunnel"))
+			if (args[0].endsWith("JDWPTunnel"))
 				TestStub.wait = 5000;
 			JDWPInjector.main(injectorArgs);
 			if (proc.waitFor() != 0)
@@ -468,6 +468,14 @@ public class BuilderTest {
 			Thread.sleep(1000);
 			System.out.println("\t\tJDWPTunnel");
 			testBuilder(this, "JDWPTunnel", "");
+			if (StagerTest.isStagerPresent("AESJDWPTunnel")) {
+				System.out.println("\t\tAESJDWPTunnel");
+				testBuilder(this, "AESJDWPTunnel", "#");
+			}
+			if (StagerTest.isStagerPresent("AESJDWPTunnel")) {
+				System.out.println("\t\tAESAESJDWPTunnel");
+				testBuilder(this, "AESAESJDWPTunnel", "# #");
+			}
 			if (!new File("DummyClass.class").delete())
 				throw new IOException("Unable to delete file");
 			TestStub.wait = 0;

@@ -43,6 +43,7 @@ Enter ~~ to start a line with a ~ character
 )*
 javapayload	\[DIR\]	[0-9. :-]*
 DummyClass.java	[0-9]*	[0-9. :-]*
+\.svn	\[DIR\]	[0-9. :-]*
 ! .*
 ! Press ~& to suspend, ~\. to stop job.
 ! ! Press ~& to suspend, ~\. to stop job.

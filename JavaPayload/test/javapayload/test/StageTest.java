@@ -38,58 +38,71 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileReader;
+import java.io.IOException;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.StringWriter;
 import java.io.Writer;
 import java.util.regex.Pattern;
 
+import javapayload.builder.ClassBuilder;
 import javapayload.handler.stager.StagerHandler;
-import javapayload.loader.StandaloneLoader;
 
 public class StageTest {
 	public static void main(String[] args) throws Exception {
 		File baseDir = new File(StageTest.class.getResource("stagetests").toURI());
 		if (args.length == 1) {
 			File file = new File(baseDir, args[0]+".txt");
-			testStage(file, "LocalTest", new OutputStreamWriter(System.out));
+			testStage(file, "LocalTest", "", new OutputStreamWriter(System.out));
 		} else {
-			System.out.println("Testing stages (LocalTest)...");
 			File[] files = baseDir.listFiles();
+			System.out.println("Testing stages (LocalTest)...");
 			for (int i = 0; i < files.length; i++) {
 				testStage(files[i], "LocalTest");
 			}
+			if (StagerTest.isStagerPresent("AESLocalTest")) {
+				System.out.println("Testing stages (AESLocalTest)...");
+				for (int i = 0; i < files.length; i++) {
+					testStage(files[i], "AESLocalTest #");
+				}
+				
+			}
+			if (StagerTest.isStagerPresent("AESAESLocalTest")) {
+				System.out.println("Testing stages (AESAESLocalTest)...");
+				for (int i = 0; i < files.length; i++) {
+					testStage(files[i], "AESAESLocalTest # #");
+				}
+			}
 			System.out.println("Testing stages (BindTCP)...");
-			final Throwable[] tt = new Throwable[1];
-			Thread th = new Thread(new Runnable() {
-				public void run() {
-					try {
-						StandaloneLoader.main(new String[] {"BindMultiTCP", "localhost", "60123"});
-					} catch (Throwable t) {
-						tt[0] = t;
-					}
-				};
-			});
-			th.start();
+			String[] stagerArgs = new String[] {"BindMultiTCP", "localhost", "60123"};
+			ClassBuilder.main(new String[] { stagerArgs[0], "BuilderTestClass" });
+			Process proc = BuilderTest.runJava(".", null, "BuilderTestClass", stagerArgs);
 			for (int i = 0; i < files.length; i++) {
 				testStage(files[i], "BindTCP localhost 60123");
 			}
 			StagerHandler.main("BindTCP localhost 60123 -- StopListening".split(" "));
 			StagerHandler.main("BindTCP localhost 60123 -- StopListening".split(" "));
-			th.join();
-			if (tt[0] != null)
-					throw new Exception("Stager died", tt[0]);
+			if (proc.waitFor() != 0)
+				throw new IOException("Build result exited with error code " + proc.exitValue());
 			new File("jsh.txt").delete();
+			if (!new File("BuilderTestClass.class").delete())
+				throw new IOException("Unable to delete file");
 			System.out.println("Stage tests finished.");
 			new ThreadWatchdogThread(5000).start();
 		}
 	}
 
 	private static void testStage(File file, String stager) throws Exception {
+		testStage(file, stager, "");
+		testStage(file, stager, "AES someV3rySecret ");
+		testStage(file, stager, "AES oneSecret AES otherSecret ");
+	}
+	
+	private static void testStage(File file, String stager, String stagePrefix) throws Exception {
 		if (!file.getName().endsWith(".txt"))
 			return;
 		StringWriter sw = new StringWriter();
-		Pattern regex = testStage(file, stager, sw);
+		Pattern regex = testStage(file, stager, stagePrefix, sw);
 		String output = sw.toString().replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 		if (!regex.matcher(output).matches()) {
 			System.err.println("Pattern:\r\n"+regex.pattern());
@@ -98,10 +111,10 @@ public class StageTest {
 		}
 	}
 	
-	private static Pattern testStage(File file, String stager, Writer output) throws Exception {
+	private static Pattern testStage(File file, String stager, String stagePrefix, Writer output) throws Exception {
 		BufferedReader desc = new BufferedReader(new FileReader(file));
-		System.out.println("\t"+file.getName().replaceAll("\\.txt", ""));
-		String stage = desc.readLine();
+		System.out.println("\t"+stagePrefix + file.getName().replaceAll("\\.txt", ""));
+		String stage = stagePrefix + desc.readLine();
 		StringBuffer sb = new StringBuffer();
 		String delimiter = desc.readLine();
 		String line;
@@ -112,7 +125,7 @@ public class StageTest {
 		// TODO remove and fix this when SendParameters is merged;
 		// currently stages with parameters cannot be tested with
 		// the BindMultiTCP stager
-		if (stage.contains(" ") && !stager.equals("LocalTest"))
+		if (stage.contains(" ") && !stager.endsWith("LocalTest"))
 			return Pattern.compile("");
 		String[] args = (stager + " -- "+stage).split(" ");
 		StagerHandler.Loader loader = new StagerHandler.Loader(args);
@@ -127,7 +140,7 @@ public class StageTest {
 			if (line.equals(delimiter)) break;
 			sb.append(line).append("\n");
 		}
-		while(sb.charAt(sb.length()-1) == '\n')
+		while(sb.length() > 0 && sb.charAt(sb.length()-1) == '\n')
 			sb.setLength(sb.length()-1);
 		Thread.sleep(500);
 		out.flush();

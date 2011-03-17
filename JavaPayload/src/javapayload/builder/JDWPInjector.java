@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -171,7 +171,7 @@ public class JDWPInjector {
 				}
 			}
 		}
-		boolean isJDWPTunnelStager = stager.equals("JDWPTunnel");
+		boolean isJDWPTunnelStager = loader.canHandleExtraArg(ClassType.class);
 		loader.handleBefore(loader.stageHandler.consoleErr, null); // may modify stagerArgs
 		final StringBuffer embeddedArgs = new StringBuffer();
 		for (int i = 0; i < stagerArgs.length; i++) {
@@ -189,7 +189,7 @@ public class JDWPInjector {
 			classes = new Class[] {
 					javapayload.loader.JDWPCommunication.class,
 					javapayload.stager.Stager.class,
-					javapayload.stager.JDWPTunnel.class, 
+					classes[1], 
 					javapayload.loader.JDWPLoader.class
 			};
 		}

@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -40,6 +40,8 @@ import javapayload.handler.stage.StageHandler;
 
 public abstract class StagerHandler {
 	
+	protected String[] originalParameters;
+	
 	public static void main(String[] args) throws Exception {
 		boolean stageFound = false;
 		for (int i = 0; i < args.length - 1; i++) {
@@ -56,6 +58,10 @@ public abstract class StagerHandler {
 
 	// may have side effects on the parameters!
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
+		return false;
+	}
+	
+	protected boolean canHandleExtraArg(Class argType) {
 		return false;
 	}
 
@@ -105,13 +111,18 @@ public abstract class StagerHandler {
 			return args;
 		}
 		
+		public boolean canHandleExtraArg(Class argType) {
+			return stagerHandler.canHandleExtraArg(argType);
+		}
+		
 		private void handleInternal(PrintStream errorStream, Object extraArg) throws Exception {
+			stagerHandler.originalParameters = args;
 			stagerHandler.handle(stageHandler, args, errorStream, extraArg);
 		}
 		
 		public void handleBefore(final PrintStream errorStream, final Object extraArg) throws Exception {
+			stagerHandler.prepare(args);
 			if (stagerHandler.needHandleBeforeStart()) {
-				stagerHandler.prepare(args);
 				beforeThread = new Thread(new Runnable() {
 					public void run() {
 						try {
