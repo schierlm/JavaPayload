@@ -31,63 +31,16 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+package javapayload.handler.stage;
 
-public class BlockingInputStream extends FilterInputStream {
+public class GZ extends GZIP {
 	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
-
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-			b = read();
-		}
-		while (b == -1)
-			block();
-		return b;
+	public Class[] getNeededClasses() {
+		return new Class[] { javapayload.stage.GZ.class };
 	}
-
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
-			}
-		} catch (IOException ex) {
-		}
-		return i;
-	}
-
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+	
+	protected StageHandler createClone() {
+		return new GZ();
 	}
 }

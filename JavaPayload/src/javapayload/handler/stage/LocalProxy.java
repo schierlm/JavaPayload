@@ -34,50 +34,61 @@
 
 package javapayload.handler.stage;
 
-import java.io.DataInputStream;
-import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
-import java.security.MessageDigest;
-import java.util.Arrays;
-import java.util.Random;
+import java.io.OutputStream;
+import java.net.SocketException;
 
-public class TestStub extends StageHandler {
-	
-	public static int wait = 0;
-	public boolean sendExit = false;
-	
+import javapayload.stage.StreamForwarder;
+import javapayload.stager.Stager;
+
+public class LocalProxy extends StageHandler {
+
 	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.TestStub.class };
+		throw new IllegalStateException("Not used");
 	}
-	
+
+	public void handle(final OutputStream rawOut, final InputStream in, String[] parameters) throws Exception {
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				String[] args = new String[parameters.length - (i + 2)];
+				System.arraycopy(parameters, i + 2, args, 0, args.length);
+				final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
+				stager.targetStager = new Stager() {
+					public void bootstrap(String[] parameters) throws Exception {
+						throw new IllegalStateException("Not used");
+					}
+
+					protected void bootstrap(final InputStream stagerIn, final OutputStream stagerOut, String[] parameters) throws Exception {
+						consoleOut.println("Successfully started local proxy.");
+						Thread t = new Thread() {
+							public void run() {
+								try {
+									StreamForwarder.forward(stagerIn, rawOut);
+								} catch (SocketException ex) {
+									// ignore
+								} catch (IOException ex) {
+									ex.printStackTrace(consoleErr);
+								}
+							};
+						};
+						t.setDaemon(true);
+						t.start();
+						try {
+							StreamForwarder.forward(in, stagerOut);
+						} catch (SocketException ex) {
+							// ignore
+						}
+						consoleOut.println("Shutting down local proxy.");
+					};
+				};
+				stager.bootstrap(args);
+				break;
+			}
+		}
+	}
+
 	protected StageHandler createClone() {
-		// do NOT clone sendExit!
-		return new TestStub();
-	}
-	
-	public void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
-		DataInputStream dis = new DataInputStream(in);
-		byte[] indata = new byte[4096];
-		dis.readFully(indata);
-		Thread.sleep(wait);
-		byte[] outdata = new byte[4096];
-		Random r = new Random();
-		r.nextBytes(outdata);
-		out.write(outdata);
-		out.flush();
-		MessageDigest digest = MessageDigest.getInstance("SHA-1");
-		byte[] indigest = digest.digest(indata);
-		digest.reset();
-		byte[] outdigest = digest.digest(outdata);
-		out.write(indigest);
-		out.writeBoolean(sendExit);
-		out.flush();
-		byte[] outdigest2 = new byte[outdigest.length];
-		dis.readFully(outdigest2);
-		if (!Arrays.equals(outdigest, outdigest2))
-			throw new RuntimeException("Digests do not match");
-		if (in.read() != -1)
-			throw new RuntimeException("Stream not properly closed.");
-		out.close();
+		return new LocalProxy();
 	}
 }

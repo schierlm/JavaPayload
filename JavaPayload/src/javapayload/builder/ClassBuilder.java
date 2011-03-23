@@ -72,6 +72,10 @@ public class ClassBuilder extends Stager {
 			}
 
 			public void visitFieldInsn(int opcode, String owner, String name, String desc) {
+				// change type of targetStager accesses
+				if (desc.startsWith("Ljavapayload/")) {
+					desc = "L" + newClassName + ";";
+				}
 				super.visitFieldInsn(opcode, cleanType(owner), name, desc);
 			}
 
@@ -110,6 +114,13 @@ public class ClassBuilder extends Stager {
 
 			public void visitEnd() {
 				// not the end!
+			}
+			
+			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+				// change type of targetStager
+				if (desc.equals("Ljavapayload/stager/Stager;"))
+					desc="L"+classname+";";
+				return super.visitField(access, name, desc, signature, value);
 			}
 
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {

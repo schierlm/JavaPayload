@@ -31,63 +31,31 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
+package javapayload.handler.stage;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-
-public class BlockingInputStream extends FilterInputStream {
+public abstract class FilterStageHandler extends StageHandler {
 	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+	protected String[] realParameters = null;
+	protected int realStageOffset;
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
+	protected StageHandler findRealStageHandler(String[] parameters) throws Exception {
+		String realStage = null;
+		realParameters = (String[]) parameters.clone();
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				realParameters[i] = "";
+				realParameters[i + 1] = "--";
+				realStageOffset = i + 2;
+				realStage = parameters[i + 2];
+				break;
 			}
-			b = read();
 		}
-		while (b == -1)
-			block();
-		return b;
-	}
-
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
-			}
-		} catch (IOException ex) {
-		}
-		return i;
-	}
-
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+		if (realStage == null)
+			throw new IllegalArgumentException("Cannot find stage");
+		StageHandler realStageHandler = (StageHandler) Class.forName("javapayload.handler.stage." + realStage).newInstance();
+		realStageHandler.consoleIn = consoleIn;
+		realStageHandler.consoleOut = consoleOut;
+		realStageHandler.consoleErr = consoleErr;
+		return realStageHandler;
 	}
 }

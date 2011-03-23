@@ -31,63 +31,49 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+package javapayload.stage;
 
-public class BlockingInputStream extends FilterInputStream {
-	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+import java.io.DataInputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-			b = read();
-		}
-		while (b == -1)
-			block();
-		return b;
-	}
+import javapayload.stager.Stager;
 
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
+public class LaunchStager implements Stage, Runnable {
+
+	private String[] args = null;
+	private Throwable stagerException = null;
+
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				args = new String[parameters.length - (i + 2)];
+				for (int j = 0; j < args.length; j++) {
+					args[j] = parameters[i + 2 + j];
+					if (args[j].startsWith("---"))
+						args[j] = args[j].substring(1);
 				}
-				b[off + i] = (byte) c;
-				i++;
 			}
-		} catch (IOException ex) {
 		}
-		return i;
+		new Thread(this).start();
+		Thread.sleep(500);
+		PrintStream pout = new PrintStream(out);
+		if (stagerException != null) {
+			pout.println("Stager start failed: ");
+			stagerException.printStackTrace(pout);
+		} else {
+			pout.println("Stager started.");
+		}
+		pout.close();
 	}
 
-	private synchronized void block() {
+	public void run() {
 		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
+			final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
+			stager.bootstrap(args);
+		} catch (Throwable t) {
+			stagerException = t;
 		}
-	}
+	};
 }

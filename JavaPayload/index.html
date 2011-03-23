@@ -111,6 +111,53 @@ stderr streams automatically. Shell, SystemInfo and JSh do not need parameters, 
 two expect a command name and optional arguments - for UpExec the command name should be an absolute file name
 on the attacker's machine, which will be uploaded to the temp directory and executed there.</p>
 
+<p>A JCp stage (that does not require parameters) can be used to copy files from stager to handler and vice versa,
+and a ForwardTCP stage can be used to forward (only) one TCP connection from stager to handler (for tunnelling
+other ReverseTCP stagers. The latter requires two arguments, first one the (host:)port for the handler, the
+second one (host:)port for the stager. Both connections can either open new connections (with host), or listen
+on a port and accept the first connection that happens to connect to it.</p>
+
+<p>In case you cannot supply the stage parameters at the time your stager is loaded, you can instead use the
+SendParameters stage, which will send all the parameters "over the wire". It will accept another stage as its
+first parameter and launch this stage with its own parameters. If you want to run more than one different stage
+over the same stager, you can use the MultiStage stage, which also supports switching between different stages.
+Note that the stages in the background are "paused", which is bad for stages like ForwardTCP. Therefore, you
+can use the LaunchStager stage to launch a new stager from MultiStage, and separately connect to this one. In
+case the stage loaded from this stager needs parameters, the separator needs to be --- instead of -- and all
+other parameters starting with at least two dashes need one extra dash at the beginning. As a constructed
+example,</p>
+
+<p><tt>BindTCP localhost 1234 -- LaunchStager BindTCP localhost 2345 --- JSh</tt></p>
+
+<p>will launch a BindTCP stager that will only launch another BindTCP stager with JSh stage and then exit the
+(first) stager.</p>
+
+<p>All the stage classes and optional uploaded data (like uploaded executables) are sent uncompressed, as well as the
+interactive communication once the stage has been started. The latter cannot be changed easily (since compression
+will work on chunks of data, you'd have to set some timeout and finish the current chunk whenever no input appears
+for that timeframe); however, the sent stage classes and upload data can easily be compressed. The GZIP stage will
+take another stage and its arguments as stager arguments, and will load the stage in compressed form.
+The (small) GZIP stage itself will still have to be loaded uncompressed, however. In case the GZIP stage is too large,
+there is an even smaller version of the GZIP stage, called GZ, which will try to use the stager's bootstrap method for
+loading the secondary stage; this won't work with all stagers, though.</p>
+
+<h3>Interaction with Metasploit</h3>
+
+<p>Metasploit supports Java payloads, too; their stagers are limited to BindTCP and
+ReverseTCP, though. As they use the same on-the-wire format, it is possible to start
+a Metasploit exploit using <tt>reverse_tcp</tt> and let it connect to a StagerHandler
+from JavaPayload; or - more likely - have an exploit or builder from JavaPayload and
+let its ReverseTCP stager connect to a Metasploit <tt>multi/handler</tt> with payload 
+<tt>java/meterpreter/reverse_tcp</tt>.</p>
+
+<p>However, some of the JavaPayload builders bring special stagers that take advantage
+of the protocol that is being exploited - such as JDWPTunnel or ServletFindSock. To couple
+that one with Metasploit's meterpreter, a special LocalProxy stage handler is provided.</p>
+
+<p>This stage expects a stager and its arguments as parameters; this stager will be
+launched from the stage handler and the sockets will be connected to the stage handler's sockets,
+making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stager handler.</p> 
+
 <h2>Changes since version 0.2</h2>
 
 <ul>
@@ -121,6 +168,7 @@ on the attacker's machine, which will be uploaded to the temp directory and exec
 <li>JarBuilder, AgentJarBuilder, AppletJarBuilder, EmbeddedJarBuilder: Support stripping debug info from classes and giving a custom output filename.</li>
 <li>Add BindUDP/ReverseUDP stagers</li>
 <li>Add AES stagers and an AES stage (for stagers that do not support it)</li>
+<li>New stages: ForwardTCP, GZIP, GZ, JCp, LaunchStager, LocalProxy, MultiStage, SendParameters</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>

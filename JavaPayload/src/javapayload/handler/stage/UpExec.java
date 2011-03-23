@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@ public class UpExec extends StageHandler {
 				final byte[] file = baos.toByteArray();
 				out.writeInt(file.length);
 				out.write(file);
+				out.flush();
 				break;
 			}
 		}

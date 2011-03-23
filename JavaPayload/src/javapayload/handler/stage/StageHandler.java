@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -36,6 +36,7 @@ package javapayload.handler.stage;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -53,10 +54,19 @@ public abstract class StageHandler {
 	}
 
 	public abstract Class[] getNeededClasses();
+	
+	protected Class[] getNeededClasses(String[] parameters) throws Exception {
+		return getNeededClasses();
+	}
 
-	public final void handle(OutputStream rawOut, InputStream in, String[] parameters) throws Exception {
-		final Class[] classes = getNeededClasses();
+	public void handle(OutputStream rawOut, InputStream in, String[] parameters) throws Exception {
 		final DataOutputStream out = new DataOutputStream(rawOut);
+		handleBootstrap(parameters, out);
+		handleStreams(out, in, parameters);
+	}
+
+	public final void handleBootstrap(String[] parameters, final DataOutputStream out) throws IOException, Exception {
+		final Class[] classes = getNeededClasses(parameters);
 		for (int i = 0; i < classes.length; i++) {
 			final InputStream classStream = StageHandler.class.getResourceAsStream("/" + classes[i].getName().replace('.', '/') + ".class");
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
@@ -67,11 +77,10 @@ public abstract class StageHandler {
 		}
 		out.writeInt(0);
 		out.flush();
-		handleStreams(out, in, parameters);
+		customUpload(out, parameters);
 	}
 	
 	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
-		customUpload(out, parameters);
 		final StreamForwarder sf = new StreamForwarder(consoleIn, out, consoleErr);
 		sf.setDaemon(true);
 		sf.start();

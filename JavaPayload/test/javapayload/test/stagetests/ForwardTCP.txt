@@ -1,0 +1,5 @@
+ForwardTCP 32198 localhost:32199
+=-=
+=-=
+Stager connection established.
+Connection closed.

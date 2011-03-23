@@ -31,63 +31,42 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
+package javapayload.handler.stage;
+
+import java.io.DataOutputStream;
 import java.io.InputStream;
 
-public class BlockingInputStream extends FilterInputStream {
-	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+public class SendParameters extends FilterStageHandler {
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-			b = read();
+	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
+		StageHandler realStageHandler = findRealStageHandler(parameters);
+		int cnt = parameters.length - realStageOffset;
+		out.writeShort(cnt);
+		for (int i = 0; i < cnt; i++) {
+			out.writeUTF(parameters[i + realStageOffset]);
 		}
-		while (b == -1)
-			block();
-		return b;
+		realStageHandler.customUpload(out, realParameters);
 	}
 
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
-			}
-		} catch (IOException ex) {
-		}
-		return i;
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		findRealStageHandler(parameters).handleStreams(out, in, realParameters);
 	}
 
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+	public Class[] getNeededClasses(String[] parameters) throws Exception {
+		StageHandler realStageHandler = findRealStageHandler(parameters);
+		Class[] baseClasses = realStageHandler.getNeededClasses(realParameters);
+		Class[] result = new Class[baseClasses.length + 1];
+		System.arraycopy(baseClasses, 0, result, 0, baseClasses.length);
+		result[baseClasses.length] = javapayload.stage.SendParameters.class;
+		return result;
+	}
+
+	public Class[] getNeededClasses() {
+		throw new IllegalStateException("Parameters needed to determine classes");
+	}
+
+	protected StageHandler createClone() {
+		return new SendParameters();
 	}
 }

@@ -31,63 +31,34 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+package javapayload.handler.stage;
 
-public class BlockingInputStream extends FilterInputStream {
-	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+public class LaunchStager extends StageHandler {
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
+	public Class[] getNeededClasses(String[] parameters) throws Exception {
+		String stager = null;
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				stager = parameters[i+2];
+				break;
 			}
-			b = read();
 		}
-		while (b == -1)
-			block();
-		return b;
+		if (stager == null) throw new IllegalStateException("No stager given");
+		
+		return new Class[] {
+				javapayload.stage.Stage.class,
+				javapayload.stager.Stager.class,
+				Class.forName("javapayload.stager."+stager),
+				javapayload.stage.LaunchStager.class
+		};
 	}
 
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
-			}
-		} catch (IOException ex) {
-		}
-		return i;
+	public Class[] getNeededClasses() {
+		throw new IllegalStateException("Parameters needed to determine classes");
 	}
 
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+	protected StageHandler createClone() {
+		return new LaunchStager();
 	}
 }

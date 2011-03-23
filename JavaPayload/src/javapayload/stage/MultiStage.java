@@ -31,63 +31,33 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+package javapayload.stage;
 
-public class BlockingInputStream extends FilterInputStream {
-	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+import java.io.DataInputStream;
+import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
+public class MultiStage implements Stage {
+
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		List/* <MultiStagerClassLoader> */stagers = new ArrayList();
+		while (true) {
+			int index = in.readInt();
+			if (index == -1)
+				break;
+			if (index < 0 || index > stagers.size()) {
+				throw new RuntimeException("Invalid stager index: " + index + " (stagers size = " + stagers.size() + ")");
 			}
-			b = read();
-		}
-		while (b == -1)
-			block();
-		return b;
-	}
-
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
+			if (index == stagers.size()) {
+				stagers.add(new MultiStageClassLoader(in, out));
 			}
-		} catch (IOException ex) {
+			MultiStageClassLoader stager = (MultiStageClassLoader) stagers.get(index);
+			stager.forward(in);
 		}
-		return i;
-	}
-
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+		while(in.read() != -1)
+			;
+		out.close();
 	}
 }

@@ -31,63 +31,23 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
-import java.io.InputStream;
+package javapayload.stage;
 
-public class BlockingInputStream extends FilterInputStream {
-	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
+import java.io.DataInputStream;
+import java.io.OutputStream;
 
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-			b = read();
+public class SendParameters implements Stage {
+
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		int paramCount = in.readUnsignedShort();
+		String[] params = new String[paramCount + 2];
+		params[0] = parameters[0];
+		params[1] = "--";
+		for (int i = 2; i < params.length; i++) {
+			params[i] = in.readUTF();
 		}
-		while (b == -1)
-			block();
-		return b;
-	}
-
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
-			}
-		} catch (IOException ex) {
-		}
-		return i;
-	}
-
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+		Stage realStage = (Stage) Class.forName("javapayload.stage." + params[2]).newInstance();
+		realStage.start(in, out, params);
 	}
 }

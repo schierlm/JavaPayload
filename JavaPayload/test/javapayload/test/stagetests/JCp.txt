@@ -1,0 +1,63 @@
+JCp
+=-=
+help
++tmpdir/dir1
++:tmpdir/dir2
+test
+test/DummyClass.java -> tmpdir/1
+tmpdir/1 -> :tmpdir/2
+:tmpdir/1 -> tmpdir/3
+:tmpdir/1 -> :tmpdir/4
+:tmpdir
+-tmpdir/1
+-:tmpdir/2
+-tmpdir/3
+-:tmpdir/4
+-tmpdir/dir1
+-:tmpdir/dir2
+-tmpdir
+exit
+=-=
+\QJCp> Remote paths start with a colon (:).
+
+Create directory: +localdir
+                  +:remotedir
+List directory: localdir
+                :remotedir
+Delete file/directory: -localfile
+                       -:remotefile
+Copy file: localfile -> localfile
+           localfile -> :remotefile
+           :remotefile -> localfile
+           :remotefile -> :remotefile
+JCp> Directory created.
+JCp> Directory created.
+JCp> 3 files/directories in test
+
+javapayload	[DIR]	\E[0-9-]+ [0-9:]+\Q
+DummyClass.java	1892	\E[0-9-]+ [0-9:]+\Q
+.svn	[DIR]	\E[0-9-]+ [0-9:]+\Q
+
+JCp> 1892 bytes copied.
+JCp> 1892 bytes sent.
+1892 bytes received.
+JCp> 1892 bytes sent.
+1892 bytes received.
+JCp> 1892 bytes copied.
+JCp> 6 files/directories in tmpdir
+
+dir1	[DIR]	\E[0-9-]+ [0-9:]+\Q
+dir2	[DIR]	\E[0-9-]+ [0-9:]+\Q
+1	1892	\E[0-9-]+ [0-9:]+\Q
+2	1892	\E[0-9-]+ [0-9:]+\Q
+3	1892	\E[0-9-]+ [0-9:]+\Q
+4	1892	\E[0-9-]+ [0-9:]+\Q
+
+JCp> File/directory deleted.
+JCp> File/directory deleted.
+JCp> File/directory deleted.
+JCp> File/directory deleted.
+JCp> File/directory deleted.
+JCp> File/directory deleted.
+JCp> File/directory deleted.
+JCp> \E

@@ -31,63 +31,35 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.test;
 
-import java.io.FilterInputStream;
-import java.io.IOException;
+package javapayload.handler.stage;
+
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.InputStream;
+import java.util.zip.GZIPOutputStream;
 
-public class BlockingInputStream extends FilterInputStream {
+public class GZIP extends FilterStageHandler {
+		
+	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(new GZIPOutputStream(baos));
+		StageHandler realStageHandler = findRealStageHandler(parameters);
+		realStageHandler.handleBootstrap(realParameters, dos);
+		dos.close();
+		out.writeInt(baos.size());
+		out.write(baos.toByteArray());
+	}
+
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		findRealStageHandler(parameters).handleStreams(out, in, realParameters);
+	}
 	
-	boolean wait = false;
-	public BlockingInputStream(InputStream in) {
-		super(in);
-	}	
-
-	public int read() throws IOException {
-		int b = wait ? '»' : super.read();
-		wait = false;
-		while (b == '»') {
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException ex) {
-			}
-			b = read();
-		}
-		while (b == -1)
-			block();
-		return b;
+	public Class[] getNeededClasses() {
+		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.GZIP.class };
 	}
-
-	public int read(byte[] b, int off, int len) throws IOException {
-		if (len == 0)
-			return 0;
-		int c = read();
-		while (c == -1)
-			block();
-		b[off] = (byte) c;
-		int i = 1;
-		try {
-			while (i < len) {
-				c = super.read();
-				if (c == '»' || c == -1)
-				{
-					wait = true;
-					break;
-				}
-				b[off + i] = (byte) c;
-				i++;
-			}
-		} catch (IOException ex) {
-		}
-		return i;
-	}
-
-	private synchronized void block() {
-		try {
-			wait();
-		} catch (InterruptedException ex) {
-			ex.printStackTrace();
-		}
+	
+	protected StageHandler createClone() {
+		return new GZIP();
 	}
 }

