@@ -35,8 +35,10 @@
 package javapayload.builder;
 
 import java.util.Arrays;
+import java.util.Collections;
 
 import com.sun.jdi.ArrayReference;
+import com.sun.jdi.ArrayType;
 import com.sun.jdi.ByteValue;
 import com.sun.jdi.ClassObjectReference;
 import com.sun.jdi.ClassType;
@@ -56,9 +58,8 @@ public class JDWPClassInjector {
 	private final ObjectReference myClassLoader;
 
 	private final ClassType _Class; // java.lang.Class
-	private final ClassType _Array; // java.lang.reflect.Array
-	private final ClassType _URLClassLoader; // java.net.URLClassLoader
-	private final ClassType _byte; // byte
+	private final ClassType _SecureClassLoader; // java.security.URLClassLoader
+	private final ArrayType _byteArray; // byte[]
 
 	/**
 	 * Create a new class injector.
@@ -73,27 +74,12 @@ public class JDWPClassInjector {
 		// so pick it from the classes cache
 		this._Class = (ClassType) virtualMachine.classesByName("java.lang.Class").get(0);
 
-		// load more types via reflection
-		this._Array = loadClass("java.lang.reflect.Array");
-		this._URLClassLoader = loadClass("java.net.URLClassLoader");
-		final ClassType _Byte = loadClass("java.lang.Byte");
-		this._byte = (ClassType) ((ClassObjectReference) _Byte.getValue(_Byte.fieldByName("TYPE"))).reflectedType();
+		// load class loader type via reflection
+		this._SecureClassLoader = (ClassType) virtualMachine.classesByName("java.security.SecureClassLoader").get(0);
+		this._byteArray = (ArrayType) _SecureClassLoader.concreteMethodByName("defineClass", "([BII)Ljava/lang/Class;").argumentTypes().get(0);
 
-		// get an empty URL[] and use it to create an URLClassLoader
-		final ArrayReference urls = buildArray(loadClass("java.net.URL"), 0);
-		myClassLoader = newInstance(_URLClassLoader, "([Ljava/net/URL;)V", new Value[] { urls });
-	}
-
-	/**
-	 * Create a new array via reflection
-	 * 
-	 * @param baseType
-	 *            base type of the array
-	 * @param length
-	 *            length of the array
-	 */
-	private ArrayReference buildArray(ClassType baseType, int length) throws Exception {
-		return (ArrayReference) invokeStaticMethod(_Array, "newInstance", "(Ljava/lang/Class;I)Ljava/lang/Object;", new Value[] { baseType.classObject(), virtualMachine.mirrorOf(length) });
+		// create a SecureClassLoader
+		myClassLoader = newInstance(_SecureClassLoader);
 	}
 
 	/**
@@ -108,7 +94,7 @@ public class JDWPClassInjector {
 	public ClassType inject(byte[] clazz, String argsForInstantiate) throws Exception {
 
 		// build a byte array and fill it
-		final ArrayReference array = buildArray(_byte, clazz.length);
+		final ArrayReference array = _byteArray.newInstance(clazz.length);
 		ByteValue[] byteValues = new ByteValue[clazz.length];
 		for (int i = 0; i < clazz.length; i++) {
 			byteValues[i] = virtualMachine.mirrorOf(clazz[i]);
@@ -116,16 +102,15 @@ public class JDWPClassInjector {
 		array.setValues(Arrays.asList(byteValues));
 
 		// load the class with the class loader
-		final ObjectReference loadedClazz = (ObjectReference) invokeMethod(myClassLoader, _URLClassLoader, "defineClass", "([BII)Ljava/lang/Class;", new Value[] { array, virtualMachine.mirrorOf(0), virtualMachine.mirrorOf(clazz.length) });
+		final ObjectReference loadedClazz = (ObjectReference) invokeMethod(myClassLoader, _SecureClassLoader, "defineClass", "([BII)Ljava/lang/Class;", new Value[] { array, virtualMachine.mirrorOf(0), virtualMachine.mirrorOf(clazz.length) });
 		final ClassType _clazz = (ClassType) ((ClassObjectReference) loadedClazz).reflectedType();
 
 		if (argsForInstantiate != null) {
 			// prepare the class
-			invokeMethod(myClassLoader, _URLClassLoader, "resolveClass", "(Ljava/lang/Class;)V", new Value[] { loadedClazz });
 			invokeMethod(loadedClazz, _Class, "getMethods", "()[Ljava/lang/reflect/Method;", new Value[0]);
 
 			// invoke its constructor
-			final ObjectReference loadedInstance = newInstance(_clazz, "()V", new Value[0]);
+			final ObjectReference loadedInstance = newInstance(_clazz);
 
 			// invoke its go method
 			invokeMethod(loadedInstance, _clazz, "go", "(Ljava/lang/String;)V", new Value[] { virtualMachine.mirrorOf(argsForInstantiate) });
@@ -158,46 +143,13 @@ public class JDWPClassInjector {
 	}
 
 	/**
-	 * Invoke a static method via JDI.
-	 * 
-	 * @param _class
-	 *            The class the method belongs to
-	 * @param name
-	 *            The name of the method
-	 * @param signature
-	 *            The signature of the method
-	 * @param parameters
-	 *            Parameters to use
-	 * @return The return value
-	 */
-	private Value invokeStaticMethod(ClassType _class, String name, String signature, Value[] parameters) throws Exception {
-		return _class.invokeMethod(thread, _class.concreteMethodByName(name, signature), Arrays.asList(parameters), 0);
-	}
-
-	/**
-	 * Load a class via JDI
-	 * 
-	 * @param className
-	 *            The class to load
-	 * @return The loaded class
-	 */
-	private ClassType loadClass(String className) throws Exception {
-		return (ClassType) ((ClassObjectReference) _Class.invokeMethod(thread, _Class.concreteMethodByName("forName", "(Ljava/lang/String;)Ljava/lang/Class;"), Arrays.asList(new Value[] { virtualMachine.mirrorOf(className) }), 0)).reflectedType();
-	}
-
-	/**
-	 * Create a remote instance of a class via JDI.
+	 * Create a remote instance of a class via JDI using a no-arg constructor.
 	 * 
 	 * @param _class
 	 *            Class
-	 * @param signature
-	 *            Signature of the constructor
-	 * @param parameters
-	 *            Constructor parameters
-	 * @return
 	 * @return the new instance
 	 */
-	private ObjectReference newInstance(ClassType _class, String signature, Value[] parameters) throws Exception {
-		return _class.newInstance(thread, _class.concreteMethodByName("<init>", signature), Arrays.asList(parameters), 0);
+	private ObjectReference newInstance(ClassType _class) throws Exception {
+		return _class.newInstance(thread, _class.concreteMethodByName("<init>", "()V"), Collections.EMPTY_LIST, 0);
 	}
 }
