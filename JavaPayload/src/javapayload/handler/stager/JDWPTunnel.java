@@ -34,10 +34,12 @@
 
 package javapayload.handler.stager;
 
+import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import javapayload.handler.stage.StageHandler;
@@ -98,6 +100,7 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 			final com.sun.jdi.event.EventQueue q = vm.eventQueue();
 			boolean done = false;
 			errorStream.println("== Handling I/O events...");
+			InputInterceptHandler iih = null;
 			while (true) {
 				final EventSet es;
 				if (!done) {
@@ -118,12 +121,17 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 							LocalVariable result = (LocalVariable) loc.method().variablesByName("result").get(0);
 							LocalVariable buffer = (LocalVariable) loc.method().arguments().get(0);
 							ArrayReference buf = (ArrayReference) tr.frame(0).getValue(buffer);
-							new InputInterceptHandler(tr, buf, result).start();
+							if (iih != null && iih.isAlive()) {
+								System.err.println("Two input intercept handlers running at the same time");
+								iih.join();
+							}
+							iih = new InputInterceptHandler(tr, buf, result);
+							iih.start();
 						} else if (loc.equals(interceptOut)) {
 							LocalVariable result = (LocalVariable) loc.method().variablesByName("result").get(0);
 							LocalVariable data = (LocalVariable) loc.method().arguments().get(0);
 							ArrayReference buf = (ArrayReference) tr.frame(0).getValue(data);
-							List values = buf.getValues();
+							List values = (buf.length() == 0) ? Collections.EMPTY_LIST : buf.getValues();
 							byte[] temp = new byte[buf.length()];
 							for (int i = 0; i < temp.length; i++) {
 								temp[i] = ((ByteValue)values.get(i)).byteValue();
@@ -146,6 +154,8 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 					}
 				}
 			}
+			if (iih != null)
+				iih.join();
 		}
 		catch(Throwable t) {
 			t.printStackTrace(errorStream);
@@ -188,7 +198,13 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 		public void run() {
 			try {
 				byte[] temp = new byte[buffer.length()];
-				int len = pipedIn.read(temp);
+				int len;
+				try {
+					len = pipedIn.read(temp);
+				} catch (IOException ex) {
+					ex.printStackTrace();
+					len = -1;
+				}
 				if (len > 0) {
 					ByteValue[] bytes = new ByteValue[len];
 					for (int i = 0; i < bytes.length; i++) {
