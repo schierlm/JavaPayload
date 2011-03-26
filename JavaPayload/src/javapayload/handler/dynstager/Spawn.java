@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl.
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,38 +31,22 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.handler.stager;
 
-import java.io.PrintStream;
+package javapayload.handler.dynstager;
 
-import javapayload.handler.stage.StageHandler;
+import javapayload.handler.stager.DynStagerHandler;
 
-public class SpawnTemplate extends StagerHandler {
+public class Spawn extends DynStagerHandler {
 
-	StagerHandler handler = new LocalTest();
-	
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		handler.handle(stageHandler, parameters, errorStream, extraArg);
-	}
-	
-	protected String getTestArguments() {
-		return handler.getTestArguments();
-	}
-	
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		
-		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Spawn");
+		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Spawn_");
 		if (fCutSpawn)
-			parametersToPrepare[0] = parametersToPrepare[0].substring(5);
+			parametersToPrepare[0] = parametersToPrepare[0].substring(6);
 		try {
-			return handler.prepare(parametersToPrepare);
+			return super.prepare(parametersToPrepare);
 		} finally {
 			if (fCutSpawn)
-				parametersToPrepare[0] = "Spawn" + parametersToPrepare[0];
+				parametersToPrepare[0] = "Spawn_" + parametersToPrepare[0];
 		}
-	}
-
-	protected boolean needHandleBeforeStart() {
-		return handler.needHandleBeforeStart();
 	}
 }

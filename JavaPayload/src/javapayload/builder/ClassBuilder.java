@@ -39,6 +39,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import javapayload.loader.DynLoader;
 import javapayload.stager.Stager;
 
 import org.objectweb.asm.ClassAdapter;
@@ -52,8 +53,14 @@ import org.objectweb.asm.Opcodes;
 
 public class ClassBuilder extends Stager {
 
-	protected static void buildClass(final String classname, final String stager, Class loaderClass, final String embeddedArgs) throws Exception {
-
+	protected static void buildClass(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
+		final byte[] newBytecode = buildClassBytes(classname, stager, loaderClass, embeddedArgs, realArgs);
+		final FileOutputStream fos = new FileOutputStream(classname + ".class");
+		fos.write(newBytecode);
+		fos.close();		
+	}
+	
+	public static byte[] buildClassBytes(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
 		final ClassWriter cw = new ClassWriter(0);
 
 		class MyMethodVisitor extends MethodAdapter {
@@ -72,10 +79,6 @@ public class ClassBuilder extends Stager {
 			}
 
 			public void visitFieldInsn(int opcode, String owner, String name, String desc) {
-				// change type of targetStager accesses
-				if (desc.startsWith("Ljavapayload/")) {
-					desc = "L" + newClassName + ";";
-				}
 				super.visitFieldInsn(opcode, cleanType(owner), name, desc);
 			}
 
@@ -105,7 +108,7 @@ public class ClassBuilder extends Stager {
 				return new MyMethodVisitor(super.visitMethod(access, name, desc, signature, exceptions), classname);
 			}
 		};
-		visitClass(Class.forName("javapayload.stager." + stager), stagerVisitor, cw);
+		visitClass(DynLoader.loadStager(stager, realArgs, 1), stagerVisitor, cw);
 		final ClassVisitor stagerBaseVisitor = new ClassAdapter(cw) {
 
 			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
@@ -114,13 +117,6 @@ public class ClassBuilder extends Stager {
 
 			public void visitEnd() {
 				// not the end!
-			}
-			
-			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-				// change type of targetStager
-				if (desc.equals("Ljavapayload/stager/Stager;"))
-					desc="L"+classname+";";
-				return super.visitField(access, name, desc, signature, value);
 			}
 
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
@@ -163,10 +159,7 @@ public class ClassBuilder extends Stager {
 			}
 		};
 		visitClass(loaderClass, loaderVisitor, cw);
-		final byte[] newBytecode = cw.toByteArray();
-		final FileOutputStream fos = new FileOutputStream(classname + ".class");
-		fos.write(newBytecode);
-		fos.close();
+		return cw.toByteArray();
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -180,15 +173,15 @@ public class ClassBuilder extends Stager {
 			classname = args[1];
 		}
 
-		buildClass(classname, stager, ClassBuilder.class, null);
+		buildClass(classname, stager, ClassBuilder.class, null, null);
 	}
 
 	public static void mainToEmbed(String[] args) throws Exception {
 		new ClassBuilder().bootstrap(args);
 	}
 
-	private static void visitClass(Class clazz, ClassVisitor stagerVisitor, ClassWriter cw) throws Exception {
-		final InputStream is = ClassBuilder.class.getResourceAsStream("/" + clazz.getName().replace('.', '/') + ".class");
+	public static void visitClass(Class clazz, ClassVisitor stagerVisitor, ClassWriter cw) throws Exception {
+		final InputStream is = clazz.getResourceAsStream("/" + clazz.getName().replace('.', '/') + ".class");
 		final ClassReader cr = new ClassReader(is);
 		cr.accept(stagerVisitor, ClassReader.SKIP_DEBUG);
 		is.close();

@@ -4,7 +4,6 @@
 	<property name="cobertura.dir" value="D:/Progs-Michi/java/cobertura-1.9.4.1" />
 	<property name="SUFFIX1" value="-in" />
 	<property name="SUFFIX2" value="-out" />
-	<property name="SUFFIX3" value="-stagers" />
 	<property name="javapayload.child.classpath" value=";${cobertura.dir}/cobertura.jar" />
 
 	<path id="cobertura.classpath">
@@ -18,11 +17,19 @@
 
 	<import file="build.xml" />
 
-	<target name="compile" depends="JavaPayload.compile">
+	<target name="compiletest" depends="JavaPayload.compiletest">
 		<path id="extraclasspath">
 			<path refid="cobertura.classpath" />
 		</path>
 		<mkdir dir="build/bin${SUFFIX2}" />
+		<java fork="true" dir="build/bin${SUFFIX2}" classname="javapayload.test.SpawnStagerPrebuilder" failonerror="true">
+			<classpath>
+				<path location="build/bin${SUFFIX1}" />
+				<path location="build/testbin" />
+				<path location="${LIB}/asm-3.2.jar" />
+				<path location="${TOOLS}" />
+			</classpath>
+		</java>
 		<delete file="build/cobertura1.ser" />
 		<cobertura-instrument datafile="build/cobertura1.ser" todir="build/bin${SUFFIX2}">
 			<fileset dir="build/bin${SUFFIX1}">
@@ -31,15 +38,6 @@
 				<exclude name="javapayload/stage/StopListening.class" />
 			</fileset>
 		</cobertura-instrument>
-		<!-- have uninstrumented stagers handy for being called from 
-		     spawn stagers (they won't find Cobertura) -->
-		<mkdir dir="build/bin${SUFFIX3}" />
-		<copy todir="build/bin${SUFFIX3}">
-			<fileset dir="build/bin${SUFFIX1}">
-				<include name="javapayload/stager/*.class" />
-				<include name="javapayload/builder/*ClassBuilder.class" />
-			</fileset>
-		</copy>
 		<copy tofile="build/cobertura2.ser" file="build/cobertura1.ser" />
 	</target>
 

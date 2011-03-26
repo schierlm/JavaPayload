@@ -41,6 +41,8 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+import javapayload.loader.DynLoader;
+
 public class JarBuilder {
 
 	public static final String ARGS_SYNTAX = "[--strip] [<filename>.jar] <stager> [<moreStagers...>]";
@@ -64,7 +66,7 @@ public class JarBuilder {
 				continue;
 			final String classname = classes[i].getName().replace('.', '/') + ".class";
 			jos.putNextEntry(new ZipEntry(prefix + classname));
-			InputStream in = JarBuilder.class.getResourceAsStream("/" + classname);
+			InputStream in = classes[i].getResourceAsStream("/" + classname);
 			if (stripDebugInfo) {
 				ClassBuilder.writeClassWithoutDebugInfo(in, jos);
 			} else {
@@ -107,7 +109,7 @@ public class JarBuilder {
 				overrideName = args[i]; 
 			} else {
 				jarName.append(args[i]);
-				classes[i + baseClasses.length] = Class.forName("javapayload.stager." + args[i]);
+				classes[i + baseClasses.length] = DynLoader.loadStager(args[i], null, 0);
 			}
 		}
 		buildJar(overrideName != null ? overrideName : jarName.append(".jar").toString(), classes, stripDebugInfo, manifest, extraResourceName, extraResource);

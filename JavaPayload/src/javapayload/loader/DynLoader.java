@@ -31,56 +31,59 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.handler.stager;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
-import java.io.PrintStream;
+package javapayload.loader;
 
-import javapayload.handler.stage.StageHandler;
-import javapayload.loader.DynLoader;
+import javapayload.builder.dynstager.DynStagerBuilder;
 import javapayload.stager.Stager;
 
-public class LocalTest extends StagerHandler implements Runnable {
+public class DynLoader {
 
-	private InputStream in;
-	private OutputStream out;
-	private PrintStream errorStream;
-
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		this.errorStream = errorStream;
-		final PipedInputStream localIn = new PipedInputStream();
-		final PipedOutputStream localOut = new PipedOutputStream();
-		final WrappedPipedOutputStream wrappedLocalOut = new WrappedPipedOutputStream(localOut);
-		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn), wrappedLocalOut);
-		in = new PipedInputStream(localOut);
-		new Thread(this).start();
-		stageHandler.handle(wrappedLocalOut, localIn, parameters);
-	}
-
-	public void run() {
+	public static Class loadStager(String name, String[] args, int firstArg) throws Exception {
+		String className = "javapayload.stager." + name;
 		try {
+			return Class.forName(className);
+		} catch (ClassNotFoundException ex) {
+			DynStagerURLStreamHandler ush = DynStagerURLStreamHandler.getInstance();
 			try {
-				if (!originalParameters[0].equals("LocalTest")) {
-					((Stager)DynLoader.loadStager(originalParameters[0], originalParameters, 0).getConstructor(new Class[] {InputStream.class, OutputStream.class}).newInstance(new Object[] {in, out})).bootstrap(originalParameters);
-					return;
-				}
-			} catch (Throwable t) {
-				// fall through
+				return ush.getDynClassLoader().loadClass(className);
+			} catch (ClassNotFoundException ex2) {
 			}
-			new javapayload.stager.LocalTest(in, out).bootstrap(originalParameters);
-		} catch (final Exception ex) {
-			ex.printStackTrace(errorStream);
+			int pos = name.indexOf('_');
+			if (pos != -1) {
+				String dsbName = name.substring(0, pos);
+				String stagerName = name.substring(pos + 1);
+				String extraArg = null;
+				pos = dsbName.indexOf('$');
+				if (pos != -1) {
+					extraArg = dsbName.substring(pos + 1);
+					dsbName = dsbName.substring(0, pos);
+				}
+				DynStagerBuilder dsb = null;
+				Class baseStagerClass = null;
+
+				try {
+					dsb = (DynStagerBuilder) Class.forName("javapayload.builder.dynstager." + dsbName).newInstance();
+					baseStagerClass = loadStager(stagerName, null, 0);
+				} catch (ClassNotFoundException ex2) {
+				}
+				if (baseStagerClass != null) {
+					String[] dynArgs = args;
+					if (firstArg != 0 && dynArgs != null) {
+						dynArgs = new String[args.length - firstArg];
+						System.arraycopy(args, firstArg, dynArgs, 0, dynArgs.length);
+					}
+					byte[] bytecode = dsb.buildStager(name, baseStagerClass, extraArg, dynArgs);
+					ush.addStager(name, bytecode);
+					return ush.getDynClassLoader().loadClass(className);
+				}
+			}
+			throw ex;
 		}
 	}
-	
-	protected boolean needHandleBeforeStart() {
-		return true;
-	}
-	
-	protected String getTestArguments() {
-		return null;
+
+	public static void main(String[] args) throws Exception {
+		final Stager stager = (Stager) loadStager(args[0], args, 0).newInstance();
+		stager.bootstrap(args);
 	}
 }

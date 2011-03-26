@@ -31,56 +31,43 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.handler.stager;
+
+package javapayload.builder.dynstager;
 
 import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
 import java.io.PrintStream;
+import java.net.SocketException;
 
-import javapayload.handler.stage.StageHandler;
-import javapayload.loader.DynLoader;
-import javapayload.stager.Stager;
+import javapayload.handler.stage.LocalProxy;
+import javapayload.stage.StreamForwarder;
 
-public class LocalTest extends StagerHandler implements Runnable {
+// used by LocalProxy stage handler
+public class InternalLocalProxy extends WrappingDynStagerBuilder {
 
-	private InputStream in;
-	private OutputStream out;
-	private PrintStream errorStream;
-
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		this.errorStream = errorStream;
-		final PipedInputStream localIn = new PipedInputStream();
-		final PipedOutputStream localOut = new PipedOutputStream();
-		final WrappedPipedOutputStream wrappedLocalOut = new WrappedPipedOutputStream(localOut);
-		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn), wrappedLocalOut);
-		in = new PipedInputStream(localOut);
-		new Thread(this).start();
-		stageHandler.handle(wrappedLocalOut, localIn, parameters);
+	public PrintStream consoleOut;
+	public PrintStream consoleErr;
+	public OutputStream rawOut;
+	public InputStream in;
+	
+	public void bootstrapWrap(String[] parameters) throws Exception {
+		bootstrapOrig(parameters);
 	}
 
-	public void run() {
+	protected void bootstrapWrap(final InputStream stagerIn, final OutputStream stagerOut, String[] parameters) {
 		try {
+			consoleOut.println("Successfully started local proxy.");
+			Thread t = new LocalProxy.ForwardThread(stagerIn, rawOut, consoleErr);
+			t.setDaemon(true);
+			t.start();
 			try {
-				if (!originalParameters[0].equals("LocalTest")) {
-					((Stager)DynLoader.loadStager(originalParameters[0], originalParameters, 0).getConstructor(new Class[] {InputStream.class, OutputStream.class}).newInstance(new Object[] {in, out})).bootstrap(originalParameters);
-					return;
-				}
-			} catch (Throwable t) {
-				// fall through
+				StreamForwarder.forward(in, stagerOut);
+			} catch (SocketException ex) {
+				// ignore
 			}
-			new javapayload.stager.LocalTest(in, out).bootstrap(originalParameters);
-		} catch (final Exception ex) {
-			ex.printStackTrace(errorStream);
+			consoleOut.println("Shutting down local proxy.");
+		} catch (Throwable t) {
+			t.printStackTrace(consoleErr);
 		}
-	}
-	
-	protected boolean needHandleBeforeStart() {
-		return true;
-	}
-	
-	protected String getTestArguments() {
-		return null;
 	}
 }

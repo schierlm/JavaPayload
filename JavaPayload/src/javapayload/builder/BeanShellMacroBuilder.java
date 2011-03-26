@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -34,9 +34,9 @@
 
 package javapayload.builder;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.InputStream;
 
 public class BeanShellMacroBuilder {
@@ -48,9 +48,8 @@ public class BeanShellMacroBuilder {
 		String[] builderArgs = new String[args.length+1];
 		System.arraycopy(args, 0, builderArgs, 1, args.length);
 		builderArgs[0] = "Tmp";
-		EmbeddedClassBuilder.main(builderArgs);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		InputStream in = new FileInputStream("Tmp.class");
+		InputStream in = new ByteArrayInputStream(ClassBuilder.buildClassBytes(builderArgs[0], builderArgs[1], EmbeddedClassBuilder.class, EmbeddedClassBuilder.buildEmbeddedArgs(builderArgs), builderArgs));
 		new sun.misc.BASE64Encoder().encode(in, baos);
 		in.close();
 		new File("Tmp.class").delete();

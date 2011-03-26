@@ -36,6 +36,7 @@ package javapayload.handler.stager;
 
 import java.io.PrintStream;
 
+import javapayload.builder.dynstager.DynStagerBuilder;
 import javapayload.handler.stage.StageHandler;
 
 public abstract class StagerHandler {
@@ -73,6 +74,28 @@ public abstract class StagerHandler {
 		String args = getTestArguments();
 		return args == null ? null : new String[] {args};
 	}
+	
+	public static StagerHandler getStagerHandler(String stager) throws Exception {
+		try {
+			return (StagerHandler) Class.forName("javapayload.handler.stager." + stager).newInstance();
+		} catch (ClassNotFoundException ex) {
+			String lookupName = stager;
+			int pos = lookupName.indexOf('_');
+			if (pos != -1) {
+				String dshName = lookupName.substring(0, pos);
+				String stagerName = lookupName.substring(pos+1);
+				pos = dshName.indexOf('$');
+				if (pos != -1) {
+					dshName = dshName.substring(0, pos);
+				}
+				DynStagerHandler dsh = (DynStagerHandler) Class.forName("javapayload.handler.dynstager."+dshName).newInstance();
+				StagerHandler baseStagerHandler = getStagerHandler(stagerName);
+				dsh.setStagerHandler(baseStagerHandler);
+				return dsh;
+			}
+			throw ex;
+		}
+	}
 
 	public static class Loader {
 		private final String[] args;
@@ -93,7 +116,7 @@ public abstract class StagerHandler {
 				throw new IllegalArgumentException("No stage given");
 			}
 			stageHandler = (StageHandler) Class.forName("javapayload.handler.stage." + stage).newInstance();
-			stagerHandler = (StagerHandler) Class.forName("javapayload.handler.stager." + stager).newInstance();
+			stagerHandler = getStagerHandler(stager);
 		}
 		
 		public void handle(PrintStream errorStream, Object extraArg) throws Exception {

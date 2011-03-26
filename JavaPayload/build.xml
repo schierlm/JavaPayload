@@ -8,7 +8,6 @@
 	<!-- properties used by cobertura.xml -->
 	<property name="SUFFIX1" value="" />
 	<property name="SUFFIX2" value="" />
-	<property name="SUFFIX3" value="" />
 	<path id="extraclasspath" />
 	<property name="javapayload.child.classpath" value="" />
 
@@ -28,114 +27,7 @@
 		</copy>
 	</target>
 
-	<target name="dynamicstagers" depends="compile">
-		<path id="AllStagersNoAES.path">
-			<fileset dir="src/javapayload/stager">
-				<include name="*.java" />
-				<exclude name="Stager.java" />
-			</fileset>
-		</path>
-		<pathconvert property="AllStagersNoAES" dirsep="/" pathsep=" " refid="AllStagersNoAES.path">
-			<chainedmapper>
-				<flattenmapper />
-				<globmapper from="*.java" to="*" />
-			</chainedmapper>
-		</pathconvert>
-		<java fork="true" dir="build" classname="javapayload.builder.AESStagerBuilder" failonerror="true">
-			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
-			<classpath>
-				<path location="build/bin${SUFFIX2}" />
-				<path location="build/bin${SUFFIX1}" />
-				<path location="${LIB}/asm-3.2.jar" />
-				<path refid="extraclasspath" />
-			</classpath>
-			<arg line="${AllStagersNoAES}" />
-		</java>
-		<unjar src="build/AESStagers.jar" dest="build/bin${SUFFIX2}">
-			<patternset includes="**/*.class" />
-		</unjar>
-		<java fork="true" dir="build" classname="javapayload.builder.AESStagerBuilder" failonerror="true">
-			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
-			<classpath>
-				<path location="build/bin${SUFFIX2}" />
-				<path location="build/bin${SUFFIX1}" />
-				<path location="${LIB}/asm-3.2.jar" />
-				<path refid="extraclasspath" />
-			</classpath>
-			<arg line="AESLocalTest AESReverseTCP AESJDWPTunnel" />
-		</java>
-		<unjar src="build/AESStagers.jar" dest="build/bin${SUFFIX2}">
-			<patternset includes="**/*.class" />
-		</unjar>
-		<path id="AllStagers.path">
-			<fileset dir="src/javapayload/stager">
-				<include name="*.java" />
-				<exclude name="LocalTest.java" />
-				<exclude name="Stager.java" />
-				<exclude name="JDWPTunnel.java" />
-			</fileset>
-		</path>
-		<pathconvert property="AllNonAESStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
-			<chainedmapper>
-				<flattenmapper />
-				<globmapper from="*.java" to="*" />
-			</chainedmapper>
-		</pathconvert>
-		<pathconvert property="AllAESStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
-			<chainedmapper>
-				<flattenmapper />
-				<globmapper from="*.java" to="AES*" />
-			</chainedmapper>
-		</pathconvert>
-		<property name="AllStagers" value="${AllNonAESStagers} ${AllAESStagers}" />
-		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
-			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
-			<classpath>
-				<path location="build/bin${SUFFIX1}" />
-				<path location="${LIB}/asm-3.2.jar" />
-			</classpath>
-			<arg line="${AllStagers}" />
-		</java>
-		<unjar src="build/SpawnStagers.jar" dest="build/bin${SUFFIX3}">
-			<patternset includes="**/*.class" />
-		</unjar>
-		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
-			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
-			<classpath>
-				<path location="build/bin${SUFFIX3}" />
-				<path location="build/bin${SUFFIX2}" />
-				<path location="build/bin${SUFFIX1}" />
-				<path location="${LIB}/asm-3.2.jar" />
-				<path refid="extraclasspath" />
-			</classpath>
-			<arg line="${AllStagers}" />
-		</java>
-		<unjar src="build/SpawnStagers.jar" dest="build/bin${SUFFIX2}">
-			<patternset includes="**/*.class" />
-		</unjar>
-		<pathconvert property="AllSpawnStagers" dirsep="/" pathsep=" " refid="AllStagers.path">
-			<chainedmapper>
-				<flattenmapper />
-				<globmapper from="*.java" to="Spawn*" />
-			</chainedmapper>
-		</pathconvert>
-		<java fork="true" dir="build" classname="javapayload.builder.SpawnStagerBuilder" failonerror="true">
-			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
-			<classpath>
-				<path location="build/bin${SUFFIX3}" />
-				<path location="build/bin${SUFFIX2}" />
-				<path location="build/bin${SUFFIX1}" />
-				<path location="${LIB}/asm-3.2.jar" />
-				<path refid="extraclasspath" />
-			</classpath>
-			<arg line="${AllSpawnStagers}" />
-		</java>
-		<unjar src="build/SpawnStagers.jar" dest="build/bin${SUFFIX2}">
-			<patternset includes="**/*.class" />
-		</unjar>
-	</target>
-
-	<target name="compiletest" depends="dynamicstagers">
+	<target name="compiletest" depends="compile">
 		<mkdir dir="build/testbin" />
 		<javac srcdir="test" destdir="build/testbin" source="1.1" target="1.1" debug="yes">
 			<classpath>
@@ -163,6 +55,7 @@
 		</java>
 		<java fork="true" classname="javapayload.test.StageTest" failonerror="true">
 			<sysproperty key="net.sourceforge.cobertura.datafile" file="build/cobertura1.ser" />
+			<sysproperty key="javapayload.child.classpath" value="${javapayload.child.classpath}" />
 			<classpath refid="testclasspath" />
 		</java>
 		<java fork="true" classname="javapayload.test.BuilderTest" failonerror="true">
@@ -173,7 +66,11 @@
 		</java>
 	</target>
 
-	<target name="jar" depends="dynamicstagers">
-		<jar destfile="JavaPayload.jar" basedir="build/bin" />
+	<target name="jar" depends="compile">
+		<jar destfile="JavaPayload.jar" basedir="build/bin">
+			<manifest>
+				<attribute name="Class-Path" value="lib/asm-3.2.jar" />
+			</manifest>
+		</jar>
 	</target>
 </project>

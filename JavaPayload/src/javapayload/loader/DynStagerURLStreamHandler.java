@@ -32,39 +32,66 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.loader;
 
-import java.util.StringTokenizer;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLClassLoader;
+import java.net.URLConnection;
+import java.net.URLStreamHandler;
+import java.util.HashMap;
+import java.util.Map;
 
-public class EmbeddedClassBuilder {
+public class DynStagerURLStreamHandler extends URLStreamHandler {
 
-	private static String EMBEDDED_ARGS = "TO_BE_REPLACED";
+	private static DynStagerURLStreamHandler instance;
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
+	public static synchronized DynStagerURLStreamHandler getInstance() throws Exception {
+		if (instance == null) {
+			instance = new DynStagerURLStreamHandler();
 		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
+		return instance;
 	}
 
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
+	final URLClassLoader dynClassLoader;
+	Map classes = new HashMap();
+
+	private DynStagerURLStreamHandler() throws Exception {
+		URL myURL = new URL("dynstager", null, 0, "/", this);
+		dynClassLoader = new URLClassLoader(new URL[] { myURL });
+	}
+
+	public URLClassLoader getDynClassLoader() {
+		return dynClassLoader;
+	}
+
+	public synchronized void addStager(String stagerName, byte[] classBytes) {
+		classes.put("/javapayload/stager/" + stagerName + ".class", classBytes);
+	}
+
+	protected synchronized URLConnection openConnection(URL u) throws IOException {
+		String path = u.getPath();
+		final byte[] content = (byte[]) classes.get(path);
+		if (content == null)
+			throw new IOException("Class not found");
+		return new URLConnection(u) {
+
+			public void connect() throws IOException {
 			}
-			embeddedArgs.append("$").append(args[i]);
-		}
-		return embeddedArgs.toString();
-	}
 
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer(EMBEDDED_ARGS, "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
+			public InputStream getInputStream() throws IOException {
+				return new ByteArrayInputStream(content);
+			}
+
+			public int getContentLength() {
+				return content.length;
+			}
+
+			public String getContentType() {
+				return "application/octet-stream";
+			}
+		};
 	}
 }

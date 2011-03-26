@@ -31,40 +31,25 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.test;
 
-package javapayload.builder;
+import java.io.FileOutputStream;
 
-import java.util.StringTokenizer;
+import javapayload.builder.ClassBuilder;
 
-public class EmbeddedClassBuilder {
-
-	private static String EMBEDDED_ARGS = "TO_BE_REPLACED";
-
+public class SpawnStagerPrebuilder {
+	// needed for coverage testing, since the content for spawn stagers does not like to be instrumented 
 	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
-	}
-
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
+		String[] stagers = StagerTest.getStagers();
+		for (int i = 0; i < stagers.length; i++) {
+			if (stagers[i].startsWith("Spawn_")) {
+				System.out.println(stagers[i]);
+				String stagerName = stagers[i].substring(6);
+				byte[] classBytes = ClassBuilder.buildClassBytes("SpawnedClass", stagerName, ClassBuilder.class, null, null);
+				FileOutputStream fos = new FileOutputStream(stagerName+".spawned");
+				fos.write(classBytes);
+				fos.close();
 			}
-			embeddedArgs.append("$").append(args[i]);
 		}
-		return embeddedArgs.toString();
-	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer(EMBEDDED_ARGS, "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
 	}
 }

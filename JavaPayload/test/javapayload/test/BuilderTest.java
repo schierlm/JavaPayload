@@ -443,8 +443,6 @@ public class BuilderTest {
 		}
 
 		public void runResult(String[] args) throws Exception {
-			if (args[0].startsWith("Spawn"))
-				return;
 			StringBuilder allArgs = new StringBuilder();
 			for (int i = 0; i < args.length; i++) {
 				if (i != 0)
@@ -457,8 +455,10 @@ public class BuilderTest {
 			injectorArgs[0] = "localhost:62468";
 			System.arraycopy(args, 0, injectorArgs, 1, args.length);
 			TestStub.wait = 1100;
-			if (args[0].endsWith("JDWPTunnel"))
+			if (args[0].endsWith("JDWPTunnel") || args[0].startsWith("Spawn_"))
 				TestStub.wait = 5000;
+			if (args[0].startsWith("Spawn_Spawn_"))
+				TestStub.wait=9000;
 			JDWPInjector.main(injectorArgs);
 			if (proc.waitFor() != 0)
 				throw new IOException("Build result exited with error code " + proc.exitValue());
@@ -468,14 +468,10 @@ public class BuilderTest {
 			Thread.sleep(1000);
 			System.out.println("\t\tJDWPTunnel");
 			testBuilder(this, "JDWPTunnel", "");
-			if (StagerTest.isStagerPresent("AESJDWPTunnel")) {
-				System.out.println("\t\tAESJDWPTunnel");
-				testBuilder(this, "AESJDWPTunnel", "#");
-			}
-			if (StagerTest.isStagerPresent("AESJDWPTunnel")) {
-				System.out.println("\t\tAESAESJDWPTunnel");
-				testBuilder(this, "AESAESJDWPTunnel", "# #");
-			}
+			System.out.println("\t\tAESJDWPTunnel");
+			testBuilder(this, "AESJDWPTunnel", "#");
+			System.out.println("\t\tAES_AES_JDWPTunnel");
+			testBuilder(this, "AES_AES_JDWPTunnel", "# #");
 			if (!new File("DummyClass.class").delete())
 				throw new IOException("Unable to delete file");
 			TestStub.wait = 0;

@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javapayload.handler.stager.StagerHandler;
+import javapayload.loader.DynLoader;
 import javapayload.loader.StandaloneLoader;
 import javapayload.stager.Stager;
 
@@ -49,16 +50,12 @@ public class StagerTest {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("Testing stagers...");
-		if (!isStagerPresent("LocalTest"))
-			throw new RuntimeException("LocalTest stager missing!");
 		System.out.println("\tLocalTest");
 		final StagerHandler.Loader loader = new StagerHandler.Loader("LocalTest -- TestStub".split(" "));
 		loader.handle(System.err, null);
-		if(isStagerPresent("AESLocalTest")) {
-			System.out.println("\tAESLocalTest");
-			final StagerHandler.Loader loader2 = new StagerHandler.Loader("AESLocalTest # -- TestStub".split(" "));
-			loader2.handle(System.err, null);
-		}
+		System.out.println("\tAES_LocalTest");
+		final StagerHandler.Loader loader2 = new StagerHandler.Loader("AES_LocalTest # -- TestStub".split(" "));
+		loader2.handle(System.err, null);
 		System.out.println("\tMultiListen");
 		String[] multiListenArgs = new String[] {"ReverseTCP localhost #", "ReverseSSL localhost 61234"};
 		for (int j = 0; j < multiListenArgs.length; j++) {
@@ -79,15 +76,6 @@ public class StagerTest {
 		new ThreadWatchdogThread(5000).start();
 	}
 
-	public static boolean isStagerPresent(String stagerName) {
-		try {
-			Class.forName("javapayload.stager."+stagerName);
-			return true;
-		} catch (java.lang.ClassNotFoundException ex) {
-			return false;
-		}
-	}
-
 	private static void testStager(String name, String testArgs) throws Exception {
 		String[] args = (name + " " + testArgs + " -- TestStub").split(" ");
 		final StagerHandler.Loader loader = new StagerHandler.Loader(args);
@@ -96,7 +84,7 @@ public class StagerTest {
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				try {
-					StandaloneLoader.main(loader.getArgs());
+					DynLoader.main(loader.getArgs());
 				} catch (Throwable t) {
 					t.printStackTrace();
 					tt[0] = t;
@@ -137,19 +125,33 @@ public class StagerTest {
 				continue;
 			String className = classFile.getName();
 			className = className.substring(0, className.length() - 6);
-			if (className.endsWith("AESBindMultiTCP"))
-				continue;
 			String[] args = getTestArgs(className);
 			if (args != null)
 				result.add(className);
+		}
+		// add AES dynstagers
+		int origSize = result.size();
+		for (int i = 0; i < origSize; i++) {
+			String stager = (String) result.get(i);
+			if (stager.equals("BindMultiTCP"))
+				continue;
+			result.add("AES_"+stager);
+			if (stager.equals("LocalTest") || stager.equals("ReverseTCP") || stager.equals("JDWPTunnel"))
+				result.add("AES_AES_"+stager);
+		}
+		// add spawn dynstagers
+		origSize = result.size();
+		for (int i = 0; i < origSize; i++) {
+			String stager = (String) result.get(i);
+			result.add("Spawn_"+stager);
+			result.add("Spawn_Spawn_"+stager);
 		}
 		return (String[]) result.toArray(new String[result.size()]);
 	}
 
 	public static String[] getTestArgs(String className) throws Exception {
 		try {
-			Class clazz = Class.forName(StagerHandler.class.getPackage().getName() + "." + className);
-			return ((StagerHandler)clazz.newInstance()).getTestArgumentArray();
+			return StagerHandler.getStagerHandler(className).getTestArgumentArray();
 		} catch (ClassNotFoundException ex) {
 			return null;
 		}

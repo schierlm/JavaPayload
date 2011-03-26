@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,6 +37,7 @@ import java.io.InputStream;
 import java.io.PrintStream;
 
 import javapayload.handler.stage.StageHandler;
+import javapayload.loader.DynLoader;
 
 public class MultiListen extends StagerHandler {
 
@@ -45,7 +46,7 @@ public class MultiListen extends StagerHandler {
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
 		String[] realParameters = new String[parametersToPrepare.length-1];
 		System.arraycopy(parametersToPrepare, 1, realParameters, 0, realParameters.length);
-		realHandler = (ListeningStagerHandler) Class.forName("javapayload.handler.stager." + realParameters[0]).newInstance();
+		realHandler = (ListeningStagerHandler) StagerHandler.getStagerHandler(realParameters[0]);
 		boolean result = realHandler.prepare(realParameters);
 		if (result) {
 			System.arraycopy(realParameters, 0, parametersToPrepare, 1, realParameters.length);
@@ -57,7 +58,7 @@ public class MultiListen extends StagerHandler {
 		String[] realParameters = new String[parameters.length-1];
 		System.arraycopy(parameters, 1, realParameters, 0, realParameters.length);
 		if (realHandler == null) {
-			realHandler = (ListeningStagerHandler) Class.forName("javapayload.handler.stager." + realParameters[0]).newInstance();
+			realHandler = (ListeningStagerHandler) StagerHandler.getStagerHandler(realParameters[0]);
 		}
 		final InputStream waitIn = stageHandler.consoleIn;
 		new Thread(new Runnable() {

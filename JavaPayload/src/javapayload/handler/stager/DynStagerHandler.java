@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl.
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,47 +31,47 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package javapayload.handler.stager;
 
 import java.io.PrintStream;
 
 import javapayload.handler.stage.StageHandler;
 
-public class AESStagerTemplate extends StagerHandler {
+public class DynStagerHandler extends StagerHandler {
 
-	StagerHandler handler = new LocalTest();
+	private StagerHandler stagerHandler;
 
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		String[] newParameters = new String[parameters.length - 1];
-		System.arraycopy(parameters, 2, newParameters, 1, newParameters.length - 1);
-		newParameters[0] = parameters[0];
-		handler.handle(new AESStageHandler(parameters[1], stageHandler), newParameters, errorStream, extraArg);
+	void setStagerHandler(StagerHandler stagerHandler) {
+		this.stagerHandler = stagerHandler;
 	}
 
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		String[] temp = new String[parametersToPrepare.length - 1];
-		System.arraycopy(parametersToPrepare, 2, temp, 1, temp.length - 1);
-		temp[0] = parametersToPrepare[0].substring(3);
-		boolean changed = handler.prepare(temp);
-		if (changed)
-			System.arraycopy(temp, 1, parametersToPrepare, 2, temp.length - 1);
-		if (parametersToPrepare[1].equals("#")) {
-			parametersToPrepare[1] = AESStageHandler.generatePassword();
-			changed = true;
-		}
-		return changed;
-	}
-
-	protected boolean needHandleBeforeStart() {
-		return handler.needHandleBeforeStart();
+		return stagerHandler.prepare(parametersToPrepare);
 	}
 
 	protected boolean canHandleExtraArg(Class argType) {
-		return handler.canHandleExtraArg(argType);
+		return stagerHandler.canHandleExtraArg(argType);
 	}
 
-	protected String getTestArguments() {
-		String handlerArgs = handler.getTestArguments();
-		return handlerArgs == null ? null : "# " + handlerArgs;
+	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+		stagerHandler.originalParameters = originalParameters;
+		handleDyn(stageHandler, parameters, errorStream, extraArg);
+	}
+
+	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+		stagerHandler.handle(stageHandler, parameters, errorStream, extraArg);
+	}
+
+	protected boolean needHandleBeforeStart() {
+		return stagerHandler.needHandleBeforeStart();
+	}
+
+	protected final String getTestArguments() {
+		throw new IllegalStateException("Use getTestArgumentArray!");
+	}
+
+	public String[] getTestArgumentArray() {
+		return stagerHandler.getTestArgumentArray();
 	}
 }

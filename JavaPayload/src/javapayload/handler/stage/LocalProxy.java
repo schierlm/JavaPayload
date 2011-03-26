@@ -37,8 +37,10 @@ package javapayload.handler.stage;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.PrintStream;
 import java.net.SocketException;
 
+import javapayload.loader.DynLoader;
 import javapayload.stage.StreamForwarder;
 import javapayload.stager.Stager;
 
@@ -48,40 +50,16 @@ public class LocalProxy extends StageHandler {
 		throw new IllegalStateException("Not used");
 	}
 
-	public void handle(final OutputStream rawOut, final InputStream in, String[] parameters) throws Exception {
+	public void handle(OutputStream rawOut, InputStream in, String[] parameters) throws Exception {
 		for (int i = 0; i < parameters.length; i++) {
 			if (parameters[i].equals("--")) {
 				String[] args = new String[parameters.length - (i + 2)];
 				System.arraycopy(parameters, i + 2, args, 0, args.length);
-				final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-				stager.targetStager = new Stager() {
-					public void bootstrap(String[] parameters) throws Exception {
-						throw new IllegalStateException("Not used");
-					}
-
-					protected void bootstrap(final InputStream stagerIn, final OutputStream stagerOut, String[] parameters) throws Exception {
-						consoleOut.println("Successfully started local proxy.");
-						Thread t = new Thread() {
-							public void run() {
-								try {
-									StreamForwarder.forward(stagerIn, rawOut);
-								} catch (SocketException ex) {
-									// ignore
-								} catch (IOException ex) {
-									ex.printStackTrace(consoleErr);
-								}
-							};
-						};
-						t.setDaemon(true);
-						t.start();
-						try {
-							StreamForwarder.forward(in, stagerOut);
-						} catch (SocketException ex) {
-							// ignore
-						}
-						consoleOut.println("Shutting down local proxy.");
-					};
-				};
+				final Stager stager = (Stager) DynLoader.loadStager("InternalLocalProxy_"+args[0], args, 0).newInstance();
+				stager.getClass().getField("consoleOut").set(stager, consoleOut);
+				stager.getClass().getField("consoleErr").set(stager, consoleErr);
+				stager.getClass().getField("rawOut").set(stager, rawOut);
+				stager.getClass().getField("in").set(stager, in);
 				stager.bootstrap(args);
 				break;
 			}
@@ -90,5 +68,27 @@ public class LocalProxy extends StageHandler {
 
 	protected StageHandler createClone() {
 		return new LocalProxy();
+	}
+	
+	public static class ForwardThread extends Thread {
+		
+		private final InputStream in;
+		private final OutputStream out;
+		private final PrintStream consoleErr;
+
+		public ForwardThread(InputStream in, OutputStream out, PrintStream consoleErr) {
+			this.in = in;
+			this.out = out;
+			this.consoleErr = consoleErr;
+		}
+		public void run() {
+			try {
+				StreamForwarder.forward(in, out);
+			} catch (SocketException ex) {
+				// ignore
+			} catch (IOException ex) {
+				ex.printStackTrace(consoleErr);
+			}
+		}
 	}
 }

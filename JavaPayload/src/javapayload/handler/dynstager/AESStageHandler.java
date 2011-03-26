@@ -31,15 +31,13 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-package javapayload.builder;
+package javapayload.handler.dynstager;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.InputStream;
-import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
-
-import javapayload.stager.Stager;
 
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
@@ -47,27 +45,24 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class AESStagerTemplate extends Stager {
+import javapayload.handler.stage.StageHandler;
 
-	public void bootstrap(String[] parameters) throws Exception {
-		// move the password to the end
-		String[] newParameters = new String[parameters.length];
-		newParameters[0] = parameters[0];
-		System.arraycopy(parameters, 2, newParameters, 1, parameters.length - 2);
-		newParameters[parameters.length - 1] = parameters[1];
-		bootstrapOrig(newParameters);
+public class AESStageHandler extends StageHandler {
+
+	private final StageHandler handler;
+	private final String key;
+
+	public AESStageHandler(String key, StageHandler handler) {
+		this.handler = handler;
+		this.key = key;
 	}
 
-	public void bootstrapOrig(String[] parameters) throws Exception {
-		bootstrapAES(null, null, parameters);
+	public Class[] getNeededClasses() {
+		return new Class[0];
 	}
 
-	private void bootstrapAES(InputStream rawIn, OutputStream out, String[] parameters) throws Exception {
-		DataInputStream din = new DataInputStream(rawIn);
-		din.readInt();
-		String key = parameters[parameters.length - 1];
-		String[] newParameters = new String[parameters.length - 1];
-		System.arraycopy(parameters, 0, newParameters, 0, newParameters.length);
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		DataInputStream din = new DataInputStream(in);
 		SecureRandom sr = new SecureRandom();
 		byte[] outIV = new byte[16];
 		sr.nextBytes(outIV);
@@ -80,6 +75,30 @@ public class AESStagerTemplate extends Stager {
 		co.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(outIV), sr);
 		Cipher ci = Cipher.getInstance("AES/CFB8/NoPadding");
 		ci.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(inIV), sr);
-		bootstrap(new CipherInputStream(din, ci), new CipherOutputStream(out, co), newParameters);
+		handler.handle(new CipherOutputStream(out, co), new CipherInputStream(din, ci), parameters);
+	}
+
+	protected StageHandler createClone() {
+		return new AESStageHandler(key, handler);
+	}
+
+	StageHandler getHandler() {
+		return handler;
+	}
+
+	protected static String generatePassword() {
+		SecureRandom rnd = new SecureRandom();
+		char[] pwd = new char[rnd.nextInt(16) + 16];
+		for (int i = 0; i < pwd.length; i++) {
+			int idx = rnd.nextInt(26 + 26 + 10);
+			if (idx >= 36) {
+				pwd[i] = (char) (idx - 36 + 'a');
+			} else if (idx >= 10) {
+				pwd[i] = (char) (idx - 10 + 'A');
+			} else {
+				pwd[i] = (char) (idx + '0');
+			}
+		}
+		return new String(pwd);
 	}
 }

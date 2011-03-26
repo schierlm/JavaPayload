@@ -67,7 +67,7 @@ public class AES extends StageHandler {
 		byte[] stringBytes = "file:///,go,java.security.Permissions,java.security.AllPermission,[Ljava.lang.Object;".getBytes("UTF-8");
 		out.writeShort(stringBytes.length ^ r.nextInt(65536));
 		out.write(encode(r, stringBytes));
-		final InputStream classStream = StageHandler.class.getResourceAsStream("/" + AESHelper.class.getName().replace('.', '/') + ".class");
+		final InputStream classStream = AESHelper.class.getResourceAsStream("/" + AESHelper.class.getName().replace('.', '/') + ".class");
 		final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		StreamForwarder.forward(classStream, baos);
 		final byte[] clazz = baos.toByteArray();

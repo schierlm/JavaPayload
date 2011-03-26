@@ -36,6 +36,8 @@ package javapayload.builder;
 
 import java.util.jar.Manifest;
 
+import javapayload.loader.DynLoader;
+
 public class EmbeddedJarBuilder {
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
@@ -57,7 +59,7 @@ public class EmbeddedJarBuilder {
 			System.arraycopy(oldArgs, 1, args, 0, args.length);
 		}
 		final String stager = args[0];
-		final Class[] classes = new Class[] { javapayload.loader.EmbeddedJarLoader.class, javapayload.stager.Stager.class, Class.forName("javapayload.stager." + stager) };
+		final Class[] classes = new Class[] { javapayload.loader.EmbeddedJarLoader.class, javapayload.stager.Stager.class, DynLoader.loadStager(stager, args, 0) };
 		final Manifest manifest = new Manifest();
 		manifest.getMainAttributes().putValue("Main-Class", "javapayload.loader.EmbeddedJarLoader");
 		manifest.getMainAttributes().putValue("Argument-Count", "" + args.length);

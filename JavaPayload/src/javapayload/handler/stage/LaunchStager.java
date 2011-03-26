@@ -34,22 +34,26 @@
 
 package javapayload.handler.stage;
 
+import javapayload.loader.DynLoader;
+
 public class LaunchStager extends StageHandler {
 
 	public Class[] getNeededClasses(String[] parameters) throws Exception {
 		String stager = null;
+		int firstArg = -1;
 		for (int i = 0; i < parameters.length; i++) {
 			if (parameters[i].equals("--")) {
-				stager = parameters[i+2];
+				firstArg = i + 2;
 				break;
 			}
 		}
-		if (stager == null) throw new IllegalStateException("No stager given");
+		if (firstArg == -1) throw new IllegalStateException("No stager given");
+		stager = parameters[firstArg];
 		
 		return new Class[] {
 				javapayload.stage.Stage.class,
 				javapayload.stager.Stager.class,
-				Class.forName("javapayload.stager."+stager),
+				DynLoader.loadStager(stager, parameters, firstArg),
 				javapayload.stage.LaunchStager.class
 		};
 	}

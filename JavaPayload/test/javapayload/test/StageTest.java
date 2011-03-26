@@ -70,18 +70,13 @@ public class StageTest {
 				for (int i = 0; i < files.length; i++) {
 					testStage(files[i], "LocalTest");
 				}
-				if (StagerTest.isStagerPresent("AESLocalTest")) {
-					System.out.println("Testing stages (AESLocalTest)...");
-					for (int i = 0; i < files.length; i++) {
-						testStage(files[i], "AESLocalTest #");
-					}
-
+				System.out.println("Testing stages (AES_LocalTest)...");
+				for (int i = 0; i < files.length; i++) {
+					testStage(files[i], "AES_LocalTest #");
 				}
-				if (StagerTest.isStagerPresent("AESAESLocalTest")) {
-					System.out.println("Testing stages (AESAESLocalTest)...");
-					for (int i = 0; i < files.length; i++) {
-						testStage(files[i], "AESAESLocalTest # #");
-					}
+				System.out.println("Testing stages (AES_AES_LocalTest)...");
+				for (int i = 0; i < files.length; i++) {
+					testStage(files[i], "AES_AES_LocalTest # #");
 				}
 				System.out.println("Testing stages (BindTCP)...");
 				String[] stagerArgs = new String[] { "BindMultiTCP", "localhost", "60123" };

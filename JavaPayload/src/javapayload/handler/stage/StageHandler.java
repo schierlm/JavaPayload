@@ -68,7 +68,7 @@ public abstract class StageHandler {
 	public final void handleBootstrap(String[] parameters, final DataOutputStream out) throws IOException, Exception {
 		final Class[] classes = getNeededClasses(parameters);
 		for (int i = 0; i < classes.length; i++) {
-			final InputStream classStream = StageHandler.class.getResourceAsStream("/" + classes[i].getName().replace('.', '/') + ".class");
+			final InputStream classStream = classes[i].getResourceAsStream("/" + classes[i].getName().replace('.', '/') + ".class");
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			StreamForwarder.forward(classStream, baos);
 			final byte[] clazz = baos.toByteArray();

