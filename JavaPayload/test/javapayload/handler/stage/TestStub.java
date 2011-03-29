@@ -41,13 +41,15 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Random;
 
+import javapayload.stage.WriterThread;
+
 public class TestStub extends StageHandler {
 	
 	public static int wait = 0;
 	public boolean sendExit = false;
 	
 	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.TestStub.class };
+		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.WriterThread.class, javapayload.stage.TestStub.class };
 	}
 	
 	protected StageHandler createClone() {
@@ -57,6 +59,22 @@ public class TestStub extends StageHandler {
 	
 	public void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 		DataInputStream dis = new DataInputStream(in);
+		final byte[] concurrentWrite = new byte[128];
+		for (int i = 0; i < concurrentWrite.length; i++) {
+			concurrentWrite[i] = (byte)i;
+		}
+		Thread[] threads = new Thread[32];
+		for (int i = 0; i < threads.length; i++) {
+			threads[i] = new WriterThread(out, concurrentWrite);
+			threads[i].start();
+		}
+		for (int i = 0; i < threads.length; i++) {
+			threads[i].join();
+		}
+		byte[] concurrentRead = new byte[4096];
+		dis.readFully(concurrentRead);
+		if (!javapayload.stage.TestStub.checkConcurrentRead(concurrentRead))
+			throw new RuntimeException("Concurrent read returned wrong result");
 		byte[] indata = new byte[4096];
 		dis.readFully(indata);
 		Thread.sleep(wait);

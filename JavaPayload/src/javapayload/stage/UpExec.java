@@ -58,9 +58,13 @@ public class UpExec implements Stage {
 				cmdarray[0] = tempfile;
 				final Process proc = Runtime.getRuntime().exec(cmdarray);
 				new StreamForwarder(in, proc.getOutputStream(), out).start();
-				new StreamForwarder(proc.getInputStream(), out, out).start();
-				new StreamForwarder(proc.getErrorStream(), out, out).start();
+				StreamForwarder inFwd = new StreamForwarder(proc.getInputStream(), out, out, false);
+				StreamForwarder errFwd = new StreamForwarder(proc.getErrorStream(), out, out, false);
+				inFwd.start();
+				errFwd.start();
 				proc.waitFor();
+				inFwd.join();
+				errFwd.join();
 				in.close();
 				out.close();
 				break;

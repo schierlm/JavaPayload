@@ -42,6 +42,22 @@ import java.util.Random;
 
 public class TestStub implements Stage, Runnable {
 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		byte[] concurrentRead = new byte[4096];
+		in.readFully(concurrentRead);
+		if (!checkConcurrentRead(concurrentRead))
+			throw new RuntimeException("Concurrent read returned wrong result");
+		final byte[] concurrentWrite = new byte[128];
+		for (int i = 0; i < concurrentWrite.length; i++) {
+			concurrentWrite[i] = (byte)i;
+		}
+		Thread[] threads = new Thread[32];
+		for (int i = 0; i < threads.length; i++) {
+			threads[i] = new WriterThread(out, concurrentWrite);
+			threads[i].start();
+		}
+		for (int i = 0; i < threads.length; i++) {
+			threads[i].join();
+		}
 		byte[] outdata = new byte[4096];
 		Random r = new Random();
 		r.nextBytes(outdata);
@@ -65,6 +81,20 @@ public class TestStub implements Stage, Runnable {
 		out.close();
 	}
 	
+	public static boolean checkConcurrentRead(byte[] concurrentRead) {
+		int[] counts = new int[128];
+		for (int i = 0; i < concurrentRead.length; i++) {
+			if (concurrentRead[i] < 0 || concurrentRead[i] > 127)
+				return false;
+			counts[concurrentRead[i]]++;
+		}
+		for (int i = 0; i < counts.length; i++) {
+			if (counts[i] != 32)
+				return false;
+		}
+		return true;
+	}
+
 	public void run() {
 		try {
 			Thread.sleep(100);

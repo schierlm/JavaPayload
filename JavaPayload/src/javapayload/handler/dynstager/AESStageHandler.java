@@ -46,6 +46,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 import javapayload.handler.stage.StageHandler;
+import javapayload.stage.AESHelper;
 
 public class AESStageHandler extends StageHandler {
 
@@ -75,7 +76,7 @@ public class AESStageHandler extends StageHandler {
 		co.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(outIV), sr);
 		Cipher ci = Cipher.getInstance("AES/CFB8/NoPadding");
 		ci.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(inIV), sr);
-		handler.handle(new CipherOutputStream(out, co), new CipherInputStream(din, ci), parameters);
+		handler.handle(new SynchronizedOutputStream(new CipherOutputStream(out, co)), new CipherInputStream(din, ci), parameters);
 	}
 
 	protected StageHandler createClone() {

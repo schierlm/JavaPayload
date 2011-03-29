@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -34,31 +34,22 @@
 
 package javapayload.stage;
 
-import java.io.DataInputStream;
 import java.io.OutputStream;
 
-public class Exec implements Stage {
+public class WriterThread extends Thread {
+	private final OutputStream out;
+	private final byte[] data;
 
-	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
-		for (int i = 0; i < parameters.length; i++) {
-			if (parameters[i].equals("--")) {
-				// separator found. The next parameter will be the module name, and
-				// all remaining parameters are for exec.
-				final String[] cmdarray = new String[parameters.length - i - 2];
-				System.arraycopy(parameters, i + 2, cmdarray, 0, cmdarray.length);
-				final Process proc = Runtime.getRuntime().exec(cmdarray);
-				new StreamForwarder(in, proc.getOutputStream(), out).start();
-				StreamForwarder inFwd = new StreamForwarder(proc.getInputStream(), out, out, false);
-				StreamForwarder errFwd = new StreamForwarder(proc.getErrorStream(), out, out, false);
-				inFwd.start();
-				errFwd.start();
-				proc.waitFor();
-				inFwd.join();
-				errFwd.join();
-				in.close();
-				out.close();
-				break;
-			}
-		}
+	public WriterThread(OutputStream out, byte[] data) {
+		this.out = out;
+		this.data = data;
 	}
+	public void run() {
+		try {
+			out.write(data);
+			out.flush();
+		} catch (Throwable t) {
+			t.printStackTrace();
+		}
+	};
 }

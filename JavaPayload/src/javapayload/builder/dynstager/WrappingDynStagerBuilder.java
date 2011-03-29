@@ -139,9 +139,14 @@ public abstract class WrappingDynStagerBuilder extends DynStagerBuilder {
 			}
 		};
 		ClassBuilder.visitClass(baseStagerClass, stagerVisitor, cw);
+		handleCustomMethods(bootstrapName, cw, stagerName, baseStagerClass, extraArg, args);
 		final ClassVisitor templateVisitor = new ClassAdapter(cw) {
 			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 				// not the beginning!
+			}
+			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+				// drop fields
+				return null;
 			}
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// take only the method we need
@@ -162,6 +167,8 @@ public abstract class WrappingDynStagerBuilder extends DynStagerBuilder {
 		ClassBuilder.visitClass(getClass(), templateVisitor, cw);
 		return cw.toByteArray();
 	}
+	
+	protected void handleCustomMethods(String bootstrapName, ClassWriter cw, String stagerName, Class baseStagerClass, String extraArg, String[] args) throws Exception {}
 
 	public abstract void bootstrapWrap(String[] parameters) throws Exception;
 	protected abstract void bootstrapWrap(InputStream rawIn, OutputStream out, String[] parameters);

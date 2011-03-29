@@ -85,21 +85,22 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 	
 	public synchronized void close() throws IOException {
 		try {
+			while (writePending) 
+				wait();
 			if (closed && implicitClose) {
 				implicitClose = false;
 				return;
 			}
 			if (closed)
 				throw new IOException("Stream is closed");
-			while (writePending) 
-				wait();
 			if (threadDead)
 				throw new IOException("Writer thread dead");
 			data = null;
 			length = -1;
 			writePending = true;
 			notifyAll();
-			closed = true;
+			while(writePending)
+				wait();
 		} catch (InterruptedException ex) {
 			throw new RuntimeException(ex);
 		}
@@ -123,6 +124,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 								extraClose.close();
 							}
 						}
+						closed = true;
 						break;
 					}
 				} else {

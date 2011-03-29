@@ -36,7 +36,10 @@ package javapayload.handler.stage;
 import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Random;
@@ -106,7 +109,7 @@ public class AES extends StageHandler {
 		stageHandler.consoleIn = consoleIn;
 		stageHandler.consoleOut = consoleOut;
 		stageHandler.consoleErr = consoleErr;
-		stageHandler.handle(new CipherOutputStream(out, co), new CipherInputStream(din, ci), newParameters);
+		stageHandler.handle(new AESHelper(new CipherOutputStream(out, co)), new CipherInputStream(din, ci), newParameters);
 	}
 
 	private byte[] encode(Random r, byte[] bytes) {

@@ -34,6 +34,8 @@
 package javapayload.stage;
 
 import java.io.DataInputStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -49,7 +51,7 @@ import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
-public class AESHelper {
+public class AESHelper extends FilterOutputStream {
 
 	public static void go(Object[] obj) throws Exception {
 		go((DataInputStream) obj[0], (OutputStream) obj[1], (String[]) obj[2], (ProtectionDomain) obj[3], (ClassLoader) obj[4], (Random) obj[5]);
@@ -89,7 +91,7 @@ public class AESHelper {
 		co.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(outIV), sr);
 		Cipher ci = Cipher.getInstance("AES/CFB8/NoPadding");
 		ci.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(inIV), sr);
-		bootstrap(thiz, new CipherInputStream(in, ci), new CipherOutputStream(out, co), newParameters, pd);
+		bootstrap(thiz, new CipherInputStream(in, ci), new AESHelper(new CipherOutputStream(out, co)), newParameters, pd);
 	}
 
 	private static final void bootstrap(ClassLoader thiz, InputStream rawIn, OutputStream out, String[] parameters, ProtectionDomain pd) throws Exception {
@@ -113,5 +115,26 @@ public class AESHelper {
 		} catch (final Throwable t) {
 			t.printStackTrace(new PrintStream(out, true));
 		}
+	}
+	
+
+	public AESHelper(OutputStream out) {
+		super(out);
+	}
+	
+	public synchronized void write(byte[] b) throws IOException {
+		super.write(b);
+	}	
+	public synchronized void write(byte[] b, int off, int len) throws IOException {
+		super.write(b, off, len);
+	}
+	public synchronized void write(int b) throws IOException {
+		super.write(b);
+	}
+	public synchronized void flush() throws IOException {
+		super.flush();
+	}
+	public synchronized void close() throws IOException {
+		super.close();
 	}
 }
