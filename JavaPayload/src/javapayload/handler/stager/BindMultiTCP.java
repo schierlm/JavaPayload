@@ -41,7 +41,7 @@ import javapayload.handler.stage.StopListening;
 public class BindMultiTCP extends BindTCP {
 
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		if (stageHandler.getClass().getName().equals("javapayload.handler.stage.TestStub")) {
+		if (stageHandler.getClass().getName().equals("javapayload.handler.stage.TestStub")) { // TODO find a cleaner solution
 			for (int i = 0; i < 5; i++) {
 				super.handle(stageHandler.createClone(errorStream), parameters, errorStream, extraArg);
 			}

