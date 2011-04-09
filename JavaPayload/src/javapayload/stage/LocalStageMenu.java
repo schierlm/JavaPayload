@@ -32,37 +32,53 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.stage;
 
-import java.util.StringTokenizer;
+import java.io.DataInputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.util.List;
 
-public class EmbeddedClassBuilder {
+public class LocalStageMenu extends StageMenu {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
-	}
-
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
+	protected Object[] parseLine(String line, List stages) {
+		if (line.indexOf(' ') != -1) 
+			return new Object[] {"Custom", ("StageMenu -- "+line).split(" "), new byte[0]};
+		try {
+			int number = Integer.parseInt(line);
+			if (number > 0 && number <= stages.size()) {
+				Object[] stage = (Object[])stages.get(number-1);
+				return stage;
 			}
-			embeddedArgs.append("$").append(args[i]);
+		} catch (NumberFormatException ex) {
 		}
-		return embeddedArgs.toString();
+		return null;
 	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
+	
+	protected String getExtraOption() {
+		return " or enter your own stage";
+	}
+	
+	protected byte[] loadStageBytes(DataInputStream in) throws IOException {
+		return new byte[0];
+	}
+		
+	protected void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
+		try {
+			final DataInputStream in = new DataInputStream(rawIn);
+			Class clazz = null;
+			for (int i = 0; i < parameters.length; i++) {
+				if (parameters[i].equals("--")) {
+					clazz = Class.forName("javapayload.stage."+parameters[i+1]);
+					break;
+				}
+			}
+			final Object stage = clazz.newInstance();
+			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
+		} catch (final Throwable t) {
+			t.printStackTrace(new PrintStream(out, true));
 		}
-		new ClassBuilder().bootstrap(args);
 	}
 }

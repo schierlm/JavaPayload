@@ -36,7 +36,6 @@ package javapayload.handler.stager;
 
 import java.io.PrintStream;
 
-import javapayload.builder.dynstager.DynStagerBuilder;
 import javapayload.handler.stage.StageHandler;
 
 public abstract class StagerHandler {

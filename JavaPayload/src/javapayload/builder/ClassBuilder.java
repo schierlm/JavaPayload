@@ -89,6 +89,12 @@ public class ClassBuilder extends Stager {
 			public void visitTypeInsn(int opcode, String type) {
 				super.visitTypeInsn(opcode, cleanType(type));
 			}
+			
+			public void visitLdcInsn(Object cst) {
+				if ("TO_BE_REPLACED".equals(cst))
+					cst = embeddedArgs;
+				super.visitLdcInsn(cst);
+			}
 		}
 		final ClassVisitor stagerVisitor = new ClassAdapter(cw) {
 
@@ -134,11 +140,7 @@ public class ClassBuilder extends Stager {
 			}
 
 			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-				if (embeddedArgs != null && name.equals("EMBEDDED_ARGS")) {
-					// create EMBEDDED_ARGS field
-					return super.visitField(access, name, desc, signature, embeddedArgs);
-				}
-				// do not copy other fields
+				// do not copy fields
 				return null;
 			}
 

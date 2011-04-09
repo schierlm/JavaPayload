@@ -1,0 +1,15 @@
+StageMenu Shell --- JSh --- Exec cmd.exe /c echo ----X--- --- StopListening --- SystemInfo
+=-=
+3 Exec cmd.exe /c echo ---Y---
+=-=
+\QStage menu
+
+1: Shell
+2: JSh
+3: Exec cmd.exe /c echo ---X---
+4: StopListening
+5: SystemInfo
+
+Select a stage (you can also stage a stage from JavaPayload or metasploit).
+
+Your choice: ---Y---\E

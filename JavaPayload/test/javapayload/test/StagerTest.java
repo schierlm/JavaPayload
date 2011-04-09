@@ -56,6 +56,9 @@ public class StagerTest {
 		System.out.println("\tAES_LocalTest");
 		final StagerHandler.Loader loader2 = new StagerHandler.Loader("AES_LocalTest # -- TestStub".split(" "));
 		loader2.handle(System.err, null);
+		System.out.println("\tConsole");
+		final StagerHandler.Loader loader3 = new StagerHandler.Loader("Console -- TestStub".split(" "));
+		loader3.handle(System.err, null);
 		System.out.println("\tMultiListen");
 		String[] multiListenArgs = new String[] {"ReverseTCP localhost #", "ReverseSSL localhost 61234"};
 		for (int j = 0; j < multiListenArgs.length; j++) {
@@ -129,7 +132,7 @@ public class StagerTest {
 			if (args != null)
 				result.add(className);
 		}
-		// add AES dynstagers
+		// add AES/Integrated dynstagers
 		int origSize = result.size();
 		for (int i = 0; i < origSize; i++) {
 			String stager = (String) result.get(i);
@@ -138,6 +141,8 @@ public class StagerTest {
 			result.add("AES_"+stager);
 			if (stager.equals("LocalTest") || stager.equals("ReverseTCP") || stager.equals("JDWPTunnel"))
 				result.add("AES_AES_"+stager);
+			result.add("Integrated$Stager"+i+"_"+stager);
+			result.add("Integrated$AESStager"+i+"_AES_"+stager);
 		}
 		// add spawn dynstagers
 		origSize = result.size();

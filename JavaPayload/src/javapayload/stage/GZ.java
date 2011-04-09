@@ -68,6 +68,7 @@ public class GZ {
 						stagerClass = stagerClass.getSuperclass();
 					}
 				}
+				break;
 			}
 		}
 	}

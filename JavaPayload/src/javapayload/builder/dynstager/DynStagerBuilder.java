@@ -34,6 +34,12 @@
 
 package javapayload.builder.dynstager;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
 public abstract class DynStagerBuilder {
 
 	/**
@@ -48,4 +54,40 @@ public abstract class DynStagerBuilder {
 	 * @return Bytecode of the new dynstager
 	 */
 	public abstract byte[] buildStager(String stagerName, Class baseStagerClass, String extraArg, String[] args) throws Exception;
+	
+
+	protected void visitStringConstant(MethodVisitor mv, String constant) {
+		final List stringParts = new ArrayList();
+		final int MAXLEN = 65535;
+		while (constant.length() > MAXLEN || getUTFLen(constant) > MAXLEN) {
+			int len = Math.min(MAXLEN, constant.length()), utflen;
+			while ((utflen = getUTFLen(constant.substring(0, len))) > MAXLEN) {
+				len -= (utflen-MAXLEN+1)/2;
+			}
+			stringParts.add(constant.substring(0, len));
+			constant=constant.substring(len);
+		}
+		stringParts.add(constant);		
+		for (int i = 0; i < stringParts.size(); i++) {
+			mv.visitLdcInsn((String)stringParts.get(i));
+			if (i != 0) {
+				mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "concat", "(Ljava/lang/String;)Ljava/lang/String;");
+			}
+		}
+	}
+
+	private static int getUTFLen(String str) {
+		int utflen = 0;
+		for (int i = 0; i < str.length(); i++) {
+			char c = str.charAt(i);
+			if ((c >= 0x0001) && (c <= 0x007F)) {
+				utflen++;
+			} else if (c > 0x07FF) {
+				throw new IllegalStateException();
+			} else {
+				utflen += 2;
+			}
+		}
+		return utflen;
+	}
 }

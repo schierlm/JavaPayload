@@ -97,8 +97,9 @@ public class Spawn extends DynStagerBuilder {
 
 					public void visitLdcInsn(Object cst) {
 						if ("TO_BE_REPLACED".equals(cst))
-							cst = classContent;
-						super.visitLdcInsn(cst);
+							visitStringConstant(mv, classContent);
+						else
+							super.visitLdcInsn(cst);
 					}
 				};
 			}

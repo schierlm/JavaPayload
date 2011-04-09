@@ -39,14 +39,13 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import javapayload.handler.stage.StageHandler;
+
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-
-import javapayload.handler.stage.StageHandler;
-import javapayload.stage.AESHelper;
 
 public class AESStageHandler extends StageHandler {
 

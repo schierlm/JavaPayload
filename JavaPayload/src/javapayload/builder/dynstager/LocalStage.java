@@ -32,37 +32,33 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.builder.dynstager;
 
-import java.util.StringTokenizer;
+import java.io.DataInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.io.PrintStream;
 
-public class EmbeddedClassBuilder {
+public class LocalStage extends WrappingDynStagerBuilder {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
+	public void bootstrapWrap(String[] parameters) throws Exception {
+		bootstrapOrig(parameters);
 	}
 
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
+	protected void bootstrapWrap(InputStream rawIn, OutputStream out, String[] parameters) {
+		try {
+			final DataInputStream in = new DataInputStream(rawIn);
+			Class clazz = null;
+			for (int i = 0; i < parameters.length; i++) {
+				if (parameters[i].equals("--")) {
+					clazz = Class.forName("javapayload.stage."+parameters[i+1]);
+					break;
+				}
 			}
-			embeddedArgs.append("$").append(args[i]);
+			final Object stage = clazz.newInstance();
+			clazz.getMethod("start", new Class[] { Class.forName("java.io.DataInputStream"), Class.forName("java.io.OutputStream"), Class.forName("[Ljava.lang.String;") }).invoke(stage, new Object[] { in, out, parameters });
+		} catch (final Throwable t) {
+			t.printStackTrace(new PrintStream(out, true));
 		}
-		return embeddedArgs.toString();
-	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
 	}
 }

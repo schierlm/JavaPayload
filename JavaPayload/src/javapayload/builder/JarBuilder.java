@@ -34,18 +34,28 @@
 
 package javapayload.builder;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+import javapayload.handler.stage.StageHandler;
 import javapayload.loader.DynLoader;
+import javapayload.stage.StreamForwarder;
 
 public class JarBuilder {
 
-	public static final String ARGS_SYNTAX = "[--strip] [<filename>.jar] <stager> [<moreStagers...>]";
+	public static final String ARGS_SYNTAX = "[--strip] [<filename>.jar] <stager> [<moreStagers...>] [-- [<filename.ext>] <stage> [<moreStages...>]]";
 
 	protected static void buildJar(String filename, Class[] classes, boolean stripDebugInfo, Manifest manifest, String extraResourceName, byte[] extraResource) throws Exception {
 		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
@@ -62,8 +72,6 @@ public class JarBuilder {
 		final byte[] buf = new byte[4096];
 		int len;
 		for (int i = 0; i < classes.length; i++) {
-			if (classes[i] == null)
-				continue;
 			final String classname = classes[i].getName().replace('.', '/') + ".class";
 			jos.putNextEntry(new ZipEntry(prefix + classname));
 			InputStream in = classes[i].getResourceAsStream("/" + classname);
@@ -94,8 +102,8 @@ public class JarBuilder {
 
 	public static void buildJarFromArgs(String[] args, String baseName, final Class[] baseClasses, final Manifest manifest, String extraResourceName, byte[] extraResource) throws ClassNotFoundException, Exception {
 		boolean stripDebugInfo = false;
-		final Class[] classes = new Class[args.length + baseClasses.length];
-		System.arraycopy(baseClasses, 0, classes, 0, baseClasses.length);
+		final List classes = new ArrayList();
+		classes.addAll(Arrays.asList(baseClasses));
 		StringBuffer jarName = new StringBuffer(baseName);
 		String overrideName = null;
 		for (int i = 0; i < args.length; i++) {
@@ -104,14 +112,46 @@ public class JarBuilder {
 			if (args[i].equals("--strip")) {
 				jarName.append("stripped");
 				stripDebugInfo = true;
-				classes[i + baseClasses.length] = null;
 			} else if (args[i].endsWith(".jar")) {
 				overrideName = args[i]; 
+			} else if (args[i].equals("--")) {
+				jarName.append("stages");
+				int firstArg = i+1;
+				if (extraResource == null && args[i+1].indexOf('.') != -1) {
+					firstArg = i+2;
+					ByteArrayOutputStream baos = new ByteArrayOutputStream();
+					FileInputStream fis = new FileInputStream( args[i+1]);
+					StreamForwarder.forward(fis, baos);
+					extraResource = baos.toByteArray();
+					extraResourceName = new File(args[i+1]).getName();
+					if (args[i+1].contains("/./"))
+						extraResourceName = args[i+1].substring(args[i+1].indexOf("/./")+3);
+				}
+				Set classNames = new HashSet();
+				for (int j = firstArg; j < args.length; j++) {
+					StageHandler sh = (StageHandler) Class.forName("javapayload.handler.stage." + args[j]).newInstance();
+					Class[] neededClasses;
+					try {
+						neededClasses = sh.getNeededClasses();
+					} catch (IllegalStateException ex) {
+						neededClasses = new Class[] {
+								 javapayload.stage.Stage.class,
+								 Class.forName("javapayload.stage."+args[j])
+						};
+					}
+					for (int k = 0; k < neededClasses.length; k++) {
+						if (!classNames.contains(neededClasses[k].getName())) {
+							classNames.add(neededClasses[k].getName());
+							classes.add(neededClasses[k]);
+						}
+					}
+				}
+				break;
 			} else {
 				jarName.append(args[i]);
-				classes[i + baseClasses.length] = DynLoader.loadStager(args[i], null, 0);
+				classes.add(DynLoader.loadStager(args[i], null, 0));
 			}
 		}
-		buildJar(overrideName != null ? overrideName : jarName.append(".jar").toString(), classes, stripDebugInfo, manifest, extraResourceName, extraResource);
+		buildJar(overrideName != null ? overrideName : jarName.append(".jar").toString(), (Class[]) classes.toArray(new Class[classes.size()]), stripDebugInfo, manifest, extraResourceName, extraResource);
 	}
 }

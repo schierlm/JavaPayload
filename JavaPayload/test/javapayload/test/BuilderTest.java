@@ -74,6 +74,7 @@ public class BuilderTest {
 				new StripJarBuilderTestRunner(),
 				new EmbeddedJarBuilderTestRunner(),
 				new StripEmbeddedJarBuilderTestRunner(),
+				new LocalStageJarBuilderTestRunner(),
 				new AgentJarBuilderTestRunner(),
 				new AppletJarBuilderTestRunner(),
 				// new CVE_2008_5353TestRunner(),
@@ -101,7 +102,13 @@ public class BuilderTest {
 	}
 
 	protected static void testBuilder(final BuilderTestRunner runner, String name, String testArgs) throws Exception {
-		final String[] args = (name + " " + testArgs + " -- TestStub").split(" ");
+		String realName = name;
+		if (runner.getName().indexOf('_') != -1) {
+			realName = runner.getName().substring(0, runner.getName().indexOf('_')+1) + name;
+			if (name.equals("BindMultiTCP") || name.startsWith("Integrated$") || name.startsWith("Spawn_"))
+				return;
+		}
+		final String[] args = (realName + " " + testArgs + " -- TestStub").split(" ");
 		final StagerHandler.Loader loader = (runner.getName().indexOf("Injector") != -1) ? null : new StagerHandler.Loader(args);
 		if (runner.getName().indexOf("[kill]") != -1) {
 			if (name.startsWith("Spawn"))
@@ -307,7 +314,25 @@ public class BuilderTest {
 				throw new IOException("Unable to delete file");
 		}
 	}
+	
+	public static class LocalStageJarBuilderTestRunner implements BuilderTestRunner {
+		public String getName() { return "LocalStage_JarBuilder"; }
+		public int getDelay() { return 100; }
 
+		public void runBuilder(String[] args) throws Exception {
+			JarBuilder.main(new String[] {"LocalStage.jar", args[0], "--", "TestStub"});
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runJavaAndWait("LocalStage.jar", null, "javapayload.loader.StandaloneLoader", args);
+		}
+
+		public void cleanup() throws Exception {
+			if (!new File("LocalStage.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
+	
 	public static class AgentJarBuilderTestRunner implements BuilderTestRunner {
 		public String getName() { return "AgentJarBuilder"; }
 		public int getDelay() { return 100; }

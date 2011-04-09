@@ -32,37 +32,43 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.handler.stage;
 
-import java.util.StringTokenizer;
+import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-public class EmbeddedClassBuilder {
+public class InternalIntegratedStageHandler extends StageHandler {
+	
+	protected final StageHandler wrapped;
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
+	public InternalIntegratedStageHandler(StageHandler wrapped) {
+		this.wrapped = wrapped;
 	}
 
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
-			}
-			embeddedArgs.append("$").append(args[i]);
-		}
-		return embeddedArgs.toString();
+	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
+		throw new IllegalStateException("Custom upload is integrated");
 	}
 
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
+	public Class[] getNeededClasses() {
+		throw new IllegalStateException("Needed classes are integrated");
+	}
+
+	protected Class[] getNeededClasses(String[] parameters) throws Exception {
+		throw new IllegalStateException("Needed classes are integrated");
+	}
+
+
+	public void handle(OutputStream rawOut, InputStream in, String[] parameters) throws Exception {
+		final DataOutputStream out = new DataOutputStream(rawOut);
+		wrapped.handleStreams(out, in, parameters);
+	}
+
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		wrapped.handleStreams(out, in, parameters);
+	}
+	
+	protected StageHandler createClone() {
+		return new InternalIntegratedStageHandler(wrapped.createClone());
 	}
 }

@@ -53,6 +53,7 @@ import java.net.SocketException;
 import java.util.regex.Pattern;
 
 import javapayload.builder.ClassBuilder;
+import javapayload.builder.JarBuilder;
 import javapayload.handler.stager.StagerHandler;
 
 public class StageTest {
@@ -78,11 +79,40 @@ public class StageTest {
 				for (int i = 0; i < files.length; i++) {
 					testStage(files[i], "AES_AES_LocalTest # #");
 				}
+				System.out.println("Testing stages (Integrated$#_LocalTest)...");
+				for (int i = 0; i < files.length; i++) {
+					testStage(files[i], "Integrated$Stage#_LocalTest");
+				}
+				System.out.println("Testing stages (LocalStage_LocalTest)...");
+				for (int i = 0; i < files.length; i++) {
+					testStage(files[i], "LocalStage_LocalTest");
+				}
 				System.out.println("Testing stages (BindTCP)...");
 				String[] stagerArgs = new String[] { "BindMultiTCP", "localhost", "60123" };
 				ClassBuilder.main(new String[] { stagerArgs[0], "BuilderTestClass" });
 				Process proc = BuilderTest.runJava(".", null, "BuilderTestClass", stagerArgs);
 				for (int i = 0; i < files.length; i++) {
+					if(files[i].getName().startsWith("Drop")) {
+						JarBuilder.main(new String[] {"StageTestJar.jar", "LocalStage_BindTCP", "--", "test/./javapayload/test/stagetests/DropExec.exe", "DropExec", "SendParameters"});
+						Process proc2 = BuilderTest.runJava("StageTestJar.jar", null, "javapayload.loader.StandaloneLoader", new String[] {"LocalStage_BindTCP", "localhost", "60321", "--", "SendParameters"});
+						Thread.sleep(500);
+						testStage(files[i], "LocalStage_BindTCP localhost 60321", "");
+						if (proc2.waitFor() != 0)
+							throw new IOException("Build result exited with error code " + proc.exitValue());
+						if (!new File("StageTestJar.jar").delete())
+							throw new IOException("Unable to delete file");
+						continue;
+					} else if (files[i].getName().startsWith("LocalStageMenu")) {
+						JarBuilder.main(new String[] {"StageTestJar.jar", "LocalStage_BindTCP", "--", "LocalStageMenu", "SendParameters", "Shell", "JSh", "Exec", "StopListening", "SystemInfo"});
+						Process proc2 = BuilderTest.runJava("StageTestJar.jar", null, "javapayload.loader.StandaloneLoader", new String[] {"LocalStage_BindTCP", "localhost", "60321", "--", "SendParameters"});
+						Thread.sleep(500);
+						testStage(files[i], "LocalStage_BindTCP localhost 60321", "");
+						if (proc2.waitFor() != 0)
+							throw new IOException("Build result exited with error code " + proc.exitValue());
+						if (!new File("StageTestJar.jar").delete())
+							throw new IOException("Unable to delete file");
+						continue;
+					}
 					testStage(files[i], "BindTCP localhost 60123");
 				}
 				StagerHandler.main("BindTCP localhost 60123 -- StopListening".split(" "));
@@ -125,6 +155,8 @@ public class StageTest {
 		}
 	}
 	
+	private static int stageCounter = 0;
+	
 	private static Pattern testStage(File file, String stager, String stagePrefix, Writer output) throws Exception {
 		BufferedReader desc = new BufferedReader(new FileReader(file));
 		System.out.println("\t" + stagePrefix + file.getName().replaceAll("\\.txt", ""));
@@ -141,6 +173,8 @@ public class StageTest {
 		// with the BindMultiTCP stager
 		if (stage.contains(" ") && !stager.endsWith("LocalTest") && !stage.startsWith("LocalProxy "))
 			stage = "SendParameters " + stage;
+		if (stager.contains("#"))
+			stager = stager.replaceAll("#", ""+(++stageCounter));
 		String[] args = (stager + " -- " + stage).split(" ");
 		StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

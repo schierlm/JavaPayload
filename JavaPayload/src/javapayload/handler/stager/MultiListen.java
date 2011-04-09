@@ -37,7 +37,6 @@ import java.io.InputStream;
 import java.io.PrintStream;
 
 import javapayload.handler.stage.StageHandler;
-import javapayload.loader.DynLoader;
 
 public class MultiListen extends StagerHandler {
 

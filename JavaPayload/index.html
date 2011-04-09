@@ -187,6 +187,7 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add AES stagers and an AES stage (for stagers that do not support it)</li>
 <li>New stages: ForwardTCP, GZIP, GZ, JCp, LaunchStager, LocalProxy, MultiStage, SendParameters</li>
 <li>Add the new concept of dynstagers, to avoid having to create dynamic stages manually.</li>
+<li>Add Integrated/LocalStage dynstagers, together with Console stager and DropExec/StageMenu/LocalStageMenu stages.</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -456,6 +457,53 @@ unencrypted form, therefore, if you can, better use the AES stagers.</p>
 
 <p>This stage requires a password as first parameter; the second parameter is the name 
 of the real stage, followed by the real stage arguments.</p>
+
+<h3>Integrated dynstager</h3>
+
+<p>In some scenarios it is helpful if you can reduce the amount of data transferred, or if you can 
+connect to an exploit/payload without having JavaPayload available. The Integrated dynstager can be 
+used to build a stager that integrates all the classes of a particular stage. As the output file 
+depends on all the arguments, it is recommended to use a dynstager parameter that is different for
+each dynstager created (the parameter itself is ignored by the dynstager).</p>
+
+<p>For example,</p>
+<p><tt>Integrated$JSh4444_BindTCP localhost 4444 -- JSh</tt></p>
+<p>creates a stager listening on port 4444 that you can connect to via telnet and run JSh.</p>
+
+<p>There is also a dynstager handler available in cases you want to connect via JavaPayload anyway.</p>
+
+<p>This dynstager does not work sensibly with stagers that use a custom protocol (like ForwardTCP,
+MultiStage or JCp), although it can (with the help of the dynstager handler) be used with those stagers.</p>
+
+<p>An additional stager, Console, has been added, that expects the victim to sit at stdin and stdout.
+It is useful to build "demo" jars that run a stager on the local machine via the Integrated dynstager.
+Its stager handler acts similar to LocalTest - it will spawn another JVM and connect to that one via
+stdin/stdout, thereby testing the Console stager.</p>
+
+<p>This dynstage has two disadvantages: First, the stage to be run is fixed, you cannot stage another
+stage even if you have JavaPayload available. And second, you are limited to a single stage and cannot
+include more than one stage. The StageMenu stage overcomes these two limitations. First, it is possible
+to stage a different stage over the same connection that is used to interactively control the menu (you will
+have to start staging within 500 ms so that the menu has not been echoed), and you can give more than one
+stage (separated by ---) where the user can select from. For example.</p>
+
+<p><tt>StageMenu Shell --- JSh --- SystemInfo --- StopListening</tt></p>
+
+<p>creates a menu of four different stages, still making it possible to stage anything else if desired.</p>
+
+<h3>LocalStage dynstager</h3>
+
+<p>This dynstager (and its handler) can be used with Jar builders, it will lookup stages from the
+class path instead of staging it via the network. The JarBuilder syntax has been enhanced to give 
+a list of stages to be included after two dashes. As this dynstager's output does not depend on
+all the parameters, no dynstager parameters are needed or supported.</p>
+
+<p>The DropExec stage can be used to drop a resource from the jar (which can also be added by JarBuilder)
+and execute it, just like UpExec, but not via the network. (UpExec can be used with the Integrated
+dynstager for a similar effect).</p>
+
+<p>The LocalStageMenu stage works similar to the StageMenu stage, only that it looks up stages from the
+class path, and it also supports custom command lines apart from those selectable from the menu.</p>
 
 </body>
 </html>

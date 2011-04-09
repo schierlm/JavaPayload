@@ -32,37 +32,17 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.handler.dynstager;
 
-import java.util.StringTokenizer;
+import java.io.PrintStream;
 
-public class EmbeddedClassBuilder {
+import javapayload.handler.stage.InternalIntegratedStageHandler;
+import javapayload.handler.stage.StageHandler;
+import javapayload.handler.stager.DynStagerHandler;
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
-	}
+public class Integrated extends DynStagerHandler {
 
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
-			}
-			embeddedArgs.append("$").append(args[i]);
-		}
-		return embeddedArgs.toString();
-	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
+	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+		super.handleDyn(new InternalIntegratedStageHandler(stageHandler), parameters, errorStream, extraArg);
 	}
 }

@@ -31,38 +31,41 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.handler.stager;
 
-package javapayload.builder;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.PrintStream;
 
-import java.util.StringTokenizer;
+import javapayload.builder.ClassBuilder;
+import javapayload.builder.SpawnTemplate;
+import javapayload.handler.stage.StageHandler;
+import javapayload.stage.StreamForwarder;
 
-public class EmbeddedClassBuilder {
+public class Console extends StagerHandler {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+		File tempFile = File.createTempFile("~console", ".tmp");
+		tempFile.delete();
+		File tempDir = new File(tempFile.getAbsolutePath()+".dir");
+		tempDir.mkdir();
+		tempFile = new File(tempDir, "ConsoleClass.class");
+		FileOutputStream fos = new FileOutputStream(tempFile);
+		fos.write(ClassBuilder.buildClassBytes("ConsoleClass", "Console", ClassBuilder.class, null, null));
+		fos.close();
+		Process proc = SpawnTemplate.launch("ConsoleClass", tempDir.getAbsolutePath(), parameters);
+		new StreamForwarder(proc.getErrorStream(), stageHandler.consoleErr, null).start();
+		stageHandler.handle(proc.getOutputStream(), proc.getInputStream(), parameters);
+		proc.waitFor();
+		tempFile.delete();
+		tempDir.delete();		
 	}
-
-	public static String buildEmbeddedArgs(String[] args) {
-		final StringBuffer embeddedArgs = new StringBuffer();
-		for (int i = 1; i < args.length; i++) {
-			if (i != 1) {
-				embeddedArgs.append("\n");
-			}
-			embeddedArgs.append("$").append(args[i]);
-		}
-		return embeddedArgs.toString();
+	
+	protected boolean needHandleBeforeStart() {
+		return true;
 	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		new ClassBuilder().bootstrap(args);
+	
+	protected String getTestArguments() {
+		return null;
 	}
 }

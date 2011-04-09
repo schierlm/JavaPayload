@@ -64,7 +64,7 @@ public class DynLoader {
 
 				try {
 					dsb = (DynStagerBuilder) Class.forName("javapayload.builder.dynstager." + dsbName).newInstance();
-					baseStagerClass = loadStager(stagerName, null, 0);
+					baseStagerClass = loadStager(stagerName, args, firstArg);
 				} catch (ClassNotFoundException ex2) {
 				}
 				if (baseStagerClass != null) {
