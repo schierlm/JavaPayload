@@ -497,6 +497,8 @@ public class BuilderTest {
 			testBuilder(this, "AESJDWPTunnel", "#");
 			System.out.println("\t\tAES_AES_JDWPTunnel");
 			testBuilder(this, "AES_AES_JDWPTunnel", "# #");
+			System.out.println("\t\tPollingTunnel");
+			testBuilder(this, "PollingTunnel", "");
 			if (!new File("DummyClass.class").delete())
 				throw new IOException("Unable to delete file");
 			TestStub.wait = 0;

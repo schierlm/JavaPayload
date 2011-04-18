@@ -50,15 +50,12 @@ public class StagerTest {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("Testing stagers...");
-		System.out.println("\tLocalTest");
-		final StagerHandler.Loader loader = new StagerHandler.Loader("LocalTest -- TestStub".split(" "));
-		loader.handle(System.err, null);
-		System.out.println("\tAES_LocalTest");
-		final StagerHandler.Loader loader2 = new StagerHandler.Loader("AES_LocalTest # -- TestStub".split(" "));
-		loader2.handle(System.err, null);
-		System.out.println("\tConsole");
-		final StagerHandler.Loader loader3 = new StagerHandler.Loader("Console -- TestStub".split(" "));
-		loader3.handle(System.err, null);
+		String[] localStagers = new String[] {"LocalTest", "AES_LocalTest #", "Console", "PollingTunnel"};
+		for (int i = 0; i < localStagers.length; i++) {
+			System.out.println("\t"+localStagers[i]);
+			final StagerHandler.Loader loader = new StagerHandler.Loader(new String[] {localStagers[i], "--", "TestStub"});
+			loader.handle(System.err, null);			
+		}
 		System.out.println("\tMultiListen");
 		String[] multiListenArgs = new String[] {"ReverseTCP localhost #", "ReverseSSL localhost 61234"};
 		for (int j = 0; j < multiListenArgs.length; j++) {
