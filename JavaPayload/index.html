@@ -186,6 +186,7 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add the new concept of dynstagers, to avoid having to create dynamic stages manually.</li>
 <li>Add Integrated/LocalStage dynstagers, together with Console stager and DropExec/StageMenu/LocalStageMenu stages.</li>
 <li>Add PollingTunnel stager as a generic in-process tunnelling method, by now supported by LocalTest and JDWPInjector.</li>
+<li>JarBuilder: Support custom applet class name</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -344,6 +345,9 @@ in a single applet jar file, you can call <tt>java javapayload.builder.AppletJar
 and all debug information will be removed from all the classes. If you don't like the standard jar output
 name, you can give a filename ending with <tt>.jar</tt> as first parameter (but after the <tt>--strip</tt>).
 This is supported for all the <tt>*JarBuilder</tt> commands, even for <tt>EmbeddedJarBuilder</tt>).</p>
+
+<p>As the applet class name is shown to the user, it can be changed using the <tt>--name</tt> option of
+JarBuilder. Don't forget to also change the code attribute in the HTML!</p>
 
 <h3>JDWP example</h3>
 

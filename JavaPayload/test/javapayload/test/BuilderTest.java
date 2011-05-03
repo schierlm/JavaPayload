@@ -77,6 +77,7 @@ public class BuilderTest {
 				new LocalStageJarBuilderTestRunner(),
 				new AgentJarBuilderTestRunner(),
 				new AppletJarBuilderTestRunner(),
+				new NewNameAppletJarBuilderTestRunner(),
 				// new CVE_2008_5353TestRunner(),
 				// new CVE_2010_0094TestRunner(),
 				// new CVE_2010_0840TestRunner(),
@@ -108,6 +109,8 @@ public class BuilderTest {
 			if (name.equals("BindMultiTCP") || name.startsWith("Integrated$") || name.startsWith("Spawn_"))
 				return;
 		}
+		if (!runner.getName().contains("Embedded") && !runner.getName().contains("Injector") && name.startsWith("Integrated$")) 
+			return;
 		final String[] args = (realName + " " + testArgs + " -- TestStub").split(" ");
 		final StagerHandler.Loader loader = (runner.getName().indexOf("Injector") != -1) ? null : new StagerHandler.Loader(args);
 		if (runner.getName().indexOf("[kill]") != -1) {
@@ -381,6 +384,20 @@ public class BuilderTest {
 			if (!new File("applettest.policy").delete())
 				throw new IOException("Unable to delete file");
 		}
+	}
+	
+	public static class NewNameAppletJarBuilderTestRunner extends AppletJarBuilderTestRunner {
+		public String getName() { return "NewNameAppletJarBuilder [kill]";	}
+
+		public void runBuilder(String[] args) throws Exception {
+			AppletJarBuilder.main(new String[] { "--name", "some.funny.ClassName", args[0] });
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runAppletAndWait("Applet_" + args[0] + ".jar", "some.funny.ClassName", "grant { permission java.security.AllPermission; };", args);
+			if (!new File("Applet_" + args[0] + ".jar").delete())
+				throw new IOException("Unable to delete file");
+		}		
 	}
 
 	public static class CVE_2008_5353TestRunner implements BuilderTestRunner {

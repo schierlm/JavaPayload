@@ -68,7 +68,11 @@ public class DynStagerURLStreamHandler extends URLStreamHandler {
 	}
 
 	public synchronized void addStager(String stagerName, byte[] classBytes) {
-		classes.put("/javapayload/stager/" + stagerName + ".class", classBytes);
+		addClass("javapayload.stager." + stagerName, classBytes);
+	}
+	
+	public synchronized void addClass(String className, byte[] classBytes) {
+		classes.put("/"+className.replace('.', '/') + ".class", classBytes);
 	}
 
 	protected synchronized URLConnection openConnection(URL u) throws IOException {

