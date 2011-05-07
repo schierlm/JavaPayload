@@ -59,6 +59,7 @@ import javapayload.builder.EmbeddedClassBuilder;
 import javapayload.builder.EmbeddedJarBuilder;
 import javapayload.builder.JDWPInjector;
 import javapayload.builder.JarBuilder;
+import javapayload.builder.RMIInjector;
 import javapayload.builder.SpawnTemplate;
 import javapayload.handler.stage.TestStub;
 import javapayload.handler.stager.StagerHandler;
@@ -85,6 +86,7 @@ public class BuilderTest {
 				// new CVE_2010_0840TestRunner(),
 				new AttachInjectorTestRunner(),
 				new JDWPInjectorTestRunner(),
+				new RMIInjectorTestRunner(),
 		};
 		for (int i = 0; i < runners.length; i++) {
 			BuilderTestRunner runner = runners[i];
@@ -557,4 +559,30 @@ public class BuilderTest {
 		}
 	}
 
+	public static class RMIInjectorTestRunner extends WaitingBuilderTestRunner {
+		public String getName() { return "RMIInjector"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			RMIInjector.main(new String[] {"-buildjar", "rmitest.jar"});
+		}
+
+		public void runResult(String[] args) throws Exception {
+			Process proc = runJava(".", null, "sun.rmi.registry.RegistryImpl", new String[] {"10999"});
+			String[] injectorArgs = new String[args.length + 3];
+			injectorArgs[0] = "file:./rmitest.jar";
+			injectorArgs[1] = "localhost";
+			injectorArgs[2] = "10999";
+			System.arraycopy(args, 0, injectorArgs, 3, args.length);
+			notifyReady();
+			RMIInjector.main(injectorArgs);
+			proc.destroy();
+		}
+
+		public void cleanup() throws Exception {
+			System.out.println("\t\tPollingTunnel");
+			testBuilder(this, "PollingTunnel", "");
+			if (!new File("rmitest.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
 }

