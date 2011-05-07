@@ -53,7 +53,7 @@ public class MultiListen extends StagerHandler {
 		return result;
 	}
 	
-	protected void handle(StageHandler stageHandler, String[] parameters, final PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, final PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		String[] realParameters = new String[parameters.length-1];
 		System.arraycopy(parameters, 1, realParameters, 0, realParameters.length);
 		if (realHandler == null) {
@@ -71,7 +71,7 @@ public class MultiListen extends StagerHandler {
 				}
 			}
 		}).start();
-		realHandler.handleMulti(stageHandler, realParameters, errorStream);
+		realHandler.handleMulti(stageHandler, realParameters, errorStream, readyHandler);
 	}
 
 	protected boolean needHandleBeforeStart() {

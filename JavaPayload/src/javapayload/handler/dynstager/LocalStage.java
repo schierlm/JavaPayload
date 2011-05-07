@@ -39,10 +39,11 @@ import java.io.PrintStream;
 import javapayload.handler.stage.InternalLocalStageHandler;
 import javapayload.handler.stage.StageHandler;
 import javapayload.handler.stager.DynStagerHandler;
+import javapayload.handler.stager.StagerHandler;
 
 public class LocalStage extends DynStagerHandler {
 
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg);
+	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
 	}
 }

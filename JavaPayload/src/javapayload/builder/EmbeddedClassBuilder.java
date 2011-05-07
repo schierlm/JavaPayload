@@ -36,7 +36,9 @@ package javapayload.builder;
 
 import java.util.StringTokenizer;
 
-public class EmbeddedClassBuilder {
+import javapayload.stager.Stager;
+
+public class EmbeddedClassBuilder extends Stager {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
@@ -58,11 +60,28 @@ public class EmbeddedClassBuilder {
 	}
 
 	public static void mainToEmbed(String[] args) throws Exception {
+		EmbeddedClassBuilder cb = new EmbeddedClassBuilder();
+		boolean needWait = false;
+		if (args.length == 1 && args[0].equals("+")) {
+			args[0] = args[0].substring(1);
+			needWait = true;
+			byte[] clazz = "WAITER_THREAD".getBytes("ISO-8859-1");
+			Thread waiterThread = (Thread)cb.defineClass(clazz, 0, clazz.length).getConstructors()[0].newInstance(new Object[] {cb});
+			waiterThread.start();
+		}
 		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
 		args = new String[tokenizer.countTokens()];
 		for (int i = 0; i < args.length; i++) {
 			args[i] = tokenizer.nextToken().substring(1);
 		}
-		new ClassBuilder().bootstrap(args);
+		cb.bootstrap(args, needWait);
+	}
+	
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+		throw new Exception("Never used!");
+	}
+	
+	public void waitReady() {
+		throw new RuntimeException("Never used!");
 	}
 }

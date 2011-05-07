@@ -39,10 +39,21 @@ import java.net.Socket;
 
 public class BindTCP extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	private boolean ready;
+	
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		final ServerSocket ss = new ServerSocket(Integer.parseInt(parameters[2]));
+		synchronized(this) {
+			ready = true;
+			notifyAll();
+		}
 		final Socket s = ss.accept();
 		ss.close();
 		bootstrap(s.getInputStream(), s.getOutputStream(), parameters);
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
 	}
 }

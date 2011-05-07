@@ -51,10 +51,11 @@ public class ReverseUDP extends StagerHandler {
 
 	private DatagramSocket socket = null;
 	
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		if (socket == null) {
 			socket = new DatagramSocket(Integer.parseInt(parameters[2]));
 		}
+		if (readyHandler != null) readyHandler.notifyReady();
 		DatagramPacket dp = new DatagramPacket(new byte[512], 512);
 		socket.receive(dp);
 		handle(stageHandler, parameters, socket, dp.getAddress(), dp.getPort());
@@ -116,6 +117,7 @@ public class ReverseUDP extends StagerHandler {
 		PipedOutputStream pipedOut = new PipedOutputStream(in);
 		BidirectionalUDPStream bus = new BidirectionalUDPStream(pipedOut, socket, remoteAddress, remotePort);		
 		stageHandler.handle(bus, in, parameters);
+		bus.waitFinished();
 	}
 
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {

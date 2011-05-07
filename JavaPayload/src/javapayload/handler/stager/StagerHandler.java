@@ -40,6 +40,7 @@ import javapayload.handler.stage.StageHandler;
 
 public abstract class StagerHandler {
 	
+	private boolean ready;
 	protected String[] originalParameters;
 	
 	public static void main(String[] args) throws Exception {
@@ -64,8 +65,18 @@ public abstract class StagerHandler {
 	protected boolean canHandleExtraArg(Class argType) {
 		return false;
 	}
+	
+	public synchronized void notifyReady() {
+		ready = true;
+		notifyAll();
+	}
+	
+	protected synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
+	}
 
-	protected abstract void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception;
+	protected abstract void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception;
 	protected abstract boolean needHandleBeforeStart();
 	protected abstract String getTestArguments();
 	
@@ -126,7 +137,7 @@ public abstract class StagerHandler {
 				}
 				errorStream.println();
 			}
-			handleInternal(errorStream, extraArg);
+			handleInternal(errorStream, extraArg, false);
 		}
 		
 		public String[] getArgs() {
@@ -137,9 +148,9 @@ public abstract class StagerHandler {
 			return stagerHandler.canHandleExtraArg(argType);
 		}
 		
-		private void handleInternal(PrintStream errorStream, Object extraArg) throws Exception {
+		private void handleInternal(PrintStream errorStream, Object extraArg, boolean needReadyInformation) throws Exception {
 			stagerHandler.originalParameters = args;
-			stagerHandler.handle(stageHandler, args, errorStream, extraArg);
+			stagerHandler.handle(stageHandler, args, errorStream, extraArg, needReadyInformation ? stagerHandler : null);
 		}
 		
 		public void handleBefore(final PrintStream errorStream, final Object extraArg) throws Exception {
@@ -148,13 +159,14 @@ public abstract class StagerHandler {
 				beforeThread = new Thread(new Runnable() {
 					public void run() {
 						try {
-							handleInternal(errorStream, extraArg);
+							handleInternal(errorStream, extraArg, true);
 						} catch (final Exception ex) {
 							ex.printStackTrace();
 						}
 					}
 				});
 				beforeThread.start();
+				stagerHandler.waitReady();
 			}
 		}
 		
@@ -162,7 +174,7 @@ public abstract class StagerHandler {
 			if (beforeThread != null)
 				beforeThread.join();
 			if (!stagerHandler.needHandleBeforeStart())
-				handleInternal(errorStream, extraArg);
+				handleInternal(errorStream, extraArg, false);
 		}
 	}
 }

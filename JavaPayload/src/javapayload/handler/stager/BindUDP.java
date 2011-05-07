@@ -41,7 +41,8 @@ import java.net.InetAddress;
 import javapayload.handler.stage.StageHandler;
 
 public class BindUDP extends StagerHandler {
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null) readyHandler.notifyReady();
 		ReverseUDP.handle(stageHandler, parameters, new DatagramSocket(), InetAddress.getByName(parameters[1]), Integer.parseInt(parameters[2]));
 	}
 	

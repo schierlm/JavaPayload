@@ -38,6 +38,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.io.UnsupportedEncodingException;
 
 import javapayload.loader.DynLoader;
 import javapayload.stager.Stager;
@@ -53,6 +54,8 @@ import org.objectweb.asm.Opcodes;
 
 public class ClassBuilder extends Stager {
 
+	private ClassBuilder instance;
+	
 	protected static void buildClass(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
 		final byte[] newBytecode = buildClassBytes(classname, stager, loaderClass, embeddedArgs, realArgs);
 		final FileOutputStream fos = new FileOutputStream(classname + ".class");
@@ -61,6 +64,62 @@ public class ClassBuilder extends Stager {
 	}
 	
 	public static byte[] buildClassBytes(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
+		
+		final ClassWriter writerThreadCW = new ClassWriter(0);
+
+		final ClassVisitor writerThreadVisitor = new ClassAdapter(writerThreadCW) {
+			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
+				super.visit(version, access, "WaiterThread", signature, "java/lang/Thread", new String[0]);
+			}
+
+			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
+				if (name.equals("instance"))
+					return super.visitField(access, name,  "L"+classname+";", signature, value);
+				else
+					return null;
+			}
+
+			public void visitInnerClass(String name, String outerName, String innerName, int access) {
+				// do not copy inner classes
+			}
+
+			public void visitOuterClass(String owner, String name, String desc) {
+				// do not copy outer classes
+			}
+			
+			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+				if (name.equals("mainToEmbed")) {
+					MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "run", "()V", null, null);
+					mv.visitCode();
+					mv.visitVarInsn(Opcodes.ALOAD, 0);
+					mv.visitFieldInsn(Opcodes.GETFIELD, "WaiterThread", "instance", "L"+classname+";");
+					mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, classname, "waitReady", "()V");
+					mv.visitFieldInsn(Opcodes.GETSTATIC, "java/lang/System", "out", "Ljava/io/PrintStream;");
+					mv.visitInsn(Opcodes.DUP);
+					mv.visitLdcInsn("+");
+					mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "print", "(Ljava/lang/String;)V");
+					mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/io/PrintStream", "flush", "()V");
+					mv.visitInsn(Opcodes.RETURN);
+					mv.visitMaxs(3, 1);
+					mv.visitEnd();
+				} else if (name.equals("<init>")) {
+					MethodVisitor mv = super.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "(L"+classname+";)V", null, null);
+					mv.visitCode();
+					mv.visitVarInsn(Opcodes.ALOAD, 0);
+					mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "java/lang/Thread", "<init>", "()V");
+					mv.visitVarInsn(Opcodes.ALOAD, 0);
+					mv.visitVarInsn(Opcodes.ALOAD, 1);
+					mv.visitFieldInsn(Opcodes.PUTFIELD, "WaiterThread", "instance", "L"+classname+";");
+					mv.visitInsn(Opcodes.RETURN);
+					mv.visitMaxs(2, 2);
+					mv.visitEnd();
+				}
+				return null;
+			}
+		};
+		visitClass(ClassBuilder.class, writerThreadVisitor, writerThreadCW);
+		final byte[] waiterThread = writerThreadCW.toByteArray();
+		
 		final ClassWriter cw = new ClassWriter(0);
 
 		class MyMethodVisitor extends MethodAdapter {
@@ -93,9 +152,16 @@ public class ClassBuilder extends Stager {
 			public void visitLdcInsn(Object cst) {
 				if ("TO_BE_REPLACED".equals(cst))
 					cst = embeddedArgs;
+				try {
+					if ("WAITER_THREAD".equals(cst))
+						cst = new String(waiterThread, "ISO-8859-1");
+				} catch (UnsupportedEncodingException ex) {
+					ex.printStackTrace();
+				}
 				super.visitLdcInsn(cst);
 			}
 		}
+
 		final ClassVisitor stagerVisitor = new ClassAdapter(cw) {
 
 			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
@@ -127,7 +193,7 @@ public class ClassBuilder extends Stager {
 
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// strip abstract bootstrap method
-				if (name.equals("bootstrap") && (access & Opcodes.ACC_ABSTRACT) != 0) {
+				if ((name.equals("bootstrap") || name.equals("waitReady")) && (access & Opcodes.ACC_ABSTRACT) != 0) {
 					return null;
 				}
 				return new MyMethodVisitor(super.visitMethod(access, name, desc, signature, exceptions), classname);
@@ -179,7 +245,22 @@ public class ClassBuilder extends Stager {
 	}
 
 	public static void mainToEmbed(String[] args) throws Exception {
-		new ClassBuilder().bootstrap(args);
+		ClassBuilder cb = new ClassBuilder();
+		boolean needWait = false;
+		if (args[0].startsWith("+")) {
+			args[0] = args[0].substring(1);
+			needWait = true;
+			byte[] clazz = "WAITER_THREAD".getBytes("ISO-8859-1");
+			Thread waiterThread = (Thread)cb.defineClass(clazz, 0, clazz.length).getConstructors()[0].newInstance(new Object[] {cb});
+			waiterThread.start();
+		}
+		cb.bootstrap(args, needWait);
+	}
+	
+	public void run() {
+		instance.waitReady();
+		System.out.print("+");
+		System.out.flush();
 	}
 
 	public static void visitClass(Class clazz, ClassVisitor stagerVisitor, ClassWriter cw) throws Exception {
@@ -197,7 +278,11 @@ public class ClassBuilder extends Stager {
 		out.write(cw.toByteArray());
 	}
 	
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		throw new Exception("Never used!");
+	}
+	
+	public void waitReady() {
+		throw new RuntimeException("Never used!");
 	}
 }

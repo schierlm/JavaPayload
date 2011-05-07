@@ -106,7 +106,7 @@ public abstract class WrappingDynStagerBuilder extends DynStagerBuilder {
 					owner = "javapayload/stager/" + stagerName;
 				}
 				if (name.equals("bootstrapOrig") && owner.equals("javapayload/builder/dynstager/WrappingDynStagerBuilder")) {
-					if (desc.equals("([Ljava/lang/String;)V")) {
+					if (desc.equals("([Ljava/lang/String;Z)V")) {
 						name = bootstrapName;
 					} else if (desc.equals("(Ljava/io/InputStream;Ljava/io/OutputStream;[Ljava/lang/String;)V")) {
 						name = "bootstrap";
@@ -151,7 +151,7 @@ public abstract class WrappingDynStagerBuilder extends DynStagerBuilder {
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// take only the method we need
 				if (name.equals("bootstrapWrap")) {
-					if (desc.equals("([Ljava/lang/String;)V")) {
+					if (desc.equals("([Ljava/lang/String;Z)V")) {
 						name = "bootstrap";
 					} else if (desc.equals("(Ljava/io/InputStream;Ljava/io/OutputStream;[Ljava/lang/String;)V")) {
 						name = bootstrapName;
@@ -170,8 +170,8 @@ public abstract class WrappingDynStagerBuilder extends DynStagerBuilder {
 	
 	protected void handleCustomMethods(String bootstrapName, ClassWriter cw, String stagerName, Class baseStagerClass, String extraArg, String[] args) throws Exception {}
 
-	public abstract void bootstrapWrap(String[] parameters) throws Exception;
+	public abstract void bootstrapWrap(String[] parameters, boolean needWait) throws Exception;
 	protected abstract void bootstrapWrap(InputStream rawIn, OutputStream out, String[] parameters);
-	protected final void bootstrapOrig(String[] parameters) throws Exception {}
+	protected final void bootstrapOrig(String[] parameters, boolean needWait) throws Exception {}
 	protected final void bootstrapOrig(InputStream rawIn, OutputStream out, String[] parameters) {}
 }

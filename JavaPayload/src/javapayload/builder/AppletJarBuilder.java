@@ -52,6 +52,7 @@ public class AppletJarBuilder {
 		}
 		final Class[] baseClasses = new Class[] {
 				javapayload.loader.AppletLoader.class,
+				javapayload.loader.AppletLoader.ReadyNotifier.class,
 				javapayload.stager.Stager.class,
 		};
 		if (args[0].equals("--name")) {

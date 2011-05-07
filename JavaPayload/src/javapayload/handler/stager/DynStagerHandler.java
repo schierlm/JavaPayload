@@ -54,13 +54,13 @@ public class DynStagerHandler extends StagerHandler {
 		return stagerHandler.canHandleExtraArg(argType);
 	}
 
-	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		stagerHandler.originalParameters = originalParameters;
-		handleDyn(stageHandler, parameters, errorStream, extraArg);
+		handleDyn(stageHandler, parameters, errorStream, extraArg, readyHandler);
 	}
 
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		stagerHandler.handle(stageHandler, parameters, errorStream, extraArg);
+	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		stagerHandler.handle(stageHandler, parameters, errorStream, extraArg, readyHandler);
 	}
 
 	protected boolean needHandleBeforeStart() {

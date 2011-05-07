@@ -45,7 +45,10 @@ public class LocalTest extends Stager {
 		this.out = out;
 	}
 
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		bootstrap(in, out, parameters);
+	}
+	
+	public void waitReady() throws InterruptedException {
 	}
 }

@@ -46,7 +46,7 @@ import javax.net.ssl.X509TrustManager;
 
 public class ReverseSSL extends Stager implements X509TrustManager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		final SSLContext context = SSLContext.getInstance("SSL");
 		context.init(new KeyManager[0], new TrustManager[] { this }, new SecureRandom());
 		final Socket s = context.getSocketFactory().createSocket(parameters[1], Integer.parseInt(parameters[2]));
@@ -61,5 +61,8 @@ public class ReverseSSL extends Stager implements X509TrustManager {
 
 	public X509Certificate[] getAcceptedIssuers() {
 		return new X509Certificate[0];
+	}
+	
+	public void waitReady() throws InterruptedException {
 	}
 }

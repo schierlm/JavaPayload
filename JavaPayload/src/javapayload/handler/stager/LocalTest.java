@@ -49,7 +49,8 @@ public class LocalTest extends StagerHandler implements Runnable {
 	private OutputStream out;
 	private PrintStream errorStream;
 
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null) readyHandler.notifyReady();
 		this.errorStream = errorStream;
 		final PipedInputStream localIn = new PipedInputStream();
 		final PipedOutputStream localOut = new PipedOutputStream();
@@ -64,20 +65,20 @@ public class LocalTest extends StagerHandler implements Runnable {
 		try {
 			try {
 				if (!originalParameters[0].equals("LocalTest")) {
-					((Stager)DynLoader.loadStager(originalParameters[0], originalParameters, 0).getConstructor(new Class[] {InputStream.class, OutputStream.class}).newInstance(new Object[] {in, out})).bootstrap(originalParameters);
+					((Stager)DynLoader.loadStager(originalParameters[0], originalParameters, 0).getConstructor(new Class[] {InputStream.class, OutputStream.class}).newInstance(new Object[] {in, out})).bootstrap(originalParameters, false);
 					return;
 				}
 			} catch (Throwable t) {
 				// fall through
 			}
-			new javapayload.stager.LocalTest(in, out).bootstrap(originalParameters);
+			new javapayload.stager.LocalTest(in, out).bootstrap(originalParameters, false);
 		} catch (final Exception ex) {
 			ex.printStackTrace(errorStream);
 		}
 	}
 	
 	protected boolean needHandleBeforeStart() {
-		return true;
+		throw new RuntimeException("LocalTest cannot be used as a standalone stager!");
 	}
 	
 	protected String getTestArguments() {

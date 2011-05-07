@@ -83,7 +83,15 @@ public class DynLoader {
 	}
 
 	public static void main(String[] args) throws Exception {
+		boolean needWait = false;
+		if (args[0].startsWith("+")) {
+			args[0] = args[0].substring(1);
+			needWait = true;
+		}
 		final Stager stager = (Stager) loadStager(args[0], args, 0).newInstance();
-		stager.bootstrap(args);
+		stager.bootstrap(args, needWait);
+		if (needWait) {
+			new Thread(new StandaloneLoader(stager)).start();
+		}
 	}
 }

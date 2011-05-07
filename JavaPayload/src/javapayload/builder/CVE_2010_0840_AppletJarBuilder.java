@@ -19,6 +19,7 @@ public class CVE_2010_0840_AppletJarBuilder {
 				javapayload.exploit.CVE_2010_0840.class,
 				javapayload.exploit.CVE_2010_0840.MyAbstractMap.class,
 				javapayload.loader.AppletLoader.class,
+				javapayload.loader.AppletLoader.ReadyNotifier.class,
 				javapayload.stager.Stager.class,
 		};
 		final ClassWriter cw = new ClassWriter(0);

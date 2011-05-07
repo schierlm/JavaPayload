@@ -222,6 +222,9 @@ public class BidirectionalUDPStream extends OutputStream implements Runnable {
 				break;
 			}
 		}
+		synchronized(this) {
+			notifyAll();
+		}
 	}
 
 	public void write(int b) throws IOException {
@@ -257,5 +260,10 @@ public class BidirectionalUDPStream extends OutputStream implements Runnable {
 
 	public synchronized void close() throws IOException {
 		closeState = -1;
+	}
+	
+	public synchronized void waitFinished() throws InterruptedException {
+		while(closeState != 4)
+			wait();
 	}
 }

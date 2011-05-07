@@ -41,9 +41,20 @@ import javapayload.loader.JDWPCommunication;
 
 public class JDWPTunnel extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	private boolean ready;
+	
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		PipedInputStream pis = new PipedInputStream();
 		final JDWPCommunication comm = new JDWPCommunication(new PipedOutputStream(pis));
+		synchronized(this) {
+			ready = true;
+			notifyAll();
+		}
 		bootstrap(pis, comm, parameters);
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
 	}
 }

@@ -44,8 +44,14 @@ import java.net.InetAddress;
 
 public class BindUDP extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	private boolean ready;
+
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		DatagramSocket ds = new DatagramSocket(Integer.parseInt(parameters[2]));
+		synchronized(this) {
+			ready = true;
+			notifyAll();
+		}
 		DatagramPacket dp = new DatagramPacket(new byte[512], 512);
 		ds.receive(dp);
 		bootstrap(ds, dp.getAddress(), dp.getPort(), parameters);
@@ -81,5 +87,11 @@ public class BindUDP extends Stager {
 			.getConstructor(new Class[] {Class.forName("java.io.OutputStream"), Class.forName("java.net.DatagramSocket"), Class.forName("java.net.InetAddress"), Integer.TYPE})
 			.newInstance(new Object[] {pipedOut, ds, remoteAddress, new Integer(remotePort)});
 		bootstrap(in, out, parameters);
+		out.getClass().getMethod("waitFinished", new Class[0]).invoke(out, new Object[0]);
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
 	}
 }

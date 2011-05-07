@@ -49,7 +49,8 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 	private CommunicationInterface communicationInterface;
 	private byte[][] readBuffer = new byte[1][];
 
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null) readyHandler.notifyReady();
 		this.errorStream = errorStream;
 		if (extraArg == null) {
 			extraArg = new LocalCommunicationInterface(parameters);
@@ -139,7 +140,7 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 
 		public LocalCommunicationInterface(String[] parameters) throws Exception {
 			stager = new javapayload.stager.PollingTunnel();
-			stager.bootstrap(parameters);
+			stager.bootstrap(parameters, false);
 		}
 
 		public String sendData(String request) throws Exception {

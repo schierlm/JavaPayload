@@ -39,6 +39,8 @@ import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -109,7 +111,7 @@ public class BuilderTest {
 			if (name.equals("BindMultiTCP") || name.startsWith("Integrated$") || name.startsWith("Spawn_"))
 				return;
 		}
-		if (!runner.getName().contains("Embedded") && !runner.getName().contains("Injector") && name.startsWith("Integrated$")) 
+		if (!runner.getName().contains("Embedded") && !runner.getName().contains("Injector") && name.contains("Integrated$")) 
 			return;
 		final String[] args = (realName + " " + testArgs + " -- TestStub").split(" ");
 		final StagerHandler.Loader loader = (runner.getName().indexOf("Injector") != -1) ? null : new StagerHandler.Loader(args);
@@ -132,16 +134,18 @@ public class BuilderTest {
 			};
 		});
 		t.start();
-		Thread.sleep(runner.getDelay());
+		runner.waitReady();
 		if (loader != null)
 			loader.handleAfter(System.err, null);
 		t.join();
 		if (tt[0] != null)
 			throw new Exception("Builder result died", tt[0]);
 	}
-
-	public static void runJavaAndWait(String classpath, String jvmarg, String mainClass, String[] args) throws Exception {
+	
+	public static void runJavaAndWait(WaitingBuilderTestRunner runner, String classpath, String jvmarg, String mainClass, String[] args) throws Exception {
 		Process proc = runJava(classpath, jvmarg, mainClass, args);
+		proc.getInputStream().read();
+		runner.notifyReady();
 		if (proc.waitFor() != 0)
 			throw new IOException("Build result exited with error code " + proc.exitValue());
 	}
@@ -163,13 +167,28 @@ public class BuilderTest {
 		return proc;
 	}
 
-	public static void runAppletAndWait(String archive, String className, String policyfile, String[] args) throws Exception {
+	public static void runAppletAndWait(final WaitingBuilderTestRunner runner, String archive, String className, String policyfile, String[] args) throws Exception {
+		final ServerSocket ss = new ServerSocket(0);
+		new Thread(new Runnable() {
+			public void run() {
+				try {
+					Socket s = ss.accept();
+					s.getOutputStream().write("HTTP/1.1 200 ok\r\n\r\n".getBytes());
+					ss.close();
+					s.close();
+					runner.notifyReady();
+				} catch (Throwable t) {
+					t.printStackTrace();
+				}
+			}
+		}).start();
 		FileWriter fw = new FileWriter("applettest.html");
 		String childClassPath = System.getProperty("javapayload.child.classpath", "");
 		if (childClassPath.startsWith(";")) {
 			childClassPath=",file:///"+childClassPath.substring(1);
 		}
 		fw.write("<applet archive=\"" + archive + childClassPath + "\" code=\"" + className + "\" width=\"100\" height=\"100\">\r\n" +
+				"		<param name=\"readyURL\" value=\"http://localhost:" + ss.getLocalPort() + "/foo\">\r\n" +
 				"		<param name=\"argc\" value=\"" + args.length + "\">\r\n");
 		for (int i = 0; i < args.length; i++) {
 			fw.write("		<param name=\"arg" + i + "\" value=\"" + args[i] + "\" />\r\n");
@@ -190,29 +209,44 @@ public class BuilderTest {
 		commands.add("applettest.html");
 		String[] commandArgs = (String[]) commands.toArray(new String[commands.size()]);
 		Process proc = Runtime.getRuntime().exec(commandArgs);
-		new StreamForwarder(proc.getErrorStream(), System.err, System.err).start();
+		new StreamForwarder(proc.getErrorStream(), System.err, System.err, false).start();
 		if (proc.waitFor() != 0)
 			throw new IOException("Build result exited with error code " + proc.exitValue());
 	}
 
 	public static interface BuilderTestRunner {
 		String getName();
-		int getDelay();
+		void waitReady() throws InterruptedException;
 		void runBuilder(String[] args) throws Exception;
 		void runResult(String[] args) throws Exception;
 		void cleanup() throws Exception;
 	}
+	
+	public static abstract class WaitingBuilderTestRunner implements BuilderTestRunner {
+		private boolean ready = false;
+		
+		public synchronized void notifyReady() {
+			ready = true;
+			notifyAll();
+		}
+		
+		public synchronized void waitReady() throws InterruptedException {
+			while (!ready)
+				wait();
+		}
+	}
 
-	public static class ClassBuilderTestRunner implements BuilderTestRunner {
+	public static class ClassBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "ClassBuilder"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			ClassBuilder.main(new String[] { args[0], "BuilderTestClass" });
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait(".", null, "BuilderTestClass", args);
+			String[] a = (String[])args.clone();
+			a[0] = "+" + a[0];
+			runJavaAndWait(this, ".", null, "BuilderTestClass", a);
 		}
 
 		public void cleanup() throws Exception {
@@ -221,9 +255,8 @@ public class BuilderTest {
 		}
 	}
 
-	public static class EmbeddedClassBuilderTestRunner implements BuilderTestRunner {
+	public static class EmbeddedClassBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "EmbeddedClassBuilder"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			List builderArgs = new ArrayList();
@@ -233,25 +266,26 @@ public class BuilderTest {
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait(".", null, "BuilderTestClass", new String[0]);
+			runJavaAndWait(this, ".", null, "BuilderTestClass", new String[] {"+"});
 		}
-
+		
 		public void cleanup() throws Exception {
 			if (!new File("BuilderTestClass.class").delete())
 				throw new IOException("Unable to delete file");
 		}
 	}
 
-	public static class JarBuilderTestRunner implements BuilderTestRunner {
+	public static class JarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "JarBuilder"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			JarBuilder.main(new String[] { args[0] });
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait(args[0] + ".jar", null, "javapayload.loader.StandaloneLoader", args);
+			String[] a = (String[])args.clone();
+			a[0] = "+" + a[0];
+			runJavaAndWait(this, args[0] + ".jar", null, "javapayload.loader.StandaloneLoader", a);
 			if (!new File(args[0] + ".jar").delete())
 				throw new IOException("Unable to delete file");
 		}
@@ -260,16 +294,17 @@ public class BuilderTest {
 		}
 	}
 	
-	public static class StripJarBuilderTestRunner implements BuilderTestRunner {
+	public static class StripJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "JarBuilder (stripped)"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			JarBuilder.main(new String[] { "--strip", "stripped.jar", args[0] });
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait("stripped.jar", null, "javapayload.loader.StandaloneLoader", args);
+			String[] a = (String[])args.clone();
+			a[0] = "+" + a[0];
+			runJavaAndWait(this, "stripped.jar", null, "javapayload.loader.StandaloneLoader", a);
 		}
 
 		public void cleanup() throws Exception {
@@ -278,16 +313,15 @@ public class BuilderTest {
 		}
 	}
 
-	public static class EmbeddedJarBuilderTestRunner implements BuilderTestRunner {
+	public static class EmbeddedJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "EmbeddedJarBuilder"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			EmbeddedJarBuilder.main(args);
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait("embedded.jar", null, "javapayload.loader.EmbeddedJarLoader", new String[0]);
+			runJavaAndWait(this, "embedded.jar", null, "javapayload.loader.EmbeddedJarLoader", new String[] {"+"});
 		}
 
 		public void cleanup() throws Exception {
@@ -296,9 +330,8 @@ public class BuilderTest {
 		}
 	}
 	
-	public static class StripEmbeddedJarBuilderTestRunner implements BuilderTestRunner {
+	public static class StripEmbeddedJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "EmbeddedJarBuilder (stripped)"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			String[] newArgs = new String[args.length+2];
@@ -309,7 +342,7 @@ public class BuilderTest {
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait("embstrip.jar", null, "javapayload.loader.EmbeddedJarLoader", new String[0]);
+			runJavaAndWait(this, "embstrip.jar", null, "javapayload.loader.EmbeddedJarLoader", new String[] {"+"});
 		}
 
 		public void cleanup() throws Exception {
@@ -318,16 +351,17 @@ public class BuilderTest {
 		}
 	}
 	
-	public static class LocalStageJarBuilderTestRunner implements BuilderTestRunner {
+	public static class LocalStageJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "LocalStage_JarBuilder"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			JarBuilder.main(new String[] {"LocalStage.jar", args[0], "--", "TestStub"});
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runJavaAndWait("LocalStage.jar", null, "javapayload.loader.StandaloneLoader", args);
+			String[] a = (String[])args.clone();
+			a[0] = "+" + a[0];
+			runJavaAndWait(this, "LocalStage.jar", null, "javapayload.loader.StandaloneLoader", a);
 		}
 
 		public void cleanup() throws Exception {
@@ -336,9 +370,8 @@ public class BuilderTest {
 		}
 	}
 	
-	public static class AgentJarBuilderTestRunner implements BuilderTestRunner {
+	public static class AgentJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "AgentJarBuilder"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			AgentJarBuilder.main(new String[] { args[0] });
@@ -352,8 +385,8 @@ public class BuilderTest {
 					allArgs.append(' ');
 				allArgs.append(args[i]);
 			}
-			String agentArg = "-javaagent:Agent_" + args[0] + ".jar=" + allArgs.toString();
-			runJavaAndWait(".", agentArg, "DummyClass", new String[0]);
+			String agentArg = "-javaagent:Agent_" + args[0] + ".jar=+" + allArgs.toString();
+			runJavaAndWait(this, ".", agentArg, "DummyClass", new String[0]);
 			if (!new File("Agent_" + args[0] + ".jar").delete())
 				throw new IOException("Unable to delete file");
 		}
@@ -364,16 +397,15 @@ public class BuilderTest {
 		}
 	}
 
-	public static class AppletJarBuilderTestRunner implements BuilderTestRunner {
+	public static class AppletJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "AppletJarBuilder [kill]";	}
-		public int getDelay() { return 3000; }
 
 		public void runBuilder(String[] args) throws Exception {
 			AppletJarBuilder.main(new String[] { args[0] });
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runAppletAndWait("Applet_" + args[0] + ".jar", "javapayload.loader.AppletLoader", "grant { permission java.security.AllPermission; };", args);
+			runAppletAndWait(this, "Applet_" + args[0] + ".jar", "javapayload.loader.AppletLoader", "grant { permission java.security.AllPermission; };", args);
 			if (!new File("Applet_" + args[0] + ".jar").delete())
 				throw new IOException("Unable to delete file");
 		}
@@ -394,23 +426,22 @@ public class BuilderTest {
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runAppletAndWait("Applet_" + args[0] + ".jar", "some.funny.ClassName", "grant { permission java.security.AllPermission; };", args);
+			runAppletAndWait(this, "Applet_" + args[0] + ".jar", "some.funny.ClassName", "grant { permission java.security.AllPermission; };", args);
 			if (!new File("Applet_" + args[0] + ".jar").delete())
 				throw new IOException("Unable to delete file");
 		}		
 	}
 
-	public static class CVE_2008_5353TestRunner implements BuilderTestRunner {
+	public static class CVE_2008_5353TestRunner extends WaitingBuilderTestRunner {
 		protected String getCVEName() { return "2008_5353"; }
 		public String getName() { return "CVE_"+getCVEName()+" [kill]"; }
-		public int getDelay() { return 3000; }
 
 		public void runBuilder(String[] args) throws Exception {
 			CVE_2008_5353_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runAppletAndWait("cve.jar", "javapayload.exploit.CVE_"+getCVEName(), null, args);
+			runAppletAndWait(this, "cve.jar", "javapayload.exploit.CVE_"+getCVEName(), null, args);
 		}
 
 		public void cleanup() throws Exception {
@@ -437,9 +468,8 @@ public class BuilderTest {
 		}
 	}
 
-	public static class AttachInjectorTestRunner implements BuilderTestRunner {
+	public static class AttachInjectorTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "AttachInjector"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			AgentJarBuilder.main(new String[] { args[0] });
@@ -448,20 +478,25 @@ public class BuilderTest {
 
 		public void runResult(String[] args) throws Exception {
 			Process proc = runJava(".", null, "DummyClass", new String[] { "1001" });
-			Thread.sleep(50);
-			List vms = VirtualMachine.list();
 			String id = null;
-			for (int i = 0; i < vms.size(); i++) {
-				VirtualMachineDescriptor desc = (VirtualMachineDescriptor) vms.get(i);
-				if (desc.displayName().equals("DummyClass 1001")) {
-					id = desc.id();
-					break;
+			for (int ii = 1; id == null && ii < 10; ii++) {
+				Thread.sleep(50*ii*ii);
+				List vms = VirtualMachine.list();
+				for (int i = 0; i < vms.size(); i++) {
+					VirtualMachineDescriptor desc = (VirtualMachineDescriptor) vms.get(i);
+					if (desc.displayName().equals("DummyClass 1001")) {
+						id = desc.id();
+						break;
+					}
 				}
 			}
+			if (id == null)
+				throw new IllegalStateException("VirtualMachineDescriptor not found");
 			String[] attachArgs = new String[args.length+2];
 			attachArgs[0] = id;
 			attachArgs[1] = "Agent_" + args[0] + ".jar";
 			System.arraycopy(args, 0, attachArgs, 2, args.length);
+			notifyReady();
 			AttachInjector.main(attachArgs);
 			if (proc.waitFor() != 0)
 				throw new IOException("Build result exited with error code " + proc.exitValue());
@@ -476,9 +511,8 @@ public class BuilderTest {
 		}
 	}
 
-	public static class JDWPInjectorTestRunner implements BuilderTestRunner {
+	public static class JDWPInjectorTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "JDWPInjector"; }
-		public int getDelay() { return 100; }
 
 		public void runBuilder(String[] args) throws Exception {
 			StreamForwarder.forward(BuilderTest.class.getResourceAsStream("/DummyClass.class"), new FileOutputStream("DummyClass.class"));
@@ -501,6 +535,7 @@ public class BuilderTest {
 				TestStub.wait = 5000;
 			if (args[0].startsWith("Spawn_Spawn_"))
 				TestStub.wait=9000;
+			notifyReady();
 			JDWPInjector.main(injectorArgs);
 			if (proc.waitFor() != 0)
 				throw new IOException("Build result exited with error code " + proc.exitValue());
@@ -511,7 +546,7 @@ public class BuilderTest {
 			System.out.println("\t\tJDWPTunnel");
 			testBuilder(this, "JDWPTunnel", "");
 			System.out.println("\t\tAESJDWPTunnel");
-			testBuilder(this, "AESJDWPTunnel", "#");
+			testBuilder(this, "AES_JDWPTunnel", "#");
 			System.out.println("\t\tAES_AES_JDWPTunnel");
 			testBuilder(this, "AES_AES_JDWPTunnel", "# #");
 			System.out.println("\t\tPollingTunnel");

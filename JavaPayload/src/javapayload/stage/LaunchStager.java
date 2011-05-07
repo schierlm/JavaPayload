@@ -44,6 +44,7 @@ public class LaunchStager implements Stage, Runnable {
 
 	private String[] args = null;
 	private Throwable stagerException = null;
+	private Stager stager;
 
 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
 		for (int i = 0; i < parameters.length; i++) {
@@ -56,8 +57,9 @@ public class LaunchStager implements Stage, Runnable {
 				}
 			}
 		}
+		stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
 		new Thread(this).start();
-		Thread.sleep(500);
+		stager.waitReady();
 		PrintStream pout = new PrintStream(out);
 		if (stagerException != null) {
 			pout.println("Stager start failed: ");
@@ -70,8 +72,7 @@ public class LaunchStager implements Stage, Runnable {
 
 	public void run() {
 		try {
-			final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-			stager.bootstrap(args);
+			stager.bootstrap(args, true);
 		} catch (Throwable t) {
 			stagerException = t;
 		}

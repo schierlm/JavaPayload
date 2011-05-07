@@ -60,7 +60,7 @@ public class LocalProxy extends StageHandler {
 				stager.getClass().getField("consoleErr").set(stager, consoleErr);
 				stager.getClass().getField("rawOut").set(stager, rawOut);
 				stager.getClass().getField("in").set(stager, in);
-				stager.bootstrap(args);
+				stager.bootstrap(args, false);
 				break;
 			}
 		}

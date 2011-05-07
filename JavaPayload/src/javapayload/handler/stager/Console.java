@@ -44,7 +44,8 @@ import javapayload.stage.StreamForwarder;
 
 public class Console extends StagerHandler {
 
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null) readyHandler.notifyReady();
 		File tempFile = File.createTempFile("~console", ".tmp");
 		tempFile.delete();
 		File tempDir = new File(tempFile.getAbsolutePath()+".dir");
@@ -54,7 +55,7 @@ public class Console extends StagerHandler {
 		fos.write(ClassBuilder.buildClassBytes("ConsoleClass", "Console", ClassBuilder.class, null, null));
 		fos.close();
 		Process proc = SpawnTemplate.launch("ConsoleClass", tempDir.getAbsolutePath(), parameters);
-		new StreamForwarder(proc.getErrorStream(), stageHandler.consoleErr, null).start();
+		new StreamForwarder(proc.getErrorStream(), stageHandler.consoleErr, null, false).start();
 		stageHandler.handle(proc.getOutputStream(), proc.getInputStream(), parameters);
 		proc.waitFor();
 		tempFile.delete();

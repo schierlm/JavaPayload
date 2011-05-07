@@ -50,6 +50,7 @@ public class AgentJarLoader extends Thread {
 	}
 
 	private final String[] args;
+	private Stager stager;
 
 	public AgentJarLoader(String agentArgs) {
 		final StringTokenizer st = new StringTokenizer(agentArgs, " ");
@@ -57,13 +58,27 @@ public class AgentJarLoader extends Thread {
 		for (int i = 0; i < args.length; i++) {
 			args[i] = st.nextToken();
 		}
-		start();
+		boolean needWait = false;
+		if (args[0].startsWith("+")) {
+			args[0] = args[0].substring(1);
+			needWait = true;
+		}
+		try {
+			stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
+			start();
+			stager.waitReady();
+			if (needWait) {
+				System.out.println("+");
+				System.out.flush();
+			}
+		} catch (final Throwable ex) {
+			ex.printStackTrace();
+		}
 	}
 
 	public void run() {
 		try {
-			final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-			stager.bootstrap(args);
+			stager.bootstrap(args, true);
 		} catch (final Throwable ex) {
 			ex.printStackTrace();
 		}

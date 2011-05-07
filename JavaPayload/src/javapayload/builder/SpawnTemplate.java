@@ -48,7 +48,9 @@ import javapayload.stager.Stager;
 
 public class SpawnTemplate extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	private boolean ready = false;
+	
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		File tempFile = File.createTempFile("~spawn", ".tmp");
 		tempFile.delete();
 		File tempDir = new File(tempFile.getAbsolutePath()+".dir");
@@ -59,10 +61,25 @@ public class SpawnTemplate extends Stager {
 		fos.close();
 		if (parameters[0].startsWith("Spawn"))
 			parameters[0] = parameters[0].substring(5);
-		launch("SpawnedClass", tempDir.getAbsolutePath(), parameters);
+		if (needWait) {
+			parameters[0] = "+" + parameters[0];
+		}
+		Process proc = launch("SpawnedClass", tempDir.getAbsolutePath(), parameters);
 		Thread.sleep(1000);
 		tempFile.delete();
-		tempDir.delete();		
+		tempDir.delete();
+		if (needWait) {
+			proc.getInputStream().read();
+			synchronized(this) {
+				ready = true;
+				notifyAll();
+			}
+		}
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while(!ready)
+			wait();
 	}
 
 	///

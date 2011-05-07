@@ -39,10 +39,11 @@ import java.io.PrintStream;
 import javapayload.handler.stage.InternalIntegratedStageHandler;
 import javapayload.handler.stage.StageHandler;
 import javapayload.handler.stager.DynStagerHandler;
+import javapayload.handler.stager.StagerHandler;
 
 public class Integrated extends DynStagerHandler {
 
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
-		super.handleDyn(new InternalIntegratedStageHandler(stageHandler), parameters, errorStream, extraArg);
+	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		super.handleDyn(new InternalIntegratedStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
 	}
 }

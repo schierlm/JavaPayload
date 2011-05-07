@@ -66,7 +66,8 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 	private PipedInputStream pipedIn;
 	private PrintStream errorStream;
 	
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null) readyHandler.notifyReady();
 		this.errorStream = errorStream;
 		if (extraArg == null || !(extraArg instanceof ClassType))
 			throw new IllegalArgumentException("No JDWP communication class found");

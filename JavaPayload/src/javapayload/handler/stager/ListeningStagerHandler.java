@@ -42,8 +42,9 @@ import javapayload.handler.stage.StageHandler;
 
 public abstract class ListeningStagerHandler extends StagerHandler {
 
-	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		startListen(parameters);
+		if (readyHandler != null) readyHandler.notifyReady();
 		final Object socket = acceptSocket();
 		stopListen();
 		handleSocket(socket, stageHandler, parameters, errorStream);
@@ -56,7 +57,7 @@ public abstract class ListeningStagerHandler extends StagerHandler {
 	private boolean multiRunning = true;
 	private boolean multiListening = false;
 	
-	public void handleMulti(StageHandler stageHandler, final String[] parameters, final PrintStream errorStream) throws Exception {
+	public void handleMulti(StageHandler stageHandler, final String[] parameters, final PrintStream errorStream, StagerHandler readyHandler) throws Exception {
 		final PrintStream consoleOut = stageHandler.consoleOut;
 		synchronized(this) {
 			if (multiRunning) {
@@ -65,6 +66,7 @@ public abstract class ListeningStagerHandler extends StagerHandler {
 				consoleOut.println("Listening started");
 			}
 		}
+		if (readyHandler != null) readyHandler.notifyReady();
 		while (multiRunning) {
 			final Object socket;
 			try {

@@ -53,8 +53,8 @@ public class StagerTest {
 		String[] localStagers = new String[] {"LocalTest", "AES_LocalTest #", "Console", "PollingTunnel"};
 		for (int i = 0; i < localStagers.length; i++) {
 			System.out.println("\t"+localStagers[i]);
-			final StagerHandler.Loader loader = new StagerHandler.Loader(new String[] {localStagers[i], "--", "TestStub"});
-			loader.handle(System.err, null);			
+			final StagerHandler.Loader loader = new StagerHandler.Loader((localStagers[i] + " -- TestStub").split(" "));
+			loader.handle(System.err, null);
 		}
 		System.out.println("\tMultiListen");
 		String[] multiListenArgs = new String[] {"ReverseTCP localhost #", "ReverseSSL localhost 61234"};
@@ -81,10 +81,17 @@ public class StagerTest {
 		final StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		loader.handleBefore(System.err, null);
 		final Throwable[] tt = new Throwable[1];
+		final Stager[] ss = new Stager[1];
 		Thread t = new Thread(new Runnable() {
 			public void run() {
 				try {
-					DynLoader.main(loader.getArgs());
+					String[] args = loader.getArgs();
+					final Stager stager = (Stager) DynLoader.loadStager(args[0], args, 0).newInstance();
+					synchronized(ss) {
+						ss[0] = stager;
+						ss.notifyAll();
+					}
+					stager.bootstrap(args, true);
 				} catch (Throwable t) {
 					t.printStackTrace();
 					tt[0] = t;
@@ -92,7 +99,12 @@ public class StagerTest {
 			};
 		});
 		t.start();
-		Thread.sleep(100);
+		synchronized(ss) {
+			while (ss[0] == null) {
+				ss.wait();
+			}
+		}
+		ss[0].waitReady();
 		loader.handleAfter(System.err, null);
 		t.join();
 		if (tt[0] != null)

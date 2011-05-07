@@ -51,8 +51,8 @@ import org.objectweb.asm.Opcodes;
 
 public class Integrated extends WrappingDynStagerBuilder {
 
-	public void bootstrapWrap(String[] parameters) throws Exception {
-		bootstrapOrig(parameters);
+	public void bootstrapWrap(String[] parameters, boolean needWait) throws Exception {
+		bootstrapOrig(parameters, needWait);
 	}
 
 	protected void bootstrapWrap(InputStream rawIn, OutputStream out, String[] parameters) {

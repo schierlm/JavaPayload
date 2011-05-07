@@ -63,13 +63,13 @@ import org.objectweb.asm.Opcodes;
 
 public class AES extends WrappingDynStagerBuilder {
 
-	public void bootstrapWrap(String[] parameters) throws Exception {
+	public void bootstrapWrap(String[] parameters, boolean needWait) throws Exception {
 		// move the password to the end
 		String[] newParameters = new String[parameters.length];
 		newParameters[0] = parameters[0];
 		System.arraycopy(parameters, 2, newParameters, 1, parameters.length - 2);
 		newParameters[parameters.length - 1] = parameters[1];
-		bootstrapOrig(newParameters);
+		bootstrapOrig(newParameters, needWait);
 	}
 	
 	protected void bootstrapWrap(InputStream rawIn, OutputStream out, String[] parameters) {

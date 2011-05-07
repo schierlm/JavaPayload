@@ -41,6 +41,7 @@ public class BindMultiTCP extends Stager implements Runnable {
 
 	private Socket s;
 	private String[] parameters; 
+	private boolean ready;
 	
 	private Runnable init(Socket s, String[] parameters) {
 		this.s = s;
@@ -48,8 +49,12 @@ public class BindMultiTCP extends Stager implements Runnable {
 		return this;
 	}
 	
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		final ServerSocket ss = new ServerSocket(Integer.parseInt(parameters[2]));
+		synchronized(this) {
+			ready = true;
+			notifyAll();
+		}
 		while (true) {
 			final Socket s = ss.accept();
 			new Thread(new BindMultiTCP().init(s, parameters)).start();
@@ -65,5 +70,10 @@ public class BindMultiTCP extends Stager implements Runnable {
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
 	}
 }

@@ -39,22 +39,23 @@ import java.util.StringTokenizer;
 import javapayload.stager.Stager;
 
 public class JDWPLoader extends Thread {
-	String arguments;
+	private Stager stager;
+	private String[] args;
 
 	public void go(String arguments) throws Exception {
-		this.arguments = arguments;
+		final StringTokenizer tokenizer = new StringTokenizer(arguments, "\n");
+		args = new String[tokenizer.countTokens()];
+		for (int i = 0; i < args.length; i++) {
+			args[i] = tokenizer.nextToken().substring(1);
+		}
+		stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
 		start();
+		stager.waitReady();
 	}
 
 	public void run() {
 		try {
-			final StringTokenizer tokenizer = new StringTokenizer(arguments, "\n");
-			final String[] args = new String[tokenizer.countTokens()];
-			for (int i = 0; i < args.length; i++) {
-				args[i] = tokenizer.nextToken().substring(1);
-			}
-			final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-			stager.bootstrap(args);
+			stager.bootstrap(args, true);
 		} catch (final Throwable t) {
 			t.printStackTrace();
 		}

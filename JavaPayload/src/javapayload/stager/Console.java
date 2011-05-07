@@ -37,7 +37,10 @@ package javapayload.stager;
 // only useful for integrated stagers or when calling from another process
 public class Console extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		bootstrap(System.in, System.out, parameters);
+	}
+	
+	public void waitReady() throws InterruptedException {
 	}
 }

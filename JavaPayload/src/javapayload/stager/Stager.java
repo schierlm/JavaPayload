@@ -71,5 +71,6 @@ public abstract class Stager extends ClassLoader {
 		}
 	}
 
-	public abstract void bootstrap(String[] parameters) throws Exception;
+	public abstract void bootstrap(String[] parameters, boolean needWait) throws Exception;
+	public abstract void waitReady() throws InterruptedException;
 }

