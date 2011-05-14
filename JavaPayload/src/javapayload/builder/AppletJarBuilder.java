@@ -44,12 +44,24 @@ import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodAdapter;
 import org.objectweb.asm.MethodVisitor;
 
-public class AppletJarBuilder {
+public class AppletJarBuilder extends Builder {
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
 			System.out.println("Usage: java javapayload.builder.AppletJarBuilder [--name some.java.ClassName] "+JarBuilder.ARGS_SYNTAX);
 			return;
 		}
+		new AppletJarBuilder().build(args);
+	}
+	
+	public AppletJarBuilder() {
+		super("Build a Java applet for a social engineering attack.", "");
+	}
+	
+	public String getParameterSyntax() {
+		return "[--name some.java.ClassName] "+JarBuilder.ARGS_SYNTAX;
+	}
+	
+	public void build(String[] args) throws Exception {
 		final Class[] baseClasses = new Class[] {
 				javapayload.loader.AppletLoader.class,
 				javapayload.loader.AppletLoader.ReadyNotifier.class,

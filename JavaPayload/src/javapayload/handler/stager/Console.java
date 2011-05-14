@@ -38,6 +38,7 @@ import java.io.FileOutputStream;
 import java.io.PrintStream;
 
 import javapayload.builder.ClassBuilder;
+import javapayload.builder.ClassBuilder.ClassBuilderTemplate;
 import javapayload.builder.SpawnTemplate;
 import javapayload.handler.stage.StageHandler;
 import javapayload.stage.StreamForwarder;
@@ -52,7 +53,7 @@ public class Console extends StagerHandler {
 		tempDir.mkdir();
 		tempFile = new File(tempDir, "ConsoleClass.class");
 		FileOutputStream fos = new FileOutputStream(tempFile);
-		fos.write(ClassBuilder.buildClassBytes("ConsoleClass", "Console", ClassBuilder.class, null, null));
+		fos.write(ClassBuilder.buildClassBytes("ConsoleClass", "Console", ClassBuilderTemplate.class, null, null));
 		fos.close();
 		Process proc = SpawnTemplate.launch("ConsoleClass", tempDir.getAbsolutePath(), parameters);
 		new StreamForwarder(proc.getErrorStream(), stageHandler.consoleErr, null, false).start();

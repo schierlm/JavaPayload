@@ -38,12 +38,28 @@ import java.util.jar.Manifest;
 
 import javapayload.loader.DynLoader;
 
-public class EmbeddedJarBuilder {
+public class EmbeddedJarBuilder extends Builder {
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedJarBuilder [--strip] [<filename>.jar] <stager> [stageroptions] -- <stage> [stageoptions]");
+			System.out.println("Usage: java javapayload.builder.EmbeddedJarBuilder "+new EmbeddedJarBuilder().getParameterSyntax());
 			return;
 		}
+		new EmbeddedJarBuilder().build(args);
+	}
+	
+	public EmbeddedJarBuilder() {
+		super("Build a Jar that has its command line built in", "");
+	}
+	
+	protected int getMinParameterCount() {
+		return 4;
+	}
+	
+	public String getParameterSyntax() {
+		return "[--strip] [<filename>.jar] <stager> [stageroptions] -- <stage> [stageoptions]";
+	}
+	
+	public void build(String[] args) throws Exception {
 		boolean stripDebugInfo = false;
 		if (args[0].equals("--strip")) {
 			stripDebugInfo = true;

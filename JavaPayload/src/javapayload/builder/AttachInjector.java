@@ -37,12 +37,14 @@ package javapayload.builder;
 import java.io.PrintStream;
 import java.util.List;
 
+import javapayload.Parameter;
 import javapayload.handler.stager.StagerHandler;
 
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 
-public class AttachInjector {
+public class AttachInjector extends Injector {
+	
 	public static void main(String[] args) throws Exception {
 		if (args.length == 1 && args[0].equals("list")) {
 			listVMs(System.out);
@@ -52,11 +54,25 @@ public class AttachInjector {
 			System.out.println("Usage: java javapayload.builder.AttachInjector <pid> <agentPath> <stager> [stageroptions] -- <stage> [stageoptions]");
 			return;
 		}
-		final String[] stagerArgs = new String[args.length - 2];
-		for (int i = 2; i < args.length; i++) {
-			stagerArgs[i - 2] = args[i];
-		}
-		inject(args[0], args[1], new StagerHandler.Loader(stagerArgs));
+		new AttachInjector().inject(args);
+	}
+	
+	public AttachInjector() {
+		super("Attach to a local Java process using Java Attach API",
+				"This injector can attach to any Java process running on the same machine\r\n" +
+				"with same credentials as the current process. It requires Java 1.6 and that\r\n" +
+				"you have created a Java agent JAR file containing the desired stager first.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("PID", true, Parameter.TYPE_NUMBER, "Process ID to attach to"),
+				new Parameter("AGENTPATH", true, Parameter.TYPE_PATH, "Path to the agent jar")
+		};
+	}
+	
+	public void inject(String[] parameters, StagerHandler.Loader loader, String[] stagerArgs) throws Exception {
+		inject(parameters[0], parameters[1], loader);
 	}
 	
 	public static void inject(String pid, String agentPath, StagerHandler.Loader loader) throws Exception {

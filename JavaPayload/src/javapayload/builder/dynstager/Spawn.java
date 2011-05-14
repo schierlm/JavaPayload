@@ -38,6 +38,7 @@ import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 
 import javapayload.builder.ClassBuilder;
+import javapayload.builder.ClassBuilder.ClassBuilderTemplate;
 import javapayload.builder.SpawnTemplate;
 import javapayload.stage.StreamForwarder;
 
@@ -54,7 +55,7 @@ public class Spawn extends DynStagerBuilder {
 			throw new IllegalArgumentException("Spawn stagers do not support an extra argument");
 		String stagerFullName = baseStagerClass.getName();
 		final String stagerName = stagerFullName.substring(stagerFullName.lastIndexOf('.') + 1);
-		byte[] classBytes = ClassBuilder.buildClassBytes("SpawnedClass", stagerName, ClassBuilder.class, null, null);
+		byte[] classBytes = ClassBuilder.buildClassBytes("SpawnedClass", stagerName, ClassBuilderTemplate.class, null, null);
 		// see SpawnStagerPrebuilder for details
 		InputStream prebuiltSpawnedClass = Spawn.class.getResourceAsStream("/"+stagerName+".spawned");
 		if(prebuiltSpawnedClass != null) {

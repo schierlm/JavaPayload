@@ -53,7 +53,7 @@ import javapayload.handler.stage.StageHandler;
 import javapayload.loader.DynLoader;
 import javapayload.stage.StreamForwarder;
 
-public class JarBuilder {
+public class JarBuilder extends Builder {
 
 	public static final String ARGS_SYNTAX = "[--strip] [<filename>.jar] <stager> [<moreStagers...>] [-- [<filename.ext>] <stage> [<moreStages...>]]";
 
@@ -91,6 +91,18 @@ public class JarBuilder {
 			System.out.println("Usage: java javapayload.builder.JarBuilder " + ARGS_SYNTAX);
 			return;
 		}
+		new JarBuilder().build(args);
+	}
+	
+	public JarBuilder() {
+		super("Build a standalone JAR file.", "");
+	}
+	
+	public String getParameterSyntax() {
+		return ARGS_SYNTAX;
+	}
+	
+	public void build(String[] args) throws Exception {
 		final Class[] baseClasses = new Class[] {
 				javapayload.loader.StandaloneLoader.class,
 				javapayload.stager.Stager.class,

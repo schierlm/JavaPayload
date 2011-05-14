@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -34,36 +34,46 @@
 
 package javapayload.builder;
 
-import java.util.jar.Manifest;
+import javapayload.Module;
+import javapayload.Parameter;
 
-public class AgentJarBuilder extends Builder {
+public abstract class Builder extends Module {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.AgentJarBuilder " + JarBuilder.ARGS_SYNTAX);
+			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
+			System.out.println();
+			System.out.println("Supported builders:");
+			Module.list(System.out, Builder.class);
 			return;
 		}
-		new AgentJarBuilder().build(args);
+		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
+		if (args.length < builder.getMinParameterCount() + 1) {
+			System.out.println("Usage: java javapayload.builder.Builder " + builder.getName() + " " + builder.getParameterSyntax());
+			System.out.println();
+			System.out.println(builder.getSummary());
+			System.out.println();
+			System.out.println(builder.getDescription());
+			return;
+		}
+		String[] builderArgs = new String[args.length - 1];
+		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
+		builder.build(builderArgs);
 	}
-	
-	public AgentJarBuilder() {
-		super("Build a debug agent Jar file", 
-				"Build a debug agent Jar file, either to use it manually with the -javaagent\r\n" +
-				"JVM option, or with AttachInjector.");
+
+	protected Builder(String summary, String description) {
+		super("Builder", Builder.class, summary, description);
 	}
-	
-	public String getParameterSyntax() {
-		return JarBuilder.ARGS_SYNTAX;
+
+	public Parameter[] getParameters() {
+		throw new UnsupportedOperationException("Structured parameters not available for builders");
 	}
-		
-	public void build(String[] args) throws Exception {
-		final Class[] baseClasses = new Class[] {
-				javapayload.loader.AgentJarLoader.class,
-				javapayload.stager.Stager.class,
-		};
-		final Manifest manifest = new Manifest();
-		manifest.getMainAttributes().putValue("Agent-Class", "javapayload.loader.AgentJarLoader");
-		manifest.getMainAttributes().putValue("Premain-Class", "javapayload.loader.AgentJarLoader");
-		JarBuilder.buildJarFromArgs(args, "Agent", baseClasses, manifest, null, null);
+
+	protected int getMinParameterCount() {
+		return 1;
 	}
+
+	public abstract void build(String[] args) throws Exception;
+
+	public abstract String getParameterSyntax();
 }

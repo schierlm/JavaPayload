@@ -52,10 +52,8 @@ import org.objectweb.asm.MethodAdapter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class ClassBuilder extends Stager {
+public class ClassBuilder extends Builder {
 
-	private ClassBuilder instance;
-	
 	protected static void buildClass(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
 		final byte[] newBytecode = buildClassBytes(classname, stager, loaderClass, embeddedArgs, realArgs);
 		final FileOutputStream fos = new FileOutputStream(classname + ".class");
@@ -117,7 +115,7 @@ public class ClassBuilder extends Stager {
 				return null;
 			}
 		};
-		visitClass(ClassBuilder.class, writerThreadVisitor, writerThreadCW);
+		visitClass(ClassBuilderTemplate.class, writerThreadVisitor, writerThreadCW);
 		final byte[] waiterThread = writerThreadCW.toByteArray();
 		
 		final ClassWriter cw = new ClassWriter(0);
@@ -232,35 +230,28 @@ public class ClassBuilder extends Stager {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length != 1 && args.length != 2) {
-			System.out.println("Usage: java javapayload.builder.ClassBuilder <stager> [classname]");
+			System.out.println("Usage: java javapayload.builder.ClassBuilder "+new ClassBuilder().getParameterSyntax());
 			return;
 		}
+		new ClassBuilder().build(args);
+	}
+	
+	public ClassBuilder() {
+		super("Build a standalone Class file", "");
+	}
+	
+	public String getParameterSyntax() {
+		return "<stager> [classname]";
+	}
+	
+	public void build(String[] args) throws Exception {
 		final String stager = args[0];
 		String classname = stager + "Class";
 		if (args.length == 2) {
 			classname = args[1];
 		}
 
-		buildClass(classname, stager, ClassBuilder.class, null, null);
-	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		ClassBuilder cb = new ClassBuilder();
-		boolean needWait = false;
-		if (args[0].startsWith("+")) {
-			args[0] = args[0].substring(1);
-			needWait = true;
-			byte[] clazz = "WAITER_THREAD".getBytes("ISO-8859-1");
-			Thread waiterThread = (Thread)cb.defineClass(clazz, 0, clazz.length).getConstructors()[0].newInstance(new Object[] {cb});
-			waiterThread.start();
-		}
-		cb.bootstrap(args, needWait);
-	}
-	
-	public void run() {
-		instance.waitReady();
-		System.out.print("+");
-		System.out.flush();
+		buildClass(classname, stager, ClassBuilderTemplate.class, null, null);
 	}
 
 	public static void visitClass(Class clazz, ClassVisitor stagerVisitor, ClassWriter cw) throws Exception {
@@ -278,11 +269,35 @@ public class ClassBuilder extends Stager {
 		out.write(cw.toByteArray());
 	}
 	
-	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
-		throw new Exception("Never used!");
-	}
-	
-	public void waitReady() {
-		throw new RuntimeException("Never used!");
+	public static class ClassBuilderTemplate extends Stager {
+		
+		private ClassBuilderTemplate instance;
+		
+		public static void mainToEmbed(String[] args) throws Exception {
+			ClassBuilderTemplate cb = new ClassBuilderTemplate();
+			boolean needWait = false;
+			if (args[0].startsWith("+")) {
+				args[0] = args[0].substring(1);
+				needWait = true;
+				byte[] clazz = "WAITER_THREAD".getBytes("ISO-8859-1");
+				Thread waiterThread = (Thread)cb.defineClass(clazz, 0, clazz.length).getConstructors()[0].newInstance(new Object[] {cb});
+				waiterThread.start();
+			}
+			cb.bootstrap(args, needWait);
+		}
+		
+		public void run() {
+			instance.waitReady();
+			System.out.print("+");
+			System.out.flush();
+		}
+
+		public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+			throw new Exception("Never used!");
+		}
+		
+		public void waitReady() {
+			throw new RuntimeException("Never used!");
+		}		
 	}
 }

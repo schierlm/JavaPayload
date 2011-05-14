@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,38 +32,11 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload;
 
-import java.util.jar.Manifest;
+public interface NamedElement {
 
-public class AgentJarBuilder extends Builder {
+	public String getName();
 
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.AgentJarBuilder " + JarBuilder.ARGS_SYNTAX);
-			return;
-		}
-		new AgentJarBuilder().build(args);
-	}
-	
-	public AgentJarBuilder() {
-		super("Build a debug agent Jar file", 
-				"Build a debug agent Jar file, either to use it manually with the -javaagent\r\n" +
-				"JVM option, or with AttachInjector.");
-	}
-	
-	public String getParameterSyntax() {
-		return JarBuilder.ARGS_SYNTAX;
-	}
-		
-	public void build(String[] args) throws Exception {
-		final Class[] baseClasses = new Class[] {
-				javapayload.loader.AgentJarLoader.class,
-				javapayload.stager.Stager.class,
-		};
-		final Manifest manifest = new Manifest();
-		manifest.getMainAttributes().putValue("Agent-Class", "javapayload.loader.AgentJarLoader");
-		manifest.getMainAttributes().putValue("Premain-Class", "javapayload.loader.AgentJarLoader");
-		JarBuilder.buildJarFromArgs(args, "Agent", baseClasses, manifest, null, null);
-	}
+	public String getSummary();
 }

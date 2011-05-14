@@ -36,6 +36,7 @@ package javapayload.test;
 import java.io.FileOutputStream;
 
 import javapayload.builder.ClassBuilder;
+import javapayload.builder.ClassBuilder.ClassBuilderTemplate;
 
 public class SpawnStagerPrebuilder {
 	// needed for coverage testing, since the content for spawn stagers does not like to be instrumented 
@@ -45,7 +46,7 @@ public class SpawnStagerPrebuilder {
 			if (stagers[i].startsWith("Spawn_")) {
 				System.out.println(stagers[i]);
 				String stagerName = stagers[i].substring(6);
-				byte[] classBytes = ClassBuilder.buildClassBytes("SpawnedClass", stagerName, ClassBuilder.class, null, null);
+				byte[] classBytes = ClassBuilder.buildClassBytes("SpawnedClass", stagerName, ClassBuilderTemplate.class, null, null);
 				FileOutputStream fos = new FileOutputStream(stagerName+".spawned");
 				fos.write(classBytes);
 				fos.close();

@@ -38,14 +38,29 @@ import java.util.StringTokenizer;
 
 import javapayload.stager.Stager;
 
-public class EmbeddedClassBuilder extends Stager {
+public class EmbeddedClassBuilder extends Builder {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length < 4) {
-			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder <classname> <stager> [stageroptions] -- <stage> [stageoptions]");
+			System.out.println("Usage: java javapayload.builder.EmbeddedClassBuilder "+new EmbeddedClassBuilder().getParameterSyntax());
 			return;
 		}
-		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilder.class, buildEmbeddedArgs(args), args);
+		new EmbeddedClassBuilder().build(args);
+	}
+	
+	public EmbeddedClassBuilder() {
+		super("Build a standalone Class file that has its command line built in", "");
+	}
+	
+	protected int getMinParameterCount() {
+		return 4;
+	}
+	
+	public String getParameterSyntax() {
+		return "<classname> <stager> [stageroptions] -- <stage> [stageoptions]";
+	}
+	public void build(String[] args) throws Exception {
+		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilderTemplate.class, buildEmbeddedArgs(args), args);
 	}
 
 	public static String buildEmbeddedArgs(String[] args) {
@@ -58,30 +73,32 @@ public class EmbeddedClassBuilder extends Stager {
 		}
 		return embeddedArgs.toString();
 	}
-
-	public static void mainToEmbed(String[] args) throws Exception {
-		EmbeddedClassBuilder cb = new EmbeddedClassBuilder();
-		boolean needWait = false;
-		if (args.length == 1 && args[0].equals("+")) {
-			args[0] = args[0].substring(1);
-			needWait = true;
-			byte[] clazz = "WAITER_THREAD".getBytes("ISO-8859-1");
-			Thread waiterThread = (Thread)cb.defineClass(clazz, 0, clazz.length).getConstructors()[0].newInstance(new Object[] {cb});
-			waiterThread.start();
-		}
-		final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
-		args = new String[tokenizer.countTokens()];
-		for (int i = 0; i < args.length; i++) {
-			args[i] = tokenizer.nextToken().substring(1);
-		}
-		cb.bootstrap(args, needWait);
-	}
 	
-	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
-		throw new Exception("Never used!");
-	}
-	
-	public void waitReady() {
-		throw new RuntimeException("Never used!");
+	public static class EmbeddedClassBuilderTemplate extends Stager {
+		public static void mainToEmbed(String[] args) throws Exception {
+			EmbeddedClassBuilderTemplate cb = new EmbeddedClassBuilderTemplate();
+			boolean needWait = false;
+			if (args.length == 1 && args[0].equals("+")) {
+				args[0] = args[0].substring(1);
+				needWait = true;
+				byte[] clazz = "WAITER_THREAD".getBytes("ISO-8859-1");
+				Thread waiterThread = (Thread)cb.defineClass(clazz, 0, clazz.length).getConstructors()[0].newInstance(new Object[] {cb});
+				waiterThread.start();
+			}
+			final StringTokenizer tokenizer = new StringTokenizer("TO_BE_REPLACED", "\n");
+			args = new String[tokenizer.countTokens()];
+			for (int i = 0; i < args.length; i++) {
+				args[i] = tokenizer.nextToken().substring(1);
+			}
+			cb.bootstrap(args, needWait);
+		}
+		
+		public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+			throw new Exception("Never used!");
+		}
+		
+		public void waitReady() {
+			throw new RuntimeException("Never used!");
+		}		
 	}
 }
