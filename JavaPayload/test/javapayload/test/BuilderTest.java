@@ -146,6 +146,7 @@ public class BuilderTest {
 	
 	public static void runJavaAndWait(WaitingBuilderTestRunner runner, String classpath, String jvmarg, String mainClass, String[] args) throws Exception {
 		Process proc = runJava(classpath, jvmarg, mainClass, args);
+		new StreamForwarder(proc.getErrorStream(), System.err, System.err, false).start();
 		proc.getInputStream().read();
 		runner.notifyReady();
 		if (proc.waitFor() != 0)

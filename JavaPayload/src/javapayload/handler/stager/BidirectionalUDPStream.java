@@ -188,6 +188,8 @@ public class BidirectionalUDPStream extends OutputStream implements Runnable {
 				}
 				break;
 			case 1: // no new data after, please ack
+				if (seq < 0x3F00000000000000L)
+					writeTo.flush();
 				if (seq == 0x3F00000000000001L) {
 					writeTo.close();
 					closeState = 2;
@@ -244,6 +246,16 @@ public class BidirectionalUDPStream extends OutputStream implements Runnable {
 		byte[] copy = new byte[len];
 		System.arraycopy(b, off, copy, 0, len);
 		synchronized (swLock) {
+			if (swOut != swNextEmpty && len < 500) {
+				int swLastFull = (swNextEmpty + sendWindow.length - 1) % sendWindow.length;
+				byte[] lastBuffer = sendWindow[swLastFull];
+				if (lastBuffer != null && lastBuffer.length + len <= 500) {
+					sendWindow[swLastFull] = new byte[lastBuffer.length + len];
+					System.arraycopy(lastBuffer, 0, sendWindow[swLastFull], 0, lastBuffer.length);
+					System.arraycopy(copy, 0, sendWindow[swLastFull], lastBuffer.length, len);				
+					return;
+				}
+			}
 			int swNextEmptyNew = (swNextEmpty + 1) % sendWindow.length;
 			try {
 				while (swNextEmptyNew == swFirstFull) {
@@ -258,6 +270,12 @@ public class BidirectionalUDPStream extends OutputStream implements Runnable {
 		}
 	}
 
+	public void flush() throws IOException {
+		synchronized (swLock) {
+			swLock.notifyAll();
+		}
+	}
+	
 	public synchronized void close() throws IOException {
 		closeState = -1;
 	}

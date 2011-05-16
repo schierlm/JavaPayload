@@ -85,6 +85,8 @@ public class TestStub extends StageHandler {
 		byte[] indata = new byte[4096];
 		dis.readFully(indata);
 		Thread.sleep(wait);
+		System.out.println("\t\t\t\t\t(System.out)");
+		System.err.println("\t\t\t\t\t(System.err)");
 		byte[] outdata = new byte[4096];
 		Random r = new Random();
 		r.nextBytes(outdata);

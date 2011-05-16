@@ -34,11 +34,15 @@
 
 package javapayload.stager;
 
+import java.io.PrintStream;
+
 // only useful for integrated stagers or when calling from another process
 public class Console extends Stager {
 
 	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
-		bootstrap(System.in, System.out, parameters);
+		PrintStream out = System.out;
+		System.setOut(System.err);
+		bootstrap(System.in, out, parameters);
 	}
 	
 	public void waitReady() throws InterruptedException {
