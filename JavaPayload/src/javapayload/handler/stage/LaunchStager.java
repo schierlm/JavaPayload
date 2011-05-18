@@ -34,10 +34,25 @@
 
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
 import javapayload.loader.DynLoader;
 
 public class LaunchStager extends StageHandler {
 
+	public LaunchStager() {
+		super("Launch another stager to be connected to via a different channel", true, true, 
+				"Launch a stager given by the parameters. It will not be tunneled via the\r\n" +
+				"current stage, but act independently from it. Useful to have multiple\r\n" +
+				"concurrent stages running from a MultiStage stage.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGER", false, Parameter.TYPE_STAGER, "Stager to run"),
+				new Parameter("STAGE", false, Parameter.TYPE_STAGE_3DASHES, "Stage to run")
+		};
+	}
+	
 	public Class[] getNeededClasses(String[] parameters) throws Exception {
 		String stager = null;
 		int firstArg = -1;

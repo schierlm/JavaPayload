@@ -39,8 +39,25 @@ import java.io.DataOutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javapayload.Parameter;
+
 public class StageMenu extends StageHandler {
 		
+	public StageMenu() {
+		super("Show a menu to select stages from", true, true, 
+				"Usually used from Integrated dynstagers. The parameters give a list of\r\n" +
+				"possible stages, which are presented to the user as a menu. The user can\r\n" +
+				"choose from this menu (with optionally overridden parameters) or if he is\r\n" +
+				"fast, he can also stage a completely different stage.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGES", false, Parameter.TYPE_STAGE, "Stages"),
+				new Parameter("STAGES", true, Parameter.TYPE_STAGELIST_3DASHES, "Stages")
+		};
+	}
+	
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {		
 		boolean go = false;
 		List currentParameters = new ArrayList();

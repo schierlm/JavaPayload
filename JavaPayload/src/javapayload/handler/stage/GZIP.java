@@ -41,6 +41,17 @@ import java.util.zip.GZIPOutputStream;
 
 public class GZIP extends FilterStageHandler {
 		
+	public GZIP() {
+		this(false);
+	}
+	
+	protected GZIP(boolean extraSmall) {
+		super("Compress stage and initial upload with GZIP",
+				"Compress the stage and initial upload with GZIP. The following communication\r\n" +
+				"will remain uncompressed."+(extraSmall ? " This is a more compact stage that might not work\r\n" +
+						"with all stagers. If it does not work, use the GZIP stage." : ""));
+	}
+	
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		DataOutputStream dos = new DataOutputStream(new GZIPOutputStream(baos));

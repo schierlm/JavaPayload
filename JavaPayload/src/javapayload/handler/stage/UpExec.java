@@ -38,9 +38,23 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.FileInputStream;
 
+import javapayload.Parameter;
 import javapayload.stage.StreamForwarder;
 
 public class UpExec extends StageHandler {
+	
+	public UpExec() {
+		super("Upload an executable and execute it", true, true,
+				"Upload a native executable into a temporary directory and execute it.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("PATH", false, Parameter.TYPE_PATH, "Path to the executable to upload"),
+				new Parameter("ARGS", true, Parameter.TYPE_REST, "Arguments for the executable")
+		};
+	}
+	
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
 		for (int i = 0; i < parameters.length; i++) {
 			if (parameters[i].equals("--")) {

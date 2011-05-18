@@ -41,10 +41,20 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Random;
 
+import javapayload.Parameter;
 import javapayload.stage.WriterThread;
 
 public class TestStub extends StageHandler {
 	
+	public TestStub() {
+		super("Test stub", true, true,
+				"Used by unit tests or for testing binary/thread safefy of new stagers.");
+	}
+		
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+
 	public static int wait = 0;
 	public boolean sendExit = false;
 	

@@ -41,6 +41,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Random;
 
+import javapayload.Parameter;
 import javapayload.stage.AESHelper;
 import javapayload.stage.StreamForwarder;
 
@@ -52,6 +53,19 @@ import javax.crypto.spec.SecretKeySpec;
 
 public class AES extends StageHandler {
 
+	public AES() {
+		super("Protect another stage with AES encryption", true, true,
+				"This stage can be used to protect another stage (both the staging and the\r\n" +
+				"following communication) with an AES key derived from a password.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("KEY", false, Parameter.TYPE_ANY, "Password to derive the key from"),
+				new Parameter("STAGE", false, Parameter.TYPE_STAGE, "Stage to load")
+		};
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] {
 				javapayload.stage.Stage.class,

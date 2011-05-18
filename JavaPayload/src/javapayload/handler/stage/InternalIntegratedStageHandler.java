@@ -38,12 +38,19 @@ import java.io.DataOutputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 
+import javapayload.Parameter;
+
 public class InternalIntegratedStageHandler extends StageHandler {
 	
 	protected final StageHandler wrapped;
 
 	public InternalIntegratedStageHandler(StageHandler wrapped) {
+		super(null, false, false, null);
 		this.wrapped = wrapped;
+	}
+	
+	public Parameter[] getParameters() {
+		throw new UnsupportedOperationException();
 	}
 
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {

@@ -34,7 +34,19 @@
 
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
+
 public class JSh extends StageHandler {
+	
+	public JSh() {
+		super("Interactive Java shell", true, true,
+				"A command line interface/shell in pure Java.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.JShSignalSender.class, javapayload.stage.JShStreamForwarder.class, javapayload.stage.JSh.class };
 	}

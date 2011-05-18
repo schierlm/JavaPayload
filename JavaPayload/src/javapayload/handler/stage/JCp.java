@@ -40,9 +40,20 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+
+import javapayload.Parameter;
 import javapayload.handler.stager.WrappedPipedOutputStream;
 
 public class JCp extends StageHandler {
+	
+	public JCp() {
+		super("Upload and download files", true, true,
+				"Command line interface to upload and download files.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
 
 	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 

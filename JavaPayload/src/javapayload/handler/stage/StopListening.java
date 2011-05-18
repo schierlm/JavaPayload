@@ -37,7 +37,20 @@ package javapayload.handler.stage;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 
+import javapayload.Parameter;
+
 public class StopListening extends StageHandler {
+	
+	public StopListening() {
+		super("Make the BindMultiTCP stager stop listening", true, true,
+				"When staging this stage via BindMultiTCP, it will stop listening after\r\n"+
+				"the next stage.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StopListening.class };
 	}

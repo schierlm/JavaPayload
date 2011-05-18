@@ -34,8 +34,25 @@
 
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
+
 public class LocalStageMenu extends StageHandler {
 		
+	public LocalStageMenu() {
+		super("Show a menu to select stages from", true, true, 
+				"Usually used from LocalStage dynstagers. The parameters give a list of\r\n" +
+				"possible stages, which are presented to the user as a menu. The user can\r\n" +
+				"choose from this menu (or enter a completely different stage) or if he is\r\n" +
+				"fast, he can also stage a completely different stage.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGES", false, Parameter.TYPE_STAGE, "Stages"),
+				new Parameter("STAGES", true, Parameter.TYPE_STAGELIST_3DASHES, "Stages")
+		};
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StageMenu.class, javapayload.stage.LocalStageMenu.class };
 	}

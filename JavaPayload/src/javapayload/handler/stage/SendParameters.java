@@ -39,6 +39,12 @@ import java.io.InputStream;
 
 public class SendParameters extends FilterStageHandler {
 
+	public SendParameters() {
+		super("Send/Overwrite parameters", 
+				"This filter stage will send its parameters over the staging connection, so\r\n" +
+				"that parameters can be overwritten dynamically by the attacker.");
+	}
+	
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
 		StageHandler realStageHandler = findRealStageHandler(parameters);
 		int cnt = parameters.length - realStageOffset;

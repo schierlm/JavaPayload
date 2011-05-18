@@ -41,14 +41,19 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
 
+import javapayload.HandlerModule;
 import javapayload.stage.StreamForwarder;
 
-public abstract class StageHandler {
+public abstract class StageHandler extends HandlerModule {
 	
 	// overwrite them if you want to redirect the stream elsewhere
 	public InputStream consoleIn = System.in;
 	public PrintStream consoleOut = System.out;
 	public PrintStream consoleErr = System.err;
+	
+	public StageHandler(String summary, boolean handlerUsable, boolean stageUsable, String description) {
+		super(StageHandler.class, handlerUsable, stageUsable, summary, description);
+	}
 
 	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
 	}

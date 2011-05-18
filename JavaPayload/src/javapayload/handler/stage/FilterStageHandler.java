@@ -33,7 +33,19 @@
  */
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
+
 public abstract class FilterStageHandler extends StageHandler {
+	
+	public FilterStageHandler(String name, String summary) {
+		super(name, true, true, summary);
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGE", false, Parameter.TYPE_STAGE, "Stage to load")
+		};
+	}
 	
 	protected String[] realParameters = null;
 	protected int realStageOffset;

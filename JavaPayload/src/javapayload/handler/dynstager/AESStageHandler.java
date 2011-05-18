@@ -39,6 +39,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.SecureRandom;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 import javax.crypto.Cipher;
@@ -53,8 +54,13 @@ public class AESStageHandler extends StageHandler {
 	private final String key;
 
 	public AESStageHandler(String key, StageHandler handler) {
+		super(null, false, false, null);
 		this.handler = handler;
 		this.key = key;
+	}
+	
+	public Parameter[] getParameters() {
+		throw new UnsupportedOperationException();
 	}
 
 	public Class[] getNeededClasses() {

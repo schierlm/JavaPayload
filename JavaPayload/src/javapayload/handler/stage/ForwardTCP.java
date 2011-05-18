@@ -37,8 +37,22 @@ package javapayload.handler.stage;
 import java.io.DataOutputStream;
 import java.io.InputStream;
 
+import javapayload.Parameter;
+
 public class ForwardTCP extends StageHandler {
 
+	public ForwardTCP() {
+		super("Forward a single TCP connection", true, true,
+				"Forward a TCP connection from attacker to victim. Both ends can be either\r\n" +
+				"listening or connecting to another host.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("LADDR", false, Parameter.TYPE_ANY, "Address (either <host>:<port> or <port> on the attacker machine"),
+				new Parameter("RADDR", false, Parameter.TYPE_ANY, "Address (either <host>:<port> or <port> on the victim machine") 
+		};
+	}
 	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 		int b;
 		while ((b = in.read()) != 0 && b != -1) {

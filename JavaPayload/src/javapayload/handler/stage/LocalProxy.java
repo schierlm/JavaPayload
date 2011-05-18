@@ -40,12 +40,25 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.SocketException;
 
+import javapayload.Parameter;
 import javapayload.loader.DynLoader;
 import javapayload.stage.StreamForwarder;
 import javapayload.stager.Stager;
 
 public class LocalProxy extends StageHandler {
 
+	public LocalProxy() {
+		super("Proxy injector connection to a local external stage handler", true, false,
+				"This stager handler does not stage anything, but instead connects to another\r\n" +
+				"local stage handler (typically Metasploit's multi/handler) to collect sessions.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+			new Parameter("STAGER", false, Parameter.TYPE_STAGER, "Stager to use to connect to proxy")
+		};
+	}
+	
 	public Class[] getNeededClasses() {
 		throw new IllegalStateException("Not used");
 	}

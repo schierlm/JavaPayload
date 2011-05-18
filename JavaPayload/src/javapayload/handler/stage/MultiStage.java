@@ -47,10 +47,20 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
 
+import javapayload.Parameter;
 import javapayload.stage.MultiStageOutputStream;
 
 public class MultiStage extends StageHandler {
 
+	public MultiStage() {
+		super("Stage multiplexer with job control", true, true,
+				"Multiplexes between multiple stages over the same connection.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
 	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 		DataInputStream dis = new DataInputStream(consoleIn);
 		List/* <MultiStagerStage> */runningStages = new ArrayList();

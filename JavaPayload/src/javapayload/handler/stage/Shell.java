@@ -34,7 +34,18 @@
 
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
+
 public class Shell extends StageHandler {
+	
+	public Shell() {
+		super("Launch a shell", true, true,
+				"Launch a (platform dependant) shell, /bin/sh or cmd.exe");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Shell.class };
 	}

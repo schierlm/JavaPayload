@@ -34,7 +34,20 @@
 
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
+
 public class SystemInfo extends StageHandler {
+	
+	public SystemInfo() {
+		super("Show system information", true, true,
+				"Show system information, like system properties, IP addresses\r\n" +
+				"and network interfaces.");
+	}
+
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.SystemInfo.class };
 	}

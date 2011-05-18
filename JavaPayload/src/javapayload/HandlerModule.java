@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,29 +32,43 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stage;
+package javapayload;
 
-import javapayload.Parameter;
+import java.io.PrintStream;
+import java.util.ArrayList;
+import java.util.List;
 
-public class Exec extends StageHandler {
-	
-	public Exec() {
-		super("Execute an executable", true, true, 
-				"Execute an executable on the victim machine.");
+public abstract class HandlerModule extends Module {
+
+	public static HandlerModule[] loadAll(Class moduleType, boolean forHandler) throws Exception {
+		Module[] unfiltered = Module.loadAll(moduleType);
+		List filtered = new ArrayList();
+		for (int i = 0; i < unfiltered.length; i++) {
+			HandlerModule module = (HandlerModule)unfiltered[i];
+			if ((forHandler && module.isHandlerUsable()) || (!forHandler && module.isTargetUsable()))
+				filtered.add(module);
+		}
+		return (HandlerModule[]) filtered.toArray(new HandlerModule[filtered.size()]);
 	}
 	
-	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("EXECUTABLE", false, Parameter.TYPE_ANY, "Executable name"),
-				new Parameter("ARGS", true, Parameter.TYPE_REST, "Arguments for the executable"),
-		};
+	public static void list(PrintStream out, Class moduleType, boolean forHandler) throws Exception {
+		printList(out, loadAll(moduleType, forHandler));
 	}
 	
-	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.Exec.class };
+	private final boolean handlerUsable;
+	private final boolean targetUsable;
+	
+	public HandlerModule(Class moduleType, boolean handlerUsable, boolean targetUsable, String summary, String description) {
+		super(null, moduleType, summary, description);
+		this.handlerUsable = handlerUsable;
+		this.targetUsable = targetUsable;
 	}
 	
-	protected StageHandler createClone() {
-		return new Exec();
+	public boolean isHandlerUsable() {
+		return handlerUsable;
+	}
+	
+	public boolean isTargetUsable() {
+		return targetUsable;
 	}
 }

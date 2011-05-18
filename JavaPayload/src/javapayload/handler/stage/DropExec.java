@@ -34,7 +34,24 @@
 
 package javapayload.handler.stage;
 
+import javapayload.Parameter;
+
 public class DropExec extends StageHandler {
+	
+	public DropExec() {
+		super("Drop an executable and execute it", true, true,
+				"Drop a native executable from inside the classpath (e. g. Jar) into a\r\n" +
+				"temporary directory and execute it. Usually used with LocalStage stagers\r\n" +
+				"packed into a Jar file.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("PATH", false, Parameter.TYPE_ANY, "Path to the executable inside the JAR"),
+				new Parameter("ARGS", true, Parameter.TYPE_REST, "Arguments for the executable")
+		};
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.StreamForwarder.class, javapayload.stage.DropExec.class };
 	}

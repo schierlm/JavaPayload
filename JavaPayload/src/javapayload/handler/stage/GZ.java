@@ -36,6 +36,10 @@ package javapayload.handler.stage;
 
 public class GZ extends GZIP {
 	
+	public GZ() {
+		super(true);
+	}
+	
 	public Class[] getNeededClasses() {
 		return new Class[] { javapayload.stage.GZ.class };
 	}
