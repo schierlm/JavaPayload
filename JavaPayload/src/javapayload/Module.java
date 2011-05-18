@@ -43,64 +43,77 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Enumeration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 public abstract class Module implements NamedElement {
 
+	private static final Map modulesCache = new HashMap();
+
 	public static Module[] loadAll(Class moduleType) throws Exception {
-		String[] packageNames = getPackageNames(moduleType);
-		List resultClasses = new ArrayList();
-		URL[] urls = new URL[0];
-		ClassLoader ucl = Module.class.getClassLoader();
-		if (ucl instanceof URLClassLoader)
-			urls = ((URLClassLoader) ucl).getURLs();
-		for (int i = 0; i < urls.length; i++) {
-			if (urls[i].getFile().endsWith(".jar")) {
-				ZipFile jarfile = new ZipFile(new File(urls[i].toURI()));
-				Enumeration files = jarfile.entries();
-				while (files.hasMoreElements()) {
-					ZipEntry ze = (ZipEntry) files.nextElement();
-					if (!ze.isDirectory()) {
-						String name = ze.getName().replace('/', '.');
-						for (int j = 0; j < packageNames.length; j++) {
-							if (name.startsWith(packageNames[j]) && name.endsWith(".class")) {
-								resultClasses.add(Class.forName(name.substring(0, name.length() - 6)));
+		Module[] resultArray = (Module[]) modulesCache.get(moduleType.getName());
+		if (resultArray == null) {
+			String[] packageNames = getPackageNames(moduleType);
+			List resultClasses = new ArrayList();
+			URL[] urls = new URL[0];
+			ClassLoader ucl = Module.class.getClassLoader();
+			if (ucl instanceof URLClassLoader)
+				urls = ((URLClassLoader) ucl).getURLs();
+			for (int i = 0; i < urls.length; i++) {
+				if (urls[i].getFile().endsWith(".jar")) {
+					ZipFile jarfile = new ZipFile(new File(urls[i].toURI()));
+					Enumeration files = jarfile.entries();
+					while (files.hasMoreElements()) {
+						ZipEntry ze = (ZipEntry) files.nextElement();
+						if (!ze.isDirectory()) {
+							String name = ze.getName().replace('/', '.');
+							for (int j = 0; j < packageNames.length; j++) {
+								if (name.startsWith(packageNames[j]) && name.endsWith(".class")) {
+									try {
+										resultClasses.add(Class.forName(name.substring(0, name.length() - 6)));
+									} catch (NoClassDefFoundError ex) {
+										// referenced classes from tools.jar
+									}
+								}
+							}
+						}
+					}
+					jarfile.close();
+				} else {
+					for (int j = 0; j < packageNames.length; j++) {
+						String[] files = new File(new URL(urls[i], packageNames[j].replace('.', '/')).toURI()).list();
+						if (files != null) {
+							for (int k = 0; k < files.length; k++) {
+								if (files[k].endsWith(".class"))
+									resultClasses.add(Class.forName(packageNames[j] + "." + files[k].substring(0, files[k].length() - 6)));
 							}
 						}
 					}
 				}
-				jarfile.close();
-			} else {
-				for (int j = 0; j < packageNames.length; j++) {
-					String[] files = new File(new URL(urls[i], packageNames[j].replace('.', '/')).toURI()).list();
-					if (files != null) {
-						for (int k = 0; k < files.length; k++) {
-							if (files[k].endsWith(".class"))
-								resultClasses.add(Class.forName(packageNames[j] + "." + files[k].substring(0, files[k].length() - 6)));
-						}
+			}
+			List result = new ArrayList();
+			for (int i = 0; i < resultClasses.size(); i++) {
+				Class clazz = (Class) resultClasses.get(i);
+				if (moduleType.isAssignableFrom(clazz)) {
+					try {
+						result.add(clazz.getConstructor(new Class[0]).newInstance(new Object[0]));
+					} catch (NoSuchMethodException ex) {
+						// ignore
 					}
 				}
 			}
-		}
-		List result = new ArrayList();
-		for (int i = 0; i < resultClasses.size(); i++) {
-			Class clazz = (Class) resultClasses.get(i);
-			if (moduleType.isAssignableFrom(clazz)) {
-				try {
-					result.add(clazz.getConstructor(new Class[0]).newInstance(new Object[0]));
-				} catch (NoSuchMethodException ex) {
-					// ignore
+			Collections.sort(result, new Comparator() {
+				public int compare(Object arg0, Object arg1) {
+					return ((Module) arg0).getName().compareTo(((Module) arg1).getName());
 				}
-			}
+			});
+			resultArray = (Module[]) result.toArray(new Module[result.size()]);
+			modulesCache.put(moduleType.getName(), resultArray);
 		}
-		Collections.sort(result, new Comparator() {
-			public int compare(Object arg0, Object arg1) {
-				return ((Module) arg0).getName().compareTo(((Module) arg1).getName());
-			}
-		});
-		return (Module[]) result.toArray(new Module[result.size()]);
+		return resultArray;
 	}
 
 	private static String[] getPackageNames(Class moduleType) {
@@ -126,7 +139,7 @@ public abstract class Module implements NamedElement {
 		throw new IllegalArgumentException("Module " + name + " not found");
 	}
 
-	private static void printList(PrintStream out, NamedElement[] elements) {
+	protected static void printList(PrintStream out, NamedElement[] elements) {
 		int maxNameLength = 0;
 		for (int i = 0; i < elements.length; i++) {
 			if (elements[i].getName().length() > maxNameLength)

@@ -40,6 +40,7 @@ import java.util.List;
 import javapayload.Parameter;
 import javapayload.handler.stager.StagerHandler;
 
+import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
 import com.sun.tools.attach.VirtualMachineDescriptor;
 
@@ -66,8 +67,8 @@ public class AttachInjector extends Injector {
 	
 	public Parameter[] getParameters() {
 		return new Parameter[] {
-				new Parameter("PID", true, Parameter.TYPE_NUMBER, "Process ID to attach to"),
-				new Parameter("AGENTPATH", true, Parameter.TYPE_PATH, "Path to the agent jar")
+				new Parameter("PID", false, Parameter.TYPE_NUMBER, "Process ID to attach to"),
+				new Parameter("AGENTPATH", false, Parameter.TYPE_PATH, "Path to the agent jar")
 		};
 	}
 	
@@ -85,10 +86,18 @@ public class AttachInjector extends Injector {
 			}
 			agentArgs.append(stagerArgs[i]);
 		}
-		final VirtualMachine vm = VirtualMachine.attach(pid);
-		vm.loadAgent(agentPath, agentArgs.toString());
-		vm.detach();
-		loader.handleAfter(loader.stageHandler.consoleErr, null);
+		try {
+			final VirtualMachine vm = VirtualMachine.attach(pid);
+			vm.loadAgent(agentPath, agentArgs.toString());
+			vm.detach();
+		} catch (AttachNotSupportedException ex) {
+			// this ugly hack is here to make sure that
+			// loading this class fails if AttachNotSupportedException
+			// cannot be loaded instead of failing when the user tries
+			// to use this stager.
+			throw ex;
+		}
+		loader.handleAfter(loader.stageHandler.consoleErr, null);		
 	}
 
 	public static void listVMs(PrintStream out) {

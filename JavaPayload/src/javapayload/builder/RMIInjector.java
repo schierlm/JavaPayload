@@ -88,9 +88,9 @@ public class RMIInjector extends Injector {
 	
 	public Parameter[] getParameters() {
 		return new Parameter[] {
-			new Parameter("URL", true, Parameter.TYPE_URL, "URL to load the RMI classes from"),
-			new Parameter("RHOST", true, Parameter.TYPE_HOST, "Host to connect to"),
-			new Parameter("RPORT", true, Parameter.TYPE_PORT, "Port to connect to"),
+			new Parameter("URL", false, Parameter.TYPE_URL, "URL to load the RMI classes from"),
+			new Parameter("RHOST", false, Parameter.TYPE_HOST, "Host to connect to"),
+			new Parameter("RPORT", false, Parameter.TYPE_PORT, "Port to connect to"),
 		};
 	}
 	
