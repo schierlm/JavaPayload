@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -33,64 +33,44 @@
  */
 package javapayload.handler.stager;
 
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PipedInputStream;
-import java.io.PipedOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.PrintStream;
 
-import javapayload.Parameter;
+import javapayload.builder.ClassBuilder;
+import javapayload.builder.ClassBuilder.ClassBuilderTemplate;
+import javapayload.builder.SpawnTemplate;
+import javapayload.handler.dynstager.DynStagerHandler;
 import javapayload.handler.stage.StageHandler;
-import javapayload.loader.DynLoader;
-import javapayload.stager.Stager;
+import javapayload.stage.StreamForwarder;
 
-public class LocalTest extends StagerHandler implements Runnable {
+public class SpawnConsole extends Console {
 
-	public LocalTest() {
-		super("Test a stage locally", true, false, "Test stager that runs a stage in the same JVM as the stager.");
-	};
-	
-	public Parameter[] getParameters() {
-		return new Parameter[0];
+	public SpawnConsole() {
+		super("Spawn a new process that communicates via stdin/stdout", true, false,
+				"This handler will spawn a new Java process and connect to it via" +
+				"stdin/stdout.");
 	}
 	
-	private InputStream in;
-	private OutputStream out;
-	private PrintStream errorStream;
-
+	public boolean isStagerUsableWith(DynStagerHandler[] dynstagers) {
+		return false;
+	}
+	
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		if (readyHandler != null) readyHandler.notifyReady();
-		this.errorStream = errorStream;
-		final PipedInputStream localIn = new PipedInputStream();
-		final PipedOutputStream localOut = new PipedOutputStream();
-		final WrappedPipedOutputStream wrappedLocalOut = new WrappedPipedOutputStream(localOut);
-		out = new WrappedPipedOutputStream(new PipedOutputStream(localIn), wrappedLocalOut);
-		in = new PipedInputStream(localOut);
-		new Thread(this).start();
-		stageHandler.handle(wrappedLocalOut, localIn, parameters);
-	}
-
-	public void run() {
-		try {
-			try {
-				if (!originalParameters[0].equals("LocalTest")) {
-					((Stager)DynLoader.loadStager(originalParameters[0], originalParameters, 0).getConstructor(new Class[] {InputStream.class, OutputStream.class}).newInstance(new Object[] {in, out})).bootstrap(originalParameters, false);
-					return;
-				}
-			} catch (Throwable t) {
-				// fall through
-			}
-			new javapayload.stager.LocalTest(in, out).bootstrap(originalParameters, false);
-		} catch (final Exception ex) {
-			ex.printStackTrace(errorStream);
-		}
-	}
-	
-	protected boolean needHandleBeforeStart() {
-		throw new RuntimeException("LocalTest cannot be used as a standalone stager!");
-	}
-	
-	protected String getTestArguments() {
-		return null;
+		File tempFile = File.createTempFile("~console", ".tmp");
+		tempFile.delete();
+		File tempDir = new File(tempFile.getAbsolutePath()+".dir");
+		tempDir.mkdir();
+		tempFile = new File(tempDir, "ConsoleClass.class");
+		FileOutputStream fos = new FileOutputStream(tempFile);
+		fos.write(ClassBuilder.buildClassBytes("ConsoleClass", "Console", ClassBuilderTemplate.class, null, null));
+		fos.close();
+		Process proc = SpawnTemplate.launch("ConsoleClass", tempDir.getAbsolutePath(), parameters);
+		new StreamForwarder(proc.getErrorStream(), stageHandler.consoleErr, null, false).start();
+		stageHandler.handle(proc.getOutputStream(), proc.getInputStream(), parameters);
+		proc.waitFor();
+		tempFile.delete();
+		tempDir.delete();		
 	}
 }

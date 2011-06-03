@@ -45,9 +45,21 @@ import java.net.InetAddress;
 import java.util.ArrayList;
 import java.util.List;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 public class ReverseUDP extends StagerHandler {
+
+	public ReverseUDP() {
+		super("Connect to a UDP port", true, true, "Connect to a UDP port on the attacker's machine.");
+	};
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("LHOST", false, Parameter.TYPE_HOST, "Local host to connect to"),
+				new Parameter("LPORT", false, Parameter.TYPE_PORT_HASH, "Local port to connect to, or # to auto-bind.")
+		};
+	}
 
 	private DatagramSocket socket = null;
 	

@@ -42,6 +42,10 @@ import javapayload.handler.stage.StageHandler;
 
 public abstract class ListeningStagerHandler extends StagerHandler {
 
+	public ListeningStagerHandler(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
+		super(summary, true, true, description);
+	}
+	
 	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		startListen(parameters);
 		if (readyHandler != null) readyHandler.notifyReady();

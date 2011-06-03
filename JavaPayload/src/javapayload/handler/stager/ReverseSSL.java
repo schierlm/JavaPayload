@@ -40,6 +40,7 @@ import java.net.Socket;
 import java.security.KeyStore;
 import java.security.SecureRandom;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 import javax.net.ssl.KeyManagerFactory;
@@ -48,6 +49,19 @@ import javax.net.ssl.TrustManager;
 
 public class ReverseSSL extends ListeningStagerHandler {
 
+	public ReverseSSL() {
+		super("Connect to an SSL port", true, true,
+				"Connect to a TCP port on the attacker's machine and use SSL to secure the\r\n" +
+				"communication.");
+	};
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("LHOST", false, Parameter.TYPE_HOST, "Local host to connect to"),
+				new Parameter("LPORT", false, Parameter.TYPE_PORT, "Local port to connect to.")
+		};
+	}
+	
 	private ServerSocket sslServerSocket = null;
 	
 	protected void startListen(String[] parameters) throws Exception {

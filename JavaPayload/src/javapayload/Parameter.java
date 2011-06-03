@@ -42,16 +42,18 @@ public class Parameter implements NamedElement {
 	public static final int TYPE_PATH = 3;
 	public static final int TYPE_URL = 4;
 	public static final int TYPE_NUMBER = 5;
+	public static final int TYPE_PORT_HASH = 6;
 	
 	// types that need special treatment
 	public static final int TYPE_STAGE = 50;
 	public static final int TYPE_STAGE_3DASHES = 51;
 	public static final int TYPE_STAGER = 52;
+	public static final int TYPE_LISTENING_STAGER_HANDLER = 53;
 	
 	
 	// types that are repeated
 	public static final int TYPE_REST = 100;
-	public static final int TYPE_STAGELIST_3DASHES = TYPE_REST | TYPE_STAGE_3DASHES;
+	public static final int TYPE_STAGELIST_3DASHES = TYPE_REST + TYPE_STAGE_3DASHES;
 
 	private final String name;
 	private final int type;

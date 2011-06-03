@@ -31,67 +31,47 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+
 package javapayload.handler.stager;
 
-import java.io.InputStream;
 import java.io.PrintStream;
 
-import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
-public class MultiListen extends StagerHandler {
+public abstract class DynStagerHandlerHelper extends StagerHandler {
 
-	public MultiListen() {
-		super("Run a stager/stage multiple times", true, false, 
-				"Run a stage that only outputs information (like the SystemInformation stage)\r\n" +
-				"multiple times (even multi-threaded).");
+	protected DynStagerHandlerHelper(Class handlerClassName, String summary,  boolean handlerUsable, boolean targetUsable, String description) {
+		super(handlerClassName, summary, handlerUsable, targetUsable, description);
 	}
 	
-	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("STAGER", false, Parameter.TYPE_LISTENING_STAGER_HANDLER, "Stager to run")
-		};
+	private StagerHandler stagerHandler;
+
+	void setStagerHandler(StagerHandler stagerHandler) {
+		this.stagerHandler = stagerHandler;
 	}
-	
-	ListeningStagerHandler realHandler = null;
-	
+
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		String[] realParameters = new String[parametersToPrepare.length-1];
-		System.arraycopy(parametersToPrepare, 1, realParameters, 0, realParameters.length);
-		realHandler = (ListeningStagerHandler) StagerHandler.getStagerHandler(realParameters[0]);
-		boolean result = realHandler.prepare(realParameters);
-		if (result) {
-			System.arraycopy(realParameters, 0, parametersToPrepare, 1, realParameters.length);
-		}
-		return result;
+		return stagerHandler.prepare(parametersToPrepare);
 	}
-	
-	protected void handle(StageHandler stageHandler, String[] parameters, final PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		String[] realParameters = new String[parameters.length-1];
-		System.arraycopy(parameters, 1, realParameters, 0, realParameters.length);
-		if (realHandler == null) {
-			realHandler = (ListeningStagerHandler) StagerHandler.getStagerHandler(realParameters[0]);
-		}
-		final InputStream waitIn = stageHandler.consoleIn;
-		new Thread(new Runnable() {
-			public void run() {
-				try {
-					while(waitIn.read() != -1)
-						;
-					realHandler.stopMulti();
-				} catch (Exception ex) {
-					ex.printStackTrace(errorStream);
-				}
-			}
-		}).start();
-		realHandler.handleMulti(stageHandler, realParameters, errorStream, readyHandler);
+
+	protected boolean canHandleExtraArg(Class argType) {
+		return stagerHandler.canHandleExtraArg(argType);
+	}
+
+	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		stagerHandler.originalParameters = originalParameters;
+		handleDyn(stageHandler, parameters, errorStream, extraArg, readyHandler);
+	}
+
+	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		stagerHandler.handle(stageHandler, parameters, errorStream, extraArg, readyHandler);
 	}
 
 	protected boolean needHandleBeforeStart() {
-		return true;
+		return stagerHandler.needHandleBeforeStart();
 	}
-	
-	protected String getTestArguments() {
-		return null;
+
+	protected String[] getTestArgumentArrayHelper() {
+		return stagerHandler.getTestArgumentArray();
 	}
 }

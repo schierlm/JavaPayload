@@ -190,6 +190,7 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add ready event for stagers (like BindTCP) and stager handlers (like ReverseTCP) to make automated staging and injection more reliable.</li>
 <li>Add RMI injector to load payloads via RMI (rmiregistry, rmid, ...)</li>
 <li>Refactor builders and injectors to use self-documenting module objects.</li>
+<li>Make stager, dynstager and stage handlers self-documenting modules, too.</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -481,7 +482,7 @@ MultiStage or JCp), although it can (with the help of the dynstager handler) be 
 
 <p>An additional stager, Console, has been added, that expects the victim to sit at stdin and stdout.
 It is useful to build "demo" jars that run a stager on the local machine via the Integrated dynstager.
-Its stager handler acts similar to LocalTest - it will spawn another JVM and connect to that one via
+The SpawnConsole stager handler acts similar to LocalTest - it will spawn another JVM and connect to that one via
 stdin/stdout, thereby testing the Console stager.</p>
 
 <p>This dynstage has two disadvantages: First, the stage to be run is fixed, you cannot stage another

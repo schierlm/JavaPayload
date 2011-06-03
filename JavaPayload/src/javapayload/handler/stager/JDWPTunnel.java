@@ -42,6 +42,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 import com.sun.jdi.ArrayReference;
@@ -61,6 +62,16 @@ import com.sun.jdi.request.EventRequest;
 
 public class JDWPTunnel extends StagerHandler implements Runnable {
 
+	public JDWPTunnel() {
+		super("Tunnel the payload stream through JDWP", true, true, 
+				"This stager tunnels the payload stream through the same JDWP connection\r\n" +
+				"that was used to inject the payload.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
 	private ClassType communicationClass;
 	private WrappedPipedOutputStream pipedOut;
 	private PipedInputStream pipedIn;
@@ -176,7 +187,7 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 	protected boolean needHandleBeforeStart() { return false; }
 	
 	protected boolean canHandleExtraArg(Class argType) {
-		return argType.equals(ClassType.class);
+		return argType != null && argType.equals(ClassType.class);
 	}
 	
 	protected String getTestArguments() {

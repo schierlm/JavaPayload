@@ -2,11 +2,27 @@ package javapayload.handler.dynstager;
 
 import java.io.PrintStream;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
-import javapayload.handler.stager.DynStagerHandler;
 import javapayload.handler.stager.StagerHandler;
 
 public class AES extends DynStagerHandler {
+	
+	public AES() {
+		super("Protect a stager with AES encryption", true, true,
+				"This dynstager can be used to protect a stager (both the staging and the\r\n" +
+				"following communication) with an AES key derived from a password.");
+	}
+	
+	public Parameter getExtraArg() {
+		return null;
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("KEY", false, Parameter.TYPE_ANY, "Password to derive the key from")
+		};
+	}
 	
 	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		String[] newParameters = new String[parameters.length - 1];

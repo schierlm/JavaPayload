@@ -50,7 +50,7 @@ public class StagerTest {
 
 	public static void main(String[] args) throws Exception {
 		System.out.println("Testing stagers...");
-		String[] localStagers = new String[] {"LocalTest", "AES_LocalTest #", "Console", "PollingTunnel"};
+		String[] localStagers = new String[] {"LocalTest", "AES_LocalTest #", "SpawnConsole", "LocalPollingTunnel"};
 		for (int i = 0; i < localStagers.length; i++) {
 			System.out.println("\t"+localStagers[i]);
 			final StagerHandler.Loader loader = new StagerHandler.Loader((localStagers[i] + " -- TestStub").split(" "));

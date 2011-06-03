@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,37 +31,39 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
 package javapayload.handler.stager;
 
 import java.io.PrintStream;
-import java.net.Socket;
 
-import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
-public class BindTCP extends StagerHandler {
+public class LocalPollingTunnel extends PollingTunnel {
 
-	public BindTCP() {
-		super("Bind on a TCP port", true, true, "Bind on a local TCP port and wait for the attacker to connect.");
-	};
-	
-	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("RHOST", false, Parameter.TYPE_HOST, "Remote host to connect to"),
-				new Parameter("RPORT", false, Parameter.TYPE_PORT, "Remote port to connect to")
-		};
+	public LocalPollingTunnel() {
+		super("Test a stage locally through a polling protocol", true, false,
+				"Test stager that runs a stage in the same JVM as the stager using a\r\n" +
+				"polling protocol.");
 	}
 	
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		if (readyHandler != null) readyHandler.notifyReady();
-		final Socket s = new Socket(parameters[1], Integer.parseInt(parameters[2]));
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
+		super.handle(stageHandler, parameters, errorStream, new LocalCommunicationInterface(parameters), readyHandler);
 	}
 	
-	protected boolean needHandleBeforeStart() { return false; }
+	protected boolean canHandleExtraArg(Class argType) {
+		return argType == null;
+	}
 	
-	protected String getTestArguments() {
-		return "localhost 61234";
+	private class LocalCommunicationInterface implements CommunicationInterface {
+		private javapayload.stager.PollingTunnel stager;
+
+		public LocalCommunicationInterface(String[] parameters) throws Exception {
+			stager = new javapayload.stager.PollingTunnel();
+			stager.bootstrap(parameters, false);
+		}
+
+		public String sendData(String request) throws Exception {
+			String response = stager.sendData(request);
+			return response;
+		}
 	}
 }

@@ -39,10 +39,25 @@ import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.io.PrintStream;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 public class PollingTunnel extends StagerHandler implements Runnable {
 
+	public PollingTunnel() {
+		super("Tunnel the payload stream through a polling protocol", true, true,
+				"This stager tunnels the payload stream through a polling protocol that\r\n" +
+				"has to be provided by the injector the stager is used with.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
+	protected PollingTunnel(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
+		super(summary, handlerUsable, stagerUsable, description);
+	}
+	
 	private WrappedPipedOutputStream pipedOut;
 	private PipedInputStream pipedIn;
 	private PrintStream errorStream;
@@ -52,9 +67,7 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		if (readyHandler != null) readyHandler.notifyReady();
 		this.errorStream = errorStream;
-		if (extraArg == null) {
-			extraArg = new LocalCommunicationInterface(parameters);
-		} else if (!(extraArg instanceof CommunicationInterface)) {
+		if (!(extraArg instanceof CommunicationInterface)) {
 			throw new IllegalArgumentException("No Communication interface found");
 		}
 		communicationInterface = (CommunicationInterface) extraArg;
@@ -124,7 +137,7 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 	}
 
 	protected boolean canHandleExtraArg(Class argType) {
-		return argType.equals(CommunicationInterface.class);
+		return argType != null && argType.equals(CommunicationInterface.class);
 	}
 
 	protected String getTestArguments() {
@@ -133,19 +146,5 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 
 	public static interface CommunicationInterface {
 		public String sendData(String request) throws Exception;
-	}
-
-	private class LocalCommunicationInterface implements CommunicationInterface {
-		private javapayload.stager.PollingTunnel stager;
-
-		public LocalCommunicationInterface(String[] parameters) throws Exception {
-			stager = new javapayload.stager.PollingTunnel();
-			stager.bootstrap(parameters, false);
-		}
-
-		public String sendData(String request) throws Exception {
-			String response = stager.sendData(request);
-			return response;
-		}
 	}
 }

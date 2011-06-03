@@ -34,10 +34,24 @@
 
 package javapayload.handler.dynstager;
 
-import javapayload.handler.stager.DynStagerHandler;
+import javapayload.Parameter;
+
 
 public class Spawn extends DynStagerHandler {
 
+	public Spawn() {
+		super("Run stager in a subprocess", true, true,
+				"Spawn a subprocess to run the stager in");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
+	public Parameter getExtraArg() {
+		return null;
+	}
+	
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
 		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Spawn_");
 		if (fCutSpawn)

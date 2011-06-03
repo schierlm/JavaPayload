@@ -38,10 +38,22 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 public class ReverseTCP extends ListeningStagerHandler {
 
+	public ReverseTCP() {
+		super("Connect to a TCP port",  true, true, "Connect to a TCP port on the attacker's machine.");
+	};
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("LHOST", false, Parameter.TYPE_HOST, "Local host to connect to"),
+				new Parameter("LPORT", false, Parameter.TYPE_PORT_HASH, "Local port to connect to, or # to auto-bind.")
+		};
+	}
+	
 	private ServerSocket serverSocket = null;
 	
 	protected void startListen(String[] parameters) throws Exception {

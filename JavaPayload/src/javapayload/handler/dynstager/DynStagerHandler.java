@@ -32,46 +32,26 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stager;
+package javapayload.handler.dynstager;
 
-import java.io.PrintStream;
+import javapayload.Parameter;
+import javapayload.handler.stager.DynStagerHandlerHelper;
 
-import javapayload.handler.stage.StageHandler;
+public abstract class DynStagerHandler extends DynStagerHandlerHelper {
 
-public class DynStagerHandler extends StagerHandler {
+	// TODO cross-check lists!
 
-	private StagerHandler stagerHandler;
-
-	void setStagerHandler(StagerHandler stagerHandler) {
-		this.stagerHandler = stagerHandler;
+	public DynStagerHandler(String summary,  boolean handlerUsable, boolean builderUsable, String description) {
+		super(DynStagerHandler.class, summary, handlerUsable, builderUsable, description);
 	}
-
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		return stagerHandler.prepare(parametersToPrepare);
-	}
-
-	protected boolean canHandleExtraArg(Class argType) {
-		return stagerHandler.canHandleExtraArg(argType);
-	}
-
-	protected final void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		stagerHandler.originalParameters = originalParameters;
-		handleDyn(stageHandler, parameters, errorStream, extraArg, readyHandler);
-	}
-
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		stagerHandler.handle(stageHandler, parameters, errorStream, extraArg, readyHandler);
-	}
-
-	protected boolean needHandleBeforeStart() {
-		return stagerHandler.needHandleBeforeStart();
-	}
-
+	
+	public abstract Parameter getExtraArg();
+		
 	protected final String getTestArguments() {
 		throw new IllegalStateException("Use getTestArgumentArray!");
 	}
 
 	public String[] getTestArgumentArray() {
-		return stagerHandler.getTestArgumentArray();
+		return getTestArgumentArrayHelper();
 	}
 }

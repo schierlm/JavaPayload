@@ -36,13 +36,27 @@ package javapayload.handler.dynstager;
 
 import java.io.PrintStream;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.InternalLocalStageHandler;
 import javapayload.handler.stage.StageHandler;
-import javapayload.handler.stager.DynStagerHandler;
 import javapayload.handler.stager.StagerHandler;
 
 public class LocalStage extends DynStagerHandler {
 
+	public LocalStage() {
+		super("Modify a stager to load stages locally", true, true,
+				"This dynstager (and its handler) can be used with Jar builders, it will\r\n" +
+				"lookup stages from the class path instead of staging it via the network.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
+	public Parameter getExtraArg() {
+		return null;
+	}
+	
 	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
 	}

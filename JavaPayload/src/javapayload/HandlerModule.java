@@ -41,11 +41,15 @@ import java.util.List;
 public abstract class HandlerModule extends Module {
 
 	public static HandlerModule[] loadAll(Class moduleType, boolean forHandler) throws Exception {
+		return loadAll(moduleType, forHandler, !forHandler);
+	}
+	
+	public static HandlerModule[] loadAll(Class moduleType, boolean requireHandler, boolean requireTarget) throws Exception {
 		Module[] unfiltered = Module.loadAll(moduleType);
 		List filtered = new ArrayList();
 		for (int i = 0; i < unfiltered.length; i++) {
 			HandlerModule module = (HandlerModule)unfiltered[i];
-			if ((forHandler && module.isHandlerUsable()) || (!forHandler && module.isTargetUsable()))
+			if ((!requireHandler || module.isHandlerUsable()) && (!requireTarget || module.isTargetUsable()))
 				filtered.add(module);
 		}
 		return (HandlerModule[]) filtered.toArray(new HandlerModule[filtered.size()]);
@@ -53,6 +57,10 @@ public abstract class HandlerModule extends Module {
 	
 	public static void list(PrintStream out, Class moduleType, boolean forHandler) throws Exception {
 		printList(out, loadAll(moduleType, forHandler));
+	}
+	
+	public static void list(PrintStream out, Class moduleType, boolean requireHandler, boolean requireTarget) throws Exception {
+		printList(out, loadAll(moduleType, requireHandler, requireTarget));
 	}
 	
 	private final boolean handlerUsable;

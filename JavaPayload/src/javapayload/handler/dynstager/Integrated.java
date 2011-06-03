@@ -36,13 +36,29 @@ package javapayload.handler.dynstager;
 
 import java.io.PrintStream;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.InternalIntegratedStageHandler;
 import javapayload.handler.stage.StageHandler;
-import javapayload.handler.stager.DynStagerHandler;
 import javapayload.handler.stager.StagerHandler;
 
 public class Integrated extends DynStagerHandler {
 
+	public Integrated() {
+		super("Include bootstrap data of a stage into stager", true, true, 
+				"In some scenarios it is helpful if you can reduce the amount of data\r\n" +
+				"transferred, or if you can connect to an exploit/payload without having\r\n" +
+				"JavaPayload available. The Integrated dynstager can be used to build a\r\n" +
+				"stager that integrates all the classes of a particular stage.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
+	public Parameter getExtraArg() {
+		return new Parameter("TOKEN", false, Parameter.TYPE_ANY, "Token to distinguish this Integrated dynstager from others");
+	}
+	
 	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		super.handleDyn(new InternalIntegratedStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
 	}

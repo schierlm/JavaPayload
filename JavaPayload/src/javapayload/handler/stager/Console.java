@@ -33,38 +33,40 @@
  */
 package javapayload.handler.stager;
 
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.PrintStream;
 
-import javapayload.builder.ClassBuilder;
-import javapayload.builder.ClassBuilder.ClassBuilderTemplate;
-import javapayload.builder.SpawnTemplate;
+import javapayload.Parameter;
+import javapayload.handler.dynstager.DynStagerHandler;
+import javapayload.handler.dynstager.Integrated;
+import javapayload.handler.dynstager.LocalStage;
 import javapayload.handler.stage.StageHandler;
-import javapayload.stage.StreamForwarder;
 
 public class Console extends StagerHandler {
 
+	public Console() {
+		super("Connect to the victim via stdin/stdout", false, false,
+				"Connect to the victim via standard input and output streams. This stager can\r\n" +
+				"only sensibly be used with integrated dynstagers.");
+	}
+	
+	protected Console(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
+		super(summary, handlerUsable, stagerUsable, description);
+	}
+	
+	public boolean isStagerUsableWith(DynStagerHandler[] dynstagers) {
+		return dynstagers.length == 1 && (dynstagers[0] instanceof Integrated || dynstagers[0] instanceof LocalStage);
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		if (readyHandler != null) readyHandler.notifyReady();
-		File tempFile = File.createTempFile("~console", ".tmp");
-		tempFile.delete();
-		File tempDir = new File(tempFile.getAbsolutePath()+".dir");
-		tempDir.mkdir();
-		tempFile = new File(tempDir, "ConsoleClass.class");
-		FileOutputStream fos = new FileOutputStream(tempFile);
-		fos.write(ClassBuilder.buildClassBytes("ConsoleClass", "Console", ClassBuilderTemplate.class, null, null));
-		fos.close();
-		Process proc = SpawnTemplate.launch("ConsoleClass", tempDir.getAbsolutePath(), parameters);
-		new StreamForwarder(proc.getErrorStream(), stageHandler.consoleErr, null, false).start();
-		stageHandler.handle(proc.getOutputStream(), proc.getInputStream(), parameters);
-		proc.waitFor();
-		tempFile.delete();
-		tempDir.delete();		
+		throw new RuntimeException("Console cannot be used as a handler");	
 	}
 	
 	protected boolean needHandleBeforeStart() {
-		return true;
+		throw new RuntimeException("Console cannot be used as a standalone stager!");
 	}
 	
 	protected String getTestArguments() {
