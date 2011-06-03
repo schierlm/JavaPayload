@@ -36,9 +36,26 @@ package javapayload.handler.stager;
 
 import java.io.PrintStream;
 
+import javapayload.HandlerModule;
+import javapayload.handler.dynstager.DynStagerHandler;
 import javapayload.handler.stage.StageHandler;
 
-public abstract class StagerHandler {
+public abstract class StagerHandler extends HandlerModule {
+	
+	public StagerHandler(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
+		super(StagerHandler.class, handlerUsable, stagerUsable, summary, description);
+	}
+	
+	/**
+	 * For {@link DynStagerHandler} only.
+	 */
+	StagerHandler(Class moduleType, String summary, boolean handlerUsable, boolean targetUsable, String description) {
+		super(moduleType, handlerUsable, targetUsable, summary, description);
+	}
+	
+	public boolean isStagerUsableWith(DynStagerHandler[] dynstagers) {
+		return isTargetUsable();
+	}
 	
 	private boolean ready;
 	protected String[] originalParameters;
@@ -63,7 +80,7 @@ public abstract class StagerHandler {
 	}
 	
 	protected boolean canHandleExtraArg(Class argType) {
-		return false;
+		return argType == null;
 	}
 	
 	public synchronized void notifyReady() {
@@ -100,7 +117,7 @@ public abstract class StagerHandler {
 				}
 				DynStagerHandler dsh = (DynStagerHandler) Class.forName("javapayload.handler.dynstager."+dshName).newInstance();
 				StagerHandler baseStagerHandler = getStagerHandler(stagerName);
-				dsh.setStagerHandler(baseStagerHandler);
+				((DynStagerHandlerHelper)dsh).setStagerHandler(baseStagerHandler);
 				return dsh;
 			}
 			throw ex;
