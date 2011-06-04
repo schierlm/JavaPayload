@@ -36,6 +36,7 @@ package javapayload.builder.dynstager;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.lang.reflect.Modifier;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -145,8 +146,10 @@ public abstract class WrappingDynStagerBuilder extends DynStagerBuilder {
 				// not the beginning!
 			}
 			public FieldVisitor visitField(int access, String name, String desc, String signature, Object value) {
-				// drop fields
-				return null;
+				// drop static fields
+				if (Modifier.isStatic(access))
+					return null;
+				return super.visitField(access, name, desc, signature, value);
 			}
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
 				// take only the method we need

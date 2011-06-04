@@ -252,6 +252,7 @@ public class MultiStage extends StageHandler {
 								return;
 						}
 						MultiStageOutputStream.decodeForward(in, out);
+						out.flush();
 						synchronized (this) {
 							active = false;
 							notifyAll();

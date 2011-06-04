@@ -117,6 +117,8 @@ public class MultiStageClassLoader extends ClassLoader implements Runnable {
 			alive = this.alive;
 		}
 		MultiStageOutputStream.decodeForward(in, alive ? (OutputStream) buffOut : new ByteArrayOutputStream());
+		if (alive)
+			buffOut.flush();
 		synchronized (this) {
 			forwarding = false;
 			notifyAll();

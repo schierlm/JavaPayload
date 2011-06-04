@@ -73,7 +73,7 @@ public class TestStub extends StageHandler {
 		for (int i = 0; i < concurrentWrite.length; i++) {
 			concurrentWrite[i] = (byte)i;
 		}
-		if (parameters[0].endsWith("JDWPTunnel")) {
+		if (parameters != null && parameters[0].endsWith("JDWPTunnel")) {
 			// TODO JDWPTunnel is not thread safe when sending data
 			for (int i = 0; i < 32; i++) {
 				out.write(concurrentWrite);

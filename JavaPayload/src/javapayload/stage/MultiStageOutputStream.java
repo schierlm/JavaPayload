@@ -56,11 +56,11 @@ public class MultiStageOutputStream extends OutputStream {
 		int start = off;
 		for (int i = off; i < off + len; i++) {
 			if (b[i] == 1) {
-				writeInternal(b, start, i - start + 1);
-				start = i;
+				writeInternal(b, start, i - start + 1, true);
+				start = i + 1;
 			}
 		}
-		writeInternal(b, start, len - start + off);
+		writeInternal(b, start, len - start + off, false);
 	}
 
 	public void write(int b) throws IOException {
@@ -70,11 +70,11 @@ public class MultiStageOutputStream extends OutputStream {
 	public synchronized void close() throws IOException {
 		if (closed)
 			return;
-		writeInternal(new byte[] { 1, 3 }, 0, 2);
+		writeInternal(new byte[] { 1, 3 }, 0, 2, false);
 		closed = true;
 	}
 
-	private synchronized void writeInternal(byte[] bs, int off, int len) throws IOException {
+	private synchronized void writeInternal(byte[] bs, int off, int len, boolean addOne) throws IOException {
 		while (!active) {
 			try {
 				wait();
@@ -82,6 +82,8 @@ public class MultiStageOutputStream extends OutputStream {
 			}
 		}
 		out.write(bs, off, len);
+		if (addOne)
+			out.write(1);
 	}
 
 	public synchronized void flush() throws IOException {
