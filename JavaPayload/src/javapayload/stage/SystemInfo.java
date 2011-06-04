@@ -40,7 +40,6 @@ import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.io.PrintStream;
 import java.net.InetAddress;
-import java.net.NetworkInterface;
 import java.net.URL;
 import java.util.Enumeration;
 
@@ -59,24 +58,33 @@ public class SystemInfo implements Stage {
 		pout.println("~~~~~~~~~~~~~~");
 		InetAddress addr = InetAddress.getLocalHost();
 		pout.println("Name: "+addr.getHostName());
+		/* #JDK1.4 */try {
 		pout.println("Canonical Name: "+addr.getCanonicalHostName());
+		} catch (NoSuchMethodError ex) /**/ {
+			// no alternative available
+		}
 		pout.println("IP Address: "+addr.getHostAddress());
 		pout.println();
-		pout.println("Network interfaces:");
-		pout.println("~~~~~~~~~~~~~~~~~~~");
-		for(final Enumeration e = NetworkInterface.getNetworkInterfaces(); e.hasMoreElements(); ) {
-			NetworkInterface iface = (NetworkInterface) e.nextElement();
-			pout.println(iface.getName());
-			pout.println("  Display Name: "+iface.getDisplayName());
-			for (final Enumeration e2 = iface.getInetAddresses(); e2.hasMoreElements(); ) {
-				InetAddress ifaddr = (InetAddress) e2.nextElement();
-				pout.println("    Address:");
-				pout.println("      Name: "+ifaddr.getHostName());
-				pout.println("      Canonical Name: "+ifaddr.getCanonicalHostName());
-				pout.println("      IP Address: "+ifaddr.getHostAddress());
+		/* #JDK1.4 */try {
+			final Enumeration e = java.net.NetworkInterface.getNetworkInterfaces();
+			pout.println("Network interfaces:");
+			pout.println("~~~~~~~~~~~~~~~~~~~");
+			while(e.hasMoreElements()) {
+				java.net.NetworkInterface iface = (java.net.NetworkInterface) e.nextElement();
+				pout.println(iface.getName());
+				pout.println("  Display Name: "+iface.getDisplayName());
+				for (final Enumeration e2 = iface.getInetAddresses(); e2.hasMoreElements(); ) {
+					InetAddress ifaddr = (InetAddress) e2.nextElement();
+					pout.println("    Address:");
+					pout.println("      Name: "+ifaddr.getHostName());
+					pout.println("      Canonical Name: "+ifaddr.getCanonicalHostName());
+					pout.println("      IP Address: "+ifaddr.getHostAddress());
+				}
 			}
+			pout.println();
+		} catch(NoClassDefFoundError ex) /**/ {
+			// no alternative available
 		}
-		pout.println();
 		pout.println("External IP Address:");
 		pout.println("~~~~~~~~~~~~~~~~~~~~");
 		try {

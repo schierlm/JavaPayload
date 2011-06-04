@@ -136,7 +136,7 @@ public class JarBuilder extends Builder {
 					StreamForwarder.forward(fis, baos);
 					extraResource = baos.toByteArray();
 					extraResourceName = new File(args[i+1]).getName();
-					if (args[i+1].contains("/./"))
+					if (args[i+1].indexOf("/./") != -1)
 						extraResourceName = args[i+1].substring(args[i+1].indexOf("/./")+3);
 				}
 				Set classNames = new HashSet();

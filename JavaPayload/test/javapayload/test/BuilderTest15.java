@@ -31,69 +31,50 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.test;
 
-package javapayload.stage;
-
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
 
-public class StreamForwarder extends Thread {
-	public static void forward(InputStream in, OutputStream out) throws IOException {
-		forward(in, out, true);
-	}
-	
-	public static void forward(InputStream in, OutputStream out, boolean closeOut) throws IOException {
-		try {
-			final byte[] buf = new byte[4096];
-			int length;
-			while ((length = in.read(buf)) != -1) {
-				if (out != null) {
-					out.write(buf, 0, length);
-					if (in.available() == 0) {
-						out.flush();
-					}
-				}
+import javapayload.builder.AgentJarBuilder;
+import javapayload.builder.CVE_2010_0094_AppletJarBuilder;
+import javapayload.stage.StreamForwarder;
+import javapayload.test.BuilderTest14.CVE_2008_5353TestRunner;
+
+public class BuilderTest15 extends BuilderTest {
+	public static class AgentJarBuilderTestRunner extends WaitingBuilderTestRunner {
+		public String getName() { return "AgentJarBuilder"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			AgentJarBuilder.main(new String[] { args[0] });
+			StreamForwarder.forward(BuilderTest.class.getResourceAsStream("/DummyClass.class"), new FileOutputStream("DummyClass.class"));
+		}
+
+		public void runResult(String[] args) throws Exception {
+			StringBuilder allArgs = new StringBuilder();
+			for (int i = 0; i < args.length; i++) {
+				if (i != 0)
+					allArgs.append(' ');
+				allArgs.append(args[i]);
 			}
-		} finally {
-			in.close();
-			if (closeOut)
-				out.close();
+			String agentArg = "-javaagent:Agent_" + args[0] + ".jar=+" + allArgs.toString();
+			runJavaAndWait(this, ".", agentArg, "DummyClass", new String[0]);
+			if (!new File("Agent_" + args[0] + ".jar").delete())
+				throw new IOException("Unable to delete file");
 		}
-	}
 
-	private final InputStream in;
-	private final OutputStream out;
-
-	private final OutputStream stackTraceOut;
-	private final boolean closeOut;
-
-	public StreamForwarder(InputStream in, OutputStream out, OutputStream stackTraceOut) {
-		this(in,out,stackTraceOut,true);
-	}
-	public StreamForwarder(InputStream in, OutputStream out, OutputStream stackTraceOut, boolean closeOut) {
-		this.in = in;
-		this.out = out;
-		this.stackTraceOut = stackTraceOut;
-		this.closeOut = closeOut;
-	}
-
-	public void run() {
-		try {
-			forward(in, out, closeOut);
-		} catch (final Throwable ex) {
-			if (stackTraceOut == null)
-				throwWrapped(ex);
-			ex.printStackTrace(new PrintStream(stackTraceOut, true));
+		public void cleanup() throws Exception {
+			if (!new File("DummyClass.class").delete())
+				throw new IOException("Unable to delete file");
 		}
 	}
 	
-	private static void throwWrapped(Throwable ex) {
-		/* #JDK1.4 */try {
-			throw new RuntimeException(ex);
-		} catch (NoSuchMethodError ex2) /**/{
-			throw new RuntimeException(ex.toString());
+	public static class CVE_2010_0094TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
+		protected String getCVEName() { return "2010_0094"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			CVE_2010_0094_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
 		}
 	}
 }

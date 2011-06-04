@@ -40,7 +40,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 			while (writePending) 
 				wait();
 		} catch (InterruptedException ex) {
-			throw new RuntimeException(ex);
+			throwWrapped(ex);
 		}
 	}
 	
@@ -62,7 +62,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 			while (writePending) 
 				wait();
 		} catch (InterruptedException ex) {
-			throw new RuntimeException(ex);
+			throwWrapped(ex);
 		}
 	}
 	
@@ -81,7 +81,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 			while (writePending) 
 				wait();
 		} catch (InterruptedException ex) {
-			throw new RuntimeException(ex);
+			throwWrapped(ex);
 		}
 	}
 	
@@ -104,7 +104,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 			while(writePending)
 				wait();
 		} catch (InterruptedException ex) {
-			throw new RuntimeException(ex);
+			throwWrapped(ex);
 		}
 	}
 	
@@ -136,11 +136,20 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 				notifyAll();
 			}
 		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+			throwWrapped(ex);
 		} finally {
 			threadDead = true;
 			writePending = false;
 			notifyAll();
+		}
+	}
+	
+	private static void throwWrapped(Throwable ex) {
+		/* #JDK1.4 */try {
+			throw new RuntimeException(ex);
+		} catch (NoSuchMethodError ex2) /**/{
+			ex.printStackTrace();
+			throw new RuntimeException(ex.toString());
 		}
 	}
 }

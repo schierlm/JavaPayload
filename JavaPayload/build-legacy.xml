@@ -1,0 +1,66 @@
+<?xml version="1.0"?>
+<project name="JavaPayload-Legacy">
+
+	<!--
+	
+	This buildfile contains targets to help building JavaPayload on older JDKs.
+	
+	- the "jdk1x" targets are intended if you want to compile and use JavaPayload
+	  or run test cases on an older JDK.
+	  
+	Note that these targets will modify the source code, so keep the origial
+	source code handy if you want to go back.
+	
+	-->
+
+	<target name="jdk15">
+		<replace dir="." token="/* #JDK1.6 */" value="/* #JDK1.6 *#/" >
+			<include name="**/*.java" />
+		</replace>
+		<delete file="src/javapayload/builder/AttachInjector.java" />
+		<delete file="test/javapayload/test/BuilderTest16.java" />
+	</target>
+
+	<target name="jdk14" depends="jdk15">
+		<replace dir="." token="/* #JDK1.5 */" value="/* #JDK1.5 *#/" >
+			<include name="**/*.java" />
+		</replace>		<delete file="src/javapayload/loader/AgentJarLoader.java" />
+		<delete file="src/javapayload/builder/AgentJarBuilder.java" />
+		<delete file="src/javapayload/exploit/CVE_2010_0094.java" />
+		<delete file="src/javapayload/builder/CVE_2010_0094_AppletJarBuilder.java" />
+		<delete file="test/javapayload/test/BuilderTest15.java" />
+	</target>
+
+	<target name="jdk13" depends="jdk14">
+		<replace dir="." token="/* #JDK1.4 */" value="/* #JDK1.4 *#/" >
+			<include name="**/*.java" />
+		</replace>
+		<delete file="src/javapayload/builder/dynstager/AES.java" />
+		<delete file="src/javapayload/handler/dynstager/AES.java" />
+		<delete file="src/javapayload/handler/dynstager/AESStageHandler.java" />
+		<delete file="src/javapayload/handler/stage/AES.java" />
+		<delete file="src/javapayload/stage/AES.java" />
+		<delete file="src/javapayload/stage/AESHelper.java" />
+		<delete file="src/javapayload/handler/stager/ReverseSSL.java" />
+		<delete file="src/javapayload/stager/ReverseSSL.java" />
+		<delete file="src/javapayload/builder/CVE_2008_5353_AppletJarBuilder.java" />
+		<delete file="src/javapayload/exploit/CVE_2008_5353.java" />
+		<delete file="src/javapayload/builder/CVE_2010_0840_AppletJarBuilder.java" />
+		<delete file="src/javapayload/exploit/CVE_2010_0840.java" />
+		<delete file="test/javapayload/test/BuilderTest14.java" />
+	</target>
+
+	<target name="jdk12" depends="jdk13">
+		<replace dir="." token="/* #JDK1.3 */" value="/* #JDK1.3 *#/" >
+			<include name="**/*.java" />
+		</replace>
+		<delete file="src/javapayload/builder/JDWPClassInjector.java" />
+		<delete file="src/javapayload/builder/JDWPInjector.java" />
+		<delete file="src/javapayload/builder/JDWPPollingCommunicationInterface.java" />
+		<delete file="src/javapayload/handler/stager/JDWPTunnel.java" />
+		<delete file="src/javapayload/stager/JDWPTunnel.java" />
+		<delete file="src/javapayload/loader/JDWPLoader.java" />
+		<delete file="src/javapayload/loader/JDWPCommunication.java" />
+		<delete file="test/javapayload/test/BuilderTest13.java" />
+	</target>
+</project>

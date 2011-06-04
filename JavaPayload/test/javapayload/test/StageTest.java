@@ -50,18 +50,19 @@ import java.io.Writer;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.SocketException;
-import java.util.regex.Pattern;
 
+import javapayload.Module;
 import javapayload.builder.ClassBuilder;
 import javapayload.builder.JarBuilder;
 import javapayload.handler.stager.StagerHandler;
+import javapayload.stage.StageMenu;
 
 public class StageTest {
 	public static void main(String[] args) throws Exception {
 		startMultiListen();
 		startHelperSockets();
 		try {
-			File baseDir = new File(StageTest.class.getResource("stagetests").toURI());
+			File baseDir = Module.urlToFile(StageTest.class.getResource("stagetests"));
 			if (args.length == 1) {
 				File file = new File(baseDir, args[0] + ".txt");
 				testStage(file, "LocalTest", "", new OutputStreamWriter(System.out));
@@ -115,8 +116,8 @@ public class StageTest {
 					}
 					testStage(files[i], "BindTCP localhost 60123");
 				}
-				StagerHandler.main("BindTCP localhost 60123 -- StopListening".split(" "));
-				StagerHandler.main("BindTCP localhost 60123 -- StopListening".split(" "));
+				StagerHandler.main(StageMenu.splitArgs("BindTCP localhost 60123 -- StopListening"));
+				StagerHandler.main(StageMenu.splitArgs("BindTCP localhost 60123 -- StopListening"));
 				if (proc.waitFor() != 0)
 					throw new IOException("Build result exited with error code " + proc.exitValue());
 				new File("jsh.txt").delete();
@@ -133,8 +134,13 @@ public class StageTest {
 
 	private static void testStage(File file, String stager) throws Exception {
 		testStage(file, stager, "");
-		testStage(file, stager, "AES someV3rySecret ");
-		testStage(file, stager, "AES oneSecret AES otherSecret ");
+		try {
+			Class.forName("javapayload.handler.stage.AES");
+			testStage(file, stager, "AES someV3rySecret ");
+			testStage(file, stager, "AES oneSecret AES otherSecret ");
+		} catch (ClassNotFoundException ex) {
+			// no alternative available
+		}
 		if (!file.getName().equals("LocalProxy.txt")) {
 			if (stager.equals("LocalTest"))
 				testStage(file, stager, "GZ ");
@@ -146,20 +152,21 @@ public class StageTest {
 		if (!file.getName().endsWith(".txt"))
 			return;
 		StringWriter sw = new StringWriter();
-		Pattern regex = testStage(file, stager, stagePrefix, sw);
+		TestResult result = testStage(file, stager, stagePrefix, sw);
+		/* #JDK1.4 */java.util.regex.Pattern regex = result.getPattern();
 		String output = sw.toString().replaceAll("\r\n", "\n").replaceAll("\r", "\n");
 		if (!regex.matcher(output).matches()) {
 			System.err.println("Pattern:\r\n" + regex.pattern());
 			System.err.println("Output:\r\n" + output);
 			throw new Exception("Output did not match");
-		}
+		}/**/
 	}
 	
 	private static int stageCounter = 0;
 	
-	private static Pattern testStage(File file, String stager, String stagePrefix, Writer output) throws Exception {
+	private static TestResult testStage(File file, String stager, String stagePrefix, Writer output) throws Exception {
 		BufferedReader desc = new BufferedReader(new FileReader(file));
-		System.out.println("\t" + stagePrefix + file.getName().replaceAll("\\.txt", ""));
+		System.out.println("\t" + stagePrefix + Module.replaceString(file.getName(), ".txt", ""));
 		String stage = stagePrefix + desc.readLine();
 		StringBuffer sb = new StringBuffer();
 		String delimiter = desc.readLine();
@@ -171,11 +178,11 @@ public class StageTest {
 		}
 		// use SendParameters stage when testing stages with parameters
 		// with the BindMultiTCP stager
-		if (stage.contains(" ") && !stager.endsWith("LocalTest") && !stage.startsWith("LocalProxy "))
+		if (stage.indexOf(" ") != -1 && !stager.endsWith("LocalTest") && !stage.startsWith("LocalProxy "))
 			stage = "SendParameters " + stage;
-		if (stager.contains("#"))
-			stager = stager.replaceAll("#", ""+(++stageCounter));
-		String[] args = (stager + " -- " + stage).split(" ");
+		if (stager.indexOf("#") != -1)
+			stager = Module.replaceString(stager, "#", ""+(++stageCounter));
+		String[] args = StageMenu.splitArgs(stager + " -- " + stage);
 		StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(baos);
@@ -197,14 +204,14 @@ public class StageTest {
 			outputStr = outputStr.substring(0, outputStr.length() - 1);
 		output.write(outputStr);
 		output.flush();
-		return Pattern.compile(sb.toString());
+		return new TestResult(sb.toString());
 	}
 
 	private static PipedOutputStream multiListenPOS;
 	private static StagerHandler.Loader multiListenLoader;
 
 	private static void startMultiListen() throws Exception {
-		String[] args = ("MultiListen ReverseTCP localhost 59493 -- TestStub").split(" ");
+		String[] args = StageMenu.splitArgs("MultiListen ReverseTCP localhost 59493 -- TestStub");
 		multiListenLoader = new StagerHandler.Loader(args);
 		multiListenPOS = new PipedOutputStream();
 		multiListenLoader.stageHandler.consoleIn = new PipedInputStream(multiListenPOS);
@@ -251,5 +258,20 @@ public class StageTest {
 
 	private static void stopHelperSockets() throws Exception {
 		helperSocket.close();
+	}
+	
+	/**
+	 * Wrapper class for a Regex pattern, to make it possible
+	 * to compile StageTest on Java 1.3 and below.
+	 */
+	private static class TestResult {
+		private final String pattern;
+		public TestResult(String pattern) {
+			this.pattern = pattern;
+		}
+		
+		/* #JDK1.4 */public java.util.regex.Pattern getPattern() {
+			return java.util.regex.Pattern.compile(pattern);
+		}/**/
 	}
 }

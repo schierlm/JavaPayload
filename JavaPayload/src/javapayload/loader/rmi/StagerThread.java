@@ -49,7 +49,11 @@ public class StagerThread extends Thread {
 		Thread.sleep(1000);
 		synchronized (this) {
 			if (throwable != null) {
-				throw new Exception("Exception while executing stager", throwable);
+				/* #JDK1.4 */try {
+					throw new Exception("Exception while executing stager", throwable);
+				} catch (NoSuchMethodError ex) /**/{
+					throw new Exception("Exception while executing stager: " + throwable.toString());
+				}
 			}
 		}
 	}

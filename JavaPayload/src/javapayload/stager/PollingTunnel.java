@@ -50,7 +50,11 @@ public class PollingTunnel extends Stager implements Runnable {
 
 	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		localOut = new PipedOutputStream();
-		localIn = new PipedInputStream(4096);
+		/* #JDK1.6 */try {
+			localIn = new PipedInputStream(4096);
+		} catch (NoSuchMethodError ex) /**/{
+			localIn = new PipedInputStream();
+		}
 		this.parameters = parameters;
 		new Thread(this).start();
 		waitReady();
@@ -71,12 +75,22 @@ public class PollingTunnel extends Stager implements Runnable {
 					ready = true;
 					notifyAll();
 				}
-				bootstrap(new PipedInputStream(localOut, 4096), new PipedOutputStream(localIn), parameters);
+				PipedInputStream pipedIn;
+				/* #JDK1.6 */try {
+					pipedIn = new PipedInputStream(localOut, 4096);
+				} catch (NoSuchMethodError ex) /**/{
+					pipedIn = new PipedInputStream(localOut);
+				}
+				bootstrap(pipedIn, new PipedOutputStream(localIn), parameters);
 			} else {
 				runReaderThread(readBuffer, localIn);
 			}
 		} catch (Exception ex) {
-			throw new RuntimeException(ex);
+			/* #JDK1.4 */try {
+				throw new RuntimeException(ex);
+			} catch (NoSuchMethodError ex2) /**/{
+				throw new RuntimeException(ex.toString());
+			}
 		}
 	}
 

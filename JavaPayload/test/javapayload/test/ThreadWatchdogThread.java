@@ -57,9 +57,13 @@ public class ThreadWatchdogThread extends Thread {
 				Thread t = (Thread) it.next();
 				if (!t.isDaemon()) {
 					System.err.println("Thread " + t.getName() + " [" + t.getThreadGroup().getName() + "] still alive!");
-					StackTraceElement[] stackTrace = (StackTraceElement[]) stackTraces.get(t);
-					for (int i = 0; i < stackTrace.length; i++) {
-						System.err.println("\tat " + stackTrace[i]);
+					/* #JDK1.4 */try {
+						StackTraceElement[] stackTrace = (StackTraceElement[]) stackTraces.get(t);
+						for (int i = 0; i < stackTrace.length; i++) {
+							System.err.println("\tat " + stackTrace[i]);
+						}
+					} catch (NoClassDefFoundError ex) /**/ {
+						// no alternative available
 					}
 				}
 			}

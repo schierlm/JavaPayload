@@ -49,6 +49,7 @@ import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.StringTokenizer;
 
 public class StageMenu extends ClassLoader implements Stage, Runnable {
 
@@ -115,7 +116,7 @@ public class StageMenu extends ClassLoader implements Stage, Runnable {
 			if (number > 0 && number <= stages.size()) {
 				Object[] stage = (Object[])stages.get(number-1);
 				if (params != null) {
-					stage[1] = ("StageMenu -- "+params).split(" ");
+					stage[1] = splitArgs("StageMenu -- "+params);
 				}
 				return stage;
 			}
@@ -218,6 +219,19 @@ public class StageMenu extends ClassLoader implements Stage, Runnable {
 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
 		} catch (final Throwable t) {
 			t.printStackTrace(new PrintStream(out, true));
+		}
+	}
+	
+	public static String[] splitArgs(String cmdline) {
+		/* #JDK1.4 */try {
+			return cmdline.split(" ");
+		} catch (NoSuchMethodError ex) /**/{
+			StringTokenizer st = new StringTokenizer(cmdline, " ");
+			String[] result = new String[st.countTokens()];
+			for (int i = 0; i < result.length; i++) {
+				result[i] = st.nextToken();
+			}
+			return result;
 		}
 	}
 }

@@ -76,7 +76,7 @@ public class DynStagerURLStreamHandler extends URLStreamHandler {
 	}
 
 	protected synchronized URLConnection openConnection(URL u) throws IOException {
-		String path = u.getPath();
+		String path = u.getFile();
 		final byte[] content = (byte[]) classes.get(path);
 		if (content == null)
 			throw new IOException("Class not found");

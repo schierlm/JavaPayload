@@ -33,36 +33,25 @@
  */
 package javapayload.test;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
-import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import com.sun.tools.attach.VirtualMachine;
-import com.sun.tools.attach.VirtualMachineDescriptor;
-
-import javapayload.builder.AgentJarBuilder;
 import javapayload.builder.AppletJarBuilder;
-import javapayload.builder.AttachInjector;
-import javapayload.builder.CVE_2008_5353_AppletJarBuilder;
-import javapayload.builder.CVE_2010_0094_AppletJarBuilder;
-import javapayload.builder.CVE_2010_0840_AppletJarBuilder;
 import javapayload.builder.ClassBuilder;
 import javapayload.builder.EmbeddedClassBuilder;
 import javapayload.builder.EmbeddedJarBuilder;
-import javapayload.builder.JDWPInjector;
 import javapayload.builder.JarBuilder;
 import javapayload.builder.RMIInjector;
 import javapayload.builder.SpawnTemplate;
 import javapayload.handler.stage.TestStub;
 import javapayload.handler.stager.StagerHandler;
+import javapayload.stage.StageMenu;
 import javapayload.stage.StreamForwarder;
 
 public class BuilderTest {
@@ -78,14 +67,14 @@ public class BuilderTest {
 				new EmbeddedJarBuilderTestRunner(),
 				new StripEmbeddedJarBuilderTestRunner(),
 				new LocalStageJarBuilderTestRunner(),
-				new AgentJarBuilderTestRunner(),
+				/* #JDK1.5 */new BuilderTest15.AgentJarBuilderTestRunner(), /**/
 				new AppletJarBuilderTestRunner(),
 				new NewNameAppletJarBuilderTestRunner(),
 				// new CVE_2008_5353TestRunner(),
-				// new CVE_2010_0094TestRunner(),
+				// /* #JDK1.5 */new CVE_2010_0094TestRunner(), /**/
 				// new CVE_2010_0840TestRunner(),
-				new AttachInjectorTestRunner(),
-				new JDWPInjectorTestRunner(),
+				/* #JDK1.6 */new BuilderTest16.AttachInjectorTestRunner(), /**/
+				/* #JDK1.3 */new BuilderTest13.JDWPInjectorTestRunner(), /**/
 				new RMIInjectorTestRunner(),
 		};
 		for (int i = 0; i < runners.length; i++) {
@@ -95,6 +84,8 @@ public class BuilderTest {
 				String name = stagers[j];
 				System.out.println("\t\t" + name);
 				String[] testArgs = StagerTest.getTestArgs(name);
+				if (testArgs == null)
+					continue;
 				for (int k = 0; k < testArgs.length; k++) {
 					System.out.println("\t\t\t" + testArgs[k]);
 					testBuilder(runner, name, testArgs[k]);
@@ -113,9 +104,9 @@ public class BuilderTest {
 			if (name.equals("BindMultiTCP") || name.startsWith("Integrated$") || name.startsWith("Spawn_"))
 				return;
 		}
-		if (!runner.getName().contains("Embedded") && !runner.getName().contains("Injector") && name.contains("Integrated$")) 
+		if (runner.getName().indexOf("Embedded") == -1 && runner.getName().indexOf("Injector") == -1 && name.indexOf("Integrated$") != -1) 
 			return;
-		final String[] args = (realName + " " + testArgs + " -- TestStub").split(" ");
+		final String[] args = StageMenu.splitArgs(realName + " " + testArgs + " -- TestStub");
 		final StagerHandler.Loader loader = (runner.getName().indexOf("Injector") != -1) ? null : new StagerHandler.Loader(args);
 		if (runner.getName().indexOf("[kill]") != -1) {
 			if (name.startsWith("Spawn"))
@@ -140,8 +131,13 @@ public class BuilderTest {
 		if (loader != null)
 			loader.handleAfter(System.err, null);
 		t.join();
-		if (tt[0] != null)
-			throw new Exception("Builder result died", tt[0]);
+		if (tt[0] != null) {			
+			/* #JDK1.4 */try {
+				throw new Exception("Builder result died", tt[0]);
+			} catch (NoSuchMethodError ex2) /**/{
+				throw new Exception("Builder result died: " + tt[0].toString());
+			}
+		}
 	}
 	
 	public static void runJavaAndWait(WaitingBuilderTestRunner runner, String classpath, String jvmarg, String mainClass, String[] args) throws Exception {
@@ -373,32 +369,6 @@ public class BuilderTest {
 		}
 	}
 	
-	public static class AgentJarBuilderTestRunner extends WaitingBuilderTestRunner {
-		public String getName() { return "AgentJarBuilder"; }
-
-		public void runBuilder(String[] args) throws Exception {
-			AgentJarBuilder.main(new String[] { args[0] });
-			StreamForwarder.forward(BuilderTest.class.getResourceAsStream("/DummyClass.class"), new FileOutputStream("DummyClass.class"));
-		}
-
-		public void runResult(String[] args) throws Exception {
-			StringBuilder allArgs = new StringBuilder();
-			for (int i = 0; i < args.length; i++) {
-				if (i != 0)
-					allArgs.append(' ');
-				allArgs.append(args[i]);
-			}
-			String agentArg = "-javaagent:Agent_" + args[0] + ".jar=+" + allArgs.toString();
-			runJavaAndWait(this, ".", agentArg, "DummyClass", new String[0]);
-			if (!new File("Agent_" + args[0] + ".jar").delete())
-				throw new IOException("Unable to delete file");
-		}
-
-		public void cleanup() throws Exception {
-			if (!new File("DummyClass.class").delete())
-				throw new IOException("Unable to delete file");
-		}
-	}
 
 	public static class AppletJarBuilderTestRunner extends WaitingBuilderTestRunner {
 		public String getName() { return "AppletJarBuilder [kill]";	}
@@ -433,131 +403,6 @@ public class BuilderTest {
 			if (!new File("Applet_" + args[0] + ".jar").delete())
 				throw new IOException("Unable to delete file");
 		}		
-	}
-
-	public static class CVE_2008_5353TestRunner extends WaitingBuilderTestRunner {
-		protected String getCVEName() { return "2008_5353"; }
-		public String getName() { return "CVE_"+getCVEName()+" [kill]"; }
-
-		public void runBuilder(String[] args) throws Exception {
-			CVE_2008_5353_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
-		}
-
-		public void runResult(String[] args) throws Exception {
-			runAppletAndWait(this, "cve.jar", "javapayload.exploit.CVE_"+getCVEName(), null, args);
-		}
-
-		public void cleanup() throws Exception {
-			if (!new File("applettest.html").delete())
-				throw new IOException("Unable to delete file");
-			if (!new File("cve.jar").delete())
-				throw new IOException("Unable to delete file");
-		}
-	}
-	
-	public static class CVE_2010_0094TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
-		protected String getCVEName() { return "2010_0094"; }
-
-		public void runBuilder(String[] args) throws Exception {
-			CVE_2010_0094_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
-		}
-	}
-	
-	public static class CVE_2010_0840TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
-		protected String getCVEName() { return "2010_0840"; }
-
-		public void runBuilder(String[] args) throws Exception {
-			CVE_2010_0840_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
-		}
-	}
-
-	public static class AttachInjectorTestRunner extends WaitingBuilderTestRunner {
-		public String getName() { return "AttachInjector"; }
-
-		public void runBuilder(String[] args) throws Exception {
-			AgentJarBuilder.main(new String[] { args[0] });
-			StreamForwarder.forward(BuilderTest.class.getResourceAsStream("/DummyClass.class"), new FileOutputStream("DummyClass.class"));
-		}
-
-		public void runResult(String[] args) throws Exception {
-			Process proc = runJava(".", null, "DummyClass", new String[] { "1001" });
-			String id = null;
-			for (int ii = 1; id == null && ii < 10; ii++) {
-				Thread.sleep(50*ii*ii);
-				List vms = VirtualMachine.list();
-				for (int i = 0; i < vms.size(); i++) {
-					VirtualMachineDescriptor desc = (VirtualMachineDescriptor) vms.get(i);
-					if (desc.displayName().equals("DummyClass 1001")) {
-						id = desc.id();
-						break;
-					}
-				}
-			}
-			if (id == null)
-				throw new IllegalStateException("VirtualMachineDescriptor not found");
-			String[] attachArgs = new String[args.length+2];
-			attachArgs[0] = id;
-			attachArgs[1] = "Agent_" + args[0] + ".jar";
-			System.arraycopy(args, 0, attachArgs, 2, args.length);
-			notifyReady();
-			AttachInjector.main(attachArgs);
-			if (proc.waitFor() != 0)
-				throw new IOException("Build result exited with error code " + proc.exitValue());
-			if (!new File("Agent_" + args[0] + ".jar").delete())
-				throw new IOException("Unable to delete file");
-		}
-
-		public void cleanup() throws Exception {
-			AttachInjector.listVMs(new PrintStream(new ByteArrayOutputStream()));
-			if (!new File("DummyClass.class").delete())
-				throw new IOException("Unable to delete file");
-		}
-	}
-
-	public static class JDWPInjectorTestRunner extends WaitingBuilderTestRunner {
-		public String getName() { return "JDWPInjector"; }
-
-		public void runBuilder(String[] args) throws Exception {
-			StreamForwarder.forward(BuilderTest.class.getResourceAsStream("/DummyClass.class"), new FileOutputStream("DummyClass.class"));
-		}
-
-		public void runResult(String[] args) throws Exception {
-			StringBuilder allArgs = new StringBuilder();
-			for (int i = 0; i < args.length; i++) {
-				if (i != 0)
-					allArgs.append(' ');
-				allArgs.append(args[i]);
-			}
-			String jdwpArg = "-Xrunjdwp:transport=dt_socket,suspend=y,server=y,address=62468";
-			Process proc = runJava(".", jdwpArg, "DummyClass", new String[0]);
-			String[] injectorArgs = new String[args.length + 1];
-			injectorArgs[0] = "localhost:62468";
-			System.arraycopy(args, 0, injectorArgs, 1, args.length);
-			TestStub.wait = 1100;
-			if (args[0].endsWith("JDWPTunnel") || args[0].startsWith("Spawn_"))
-				TestStub.wait = 5000;
-			if (args[0].startsWith("Spawn_Spawn_"))
-				TestStub.wait=9000;
-			notifyReady();
-			JDWPInjector.main(injectorArgs);
-			if (proc.waitFor() != 0)
-				throw new IOException("Build result exited with error code " + proc.exitValue());
-		}
-
-		public void cleanup() throws Exception {
-			Thread.sleep(1000);
-			System.out.println("\t\tJDWPTunnel");
-			testBuilder(this, "JDWPTunnel", "");
-			System.out.println("\t\tAESJDWPTunnel");
-			testBuilder(this, "AES_JDWPTunnel", "#");
-			System.out.println("\t\tAES_AES_JDWPTunnel");
-			testBuilder(this, "AES_AES_JDWPTunnel", "# #");
-			System.out.println("\t\tPollingTunnel");
-			testBuilder(this, "PollingTunnel", "");
-			if (!new File("DummyClass.class").delete())
-				throw new IOException("Unable to delete file");
-			TestStub.wait = 0;
-		}
 	}
 
 	public static class RMIInjectorTestRunner extends WaitingBuilderTestRunner {

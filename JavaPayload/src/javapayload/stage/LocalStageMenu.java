@@ -45,7 +45,7 @@ public class LocalStageMenu extends StageMenu {
 
 	protected Object[] parseLine(String line, List stages) {
 		if (line.indexOf(' ') != -1) 
-			return new Object[] {"Custom", ("StageMenu -- "+line).split(" "), new byte[0]};
+			return new Object[] {"Custom", splitArgs("StageMenu -- "+line), new byte[0]};
 		try {
 			int number = Integer.parseInt(line);
 			if (number > 0 && number <= stages.size()) {

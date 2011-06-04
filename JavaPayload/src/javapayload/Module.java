@@ -64,7 +64,7 @@ public abstract class Module implements NamedElement {
 				urls = ((URLClassLoader) ucl).getURLs();
 			for (int i = 0; i < urls.length; i++) {
 				if (urls[i].getFile().endsWith(".jar")) {
-					ZipFile jarfile = new ZipFile(new File(urls[i].toURI()));
+					ZipFile jarfile = new ZipFile(urlToFile(urls[i]));
 					Enumeration files = jarfile.entries();
 					while (files.hasMoreElements()) {
 						ZipEntry ze = (ZipEntry) files.nextElement();
@@ -84,7 +84,7 @@ public abstract class Module implements NamedElement {
 					jarfile.close();
 				} else {
 					for (int j = 0; j < packageNames.length; j++) {
-						String[] files = new File(new URL(urls[i], packageNames[j].replace('.', '/')).toURI()).list();
+						String[] files = urlToFile(new URL(urls[i], packageNames[j].replace('.', '/'))).list();
 						if (files != null) {
 							for (int k = 0; k < files.length; k++) {
 								if (files[k].endsWith(".class"))
@@ -154,6 +154,33 @@ public abstract class Module implements NamedElement {
 
 	public static void list(PrintStream out, Class moduleType) throws Exception {
 		printList(out, loadAll(moduleType));
+	}
+	
+	// utility methods for older JDK versions
+	
+	public static File urlToFile(URL fileURL) throws Exception {
+		/* #JDK1.4 */try {
+			return new File(new java.net.URI(fileURL.toString()));
+		} catch (NoClassDefFoundError ex) /**/{
+			return new File(fileURL.getFile());
+		}
+	}
+	
+	public static String replaceString(String base, String original, String replacement) {
+		/* #JDK1.5 */try {
+			// note that we cannot use String#replace here since its method signature uses the
+			// interface CharSequence which does not exist in earlier Java versions.
+			return original.replaceAll(java.util.regex.Pattern.quote(original), java.util.regex.Matcher.quoteReplacement(replacement));
+		} catch (NoClassDefFoundError ex) /**/{
+			StringBuffer result = new StringBuffer();
+			int pos;
+			while ((pos = base.indexOf(original)) != -1) {
+				result.append(base.substring(0, pos)).append(replacement);
+				base = base.substring(pos + original.length());
+			}
+			result.append(base);
+			return result.toString();
+		}
 	}
 
 	private final String summary;

@@ -71,7 +71,11 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 			throw new IllegalArgumentException("No Communication interface found");
 		}
 		communicationInterface = (CommunicationInterface) extraArg;
-		pipedIn = new PipedInputStream(4096);
+		/* #JDK1.6 */try {
+			pipedIn = new PipedInputStream(4096);
+		} catch (NoSuchMethodError e) /**/{
+			pipedIn = new PipedInputStream();
+		}
 		WrappedPipedOutputStream stagerOut = new WrappedPipedOutputStream(new PipedOutputStream(pipedIn));
 		PipedOutputStream pos = new PipedOutputStream();
 		pipedOut = new WrappedPipedOutputStream(pos, stagerOut);

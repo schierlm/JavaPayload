@@ -41,9 +41,11 @@ import java.io.PrintStream;
 import java.util.ArrayList;
 import java.util.List;
 
+import javapayload.Module;
 import javapayload.handler.stager.StagerHandler;
 import javapayload.loader.DynLoader;
 import javapayload.loader.StandaloneLoader;
+import javapayload.stage.StageMenu;
 import javapayload.stager.Stager;
 
 public class StagerTest {
@@ -52,8 +54,15 @@ public class StagerTest {
 		System.out.println("Testing stagers...");
 		String[] localStagers = new String[] {"LocalTest", "AES_LocalTest #", "SpawnConsole", "LocalPollingTunnel"};
 		for (int i = 0; i < localStagers.length; i++) {
+			if (localStagers[i].startsWith("AES_")) {
+				try {
+					Class.forName("javapayload.handler.dynstager.AES");
+				} catch (ClassNotFoundException ex) {
+					continue;
+				}
+			}
 			System.out.println("\t"+localStagers[i]);
-			final StagerHandler.Loader loader = new StagerHandler.Loader((localStagers[i] + " -- TestStub").split(" "));
+			final StagerHandler.Loader loader = new StagerHandler.Loader(StageMenu.splitArgs(localStagers[i] + " -- TestStub"));
 			loader.handle(System.err, null);
 		}
 		System.out.println("\tMultiListen");
@@ -77,7 +86,7 @@ public class StagerTest {
 	}
 
 	private static void testStager(String name, String testArgs) throws Exception {
-		String[] args = (name + " " + testArgs + " -- TestStub").split(" ");
+		String[] args = StageMenu.splitArgs(name + " " + testArgs + " -- TestStub");
 		final StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		loader.handleBefore(System.err, null);
 		final Throwable[] tt = new Throwable[1];
@@ -108,11 +117,24 @@ public class StagerTest {
 		loader.handleAfter(System.err, null);
 		t.join();
 		if (tt[0] != null)
-			throw new Exception("Stager died", tt[0]);
+		{
+			/* #JDK1.4 */try {
+				throw new Exception("Stager died", tt[0]);
+			} catch (NoSuchMethodError ex2) /**/{
+				throw new Exception("Stager died: " + tt[0]);
+			}
+		}
 	}
 
 	private static void testMultiListen(String testArgs) throws Exception {
-		String[] args = ("MultiListen " + testArgs + " -- TestStub").split(" ");
+		String[] args = StageMenu.splitArgs("MultiListen " + testArgs + " -- TestStub");
+		if (args[1].endsWith("SSL")) {
+			try {
+				Class.forName("javapayload.handler.stager."+args[1]);
+			} catch (ClassNotFoundException ex) {
+				return;
+			}
+		}
 		final StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		PipedOutputStream pos = new PipedOutputStream();
 		loader.stageHandler.consoleIn = new PipedInputStream(pos);
@@ -129,7 +151,7 @@ public class StagerTest {
 
 	public static String[] getStagers() throws Exception {
 		List result = new ArrayList();
-		File stagerDir = new File(Stager.class.getResource("/" + Stager.class.getPackage().getName().replace('.', '/')).toURI());
+		File stagerDir = Module.urlToFile(Stager.class.getResource("/" + Stager.class.getPackage().getName().replace('.', '/')));
 		File[] classFiles = stagerDir.listFiles();
 		for (int i = 0; i < classFiles.length; i++) {
 			File classFile = classFiles[i];

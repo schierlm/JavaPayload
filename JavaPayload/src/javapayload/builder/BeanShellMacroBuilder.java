@@ -72,8 +72,9 @@ public class BeanShellMacroBuilder extends Builder {
 		in.close();
 		new File("Tmp.class").delete();
 		String data = new String(baos.toByteArray(), "ISO-8859-1");
-		data = data.replaceAll("\r\n", "\n").replace('\r','\n');
-		data = data.replaceAll("\n", "\"+\r\n  \"");
+		data = replaceString(data,"\r\n", "\n");
+		data = data.replace('\r','\n');
+		data = replaceString(data, "\n", "\"+\r\n  \"");
 		System.out.println("String BASE64 = \""+data+"\";");
 		System.out.println("byte[] DATA = new sun.misc.BASE64Decoder().decodeBuffer(BASE64);");
 		System.out.println("ClassLoader ldr = new URLClassLoader(new URL[0]);");

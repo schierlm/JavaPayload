@@ -59,7 +59,11 @@ public class Loader extends ClassLoader implements Serializable {
 			}
 			clazz.getConstructor(new Class[] { Object[].class }).newInstance(new Object[] { parameters });
 		} catch (Throwable t) {
-			throw new RuntimeException(t);
+			/* #JDK1.4 */try {
+				throw new RuntimeException(t);
+			} catch (NoSuchMethodError ex) /**/{
+				throw new RuntimeException(t.toString());
+			}
 		}
 		return null;
 	}
