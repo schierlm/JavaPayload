@@ -32,57 +32,45 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.cli;
 
-import java.io.PrintStream;
+import java.io.FilterOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
 
-import javapayload.Module;
-import javapayload.Parameter;
+/**
+ * A {@link FilterOutputStream} that stops writing on close, but does not close
+ * the underlying output stream.
+ */
+public class LocalCloseOutputStream extends FilterOutputStream {
 
-public abstract class Builder extends Module {
-
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+	public LocalCloseOutputStream(OutputStream out) {
+		super(out);
 	}
 
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
+	boolean closed = false;
+
+	public void close() throws IOException {
+		closed = true;
 	}
 
-	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
+	public void write(byte[] b) throws IOException {
+		if (!closed)
+			super.write(b);
+	};
+
+	public void write(byte[] b, int off, int len) throws IOException {
+		if (!closed)
+			out.write(b, off, len);
 	}
 
-	protected int getMinParameterCount() {
-		return 1;
+	public void write(int b) throws IOException {
+		if (!closed)
+			super.write(b);
 	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
 
-	public abstract String getParameterSyntax();
+	public void flush() throws IOException {
+		if (!closed)
+			super.flush();
+	}
 }

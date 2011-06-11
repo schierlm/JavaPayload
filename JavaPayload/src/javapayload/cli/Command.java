@@ -32,57 +32,47 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.cli;
 
+import java.io.IOException;
 import java.io.PrintStream;
 
-import javapayload.Module;
-import javapayload.Parameter;
+import javapayload.IOEnabledModule;
+import javapayload.handler.stager.StagerHandler.Loader;
 
-public abstract class Builder extends Module {
+public abstract class Command extends IOEnabledModule {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+	// additional parameter types for commands
+	public static final int TYPE_COMMAND = 80;
+	public static final int TYPE_MODULETYPE = 81;
+	public static final int TYPE_MODULE_BY_TYPE = 82;
+	public static final int TYPE_STAGE_2DASHES = 83;
+	public static final int TYPE_DISCOVERY = 84;
+	public static final int TYPE_INJECTOR = 85;
+	public static final int TYPE_BUILDER = 86;
+	
+	public Command(String summary, String description) {
+		super("Command", Command.class, summary, description);
 	}
 
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
-	}
-
-	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
-	}
-
-	protected int getMinParameterCount() {
-		return 1;
+	public String getName() {
+		return super.getName().toLowerCase();
 	}
 	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
+	public void initIO(Loader loader) {
+		loader.stageHandler.consoleIn = new LocalCloseInputStream(consoleIn);		
+		loader.stageHandler.consoleOut = new PrintStream(new LocalCloseOutputStream(consoleOut));
+		loader.stageHandler.consoleErr = new PrintStream(new LocalCloseOutputStream(consoleErr));
 	}
 	
-	public void printParameterDescription(PrintStream out) {
+	public void finishIO(Loader loader) throws IOException {
+		LocalCloseInputStream lcis = (LocalCloseInputStream) loader.stageHandler.consoleIn;
+		lcis.closeAsync(consoleOut);
 	}
 	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
+	public static String getModuleName(String command) {
+		return command.length() == 0 ? "" : command.substring(0,1).toUpperCase()+command.substring(1).toLowerCase() + "Command";
+	}
+	
+	public abstract void execute(String[] parameters) throws Exception;
 }

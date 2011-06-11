@@ -39,8 +39,6 @@ import javapayload.handler.stager.DynStagerHandlerHelper;
 
 public abstract class DynStagerHandler extends DynStagerHandlerHelper {
 
-	// TODO cross-check lists!
-
 	public DynStagerHandler(String summary,  boolean handlerUsable, boolean builderUsable, String description) {
 		super(DynStagerHandler.class, summary, handlerUsable, builderUsable, description);
 	}

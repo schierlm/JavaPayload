@@ -34,65 +34,42 @@
 
 package javapayload.builder;
 
+import java.io.PrintStream;
+import java.util.List;
+
 import javapayload.Parameter;
-import javapayload.handler.stager.StagerHandler;
 
 import com.sun.tools.attach.AttachNotSupportedException;
 import com.sun.tools.attach.VirtualMachine;
+import com.sun.tools.attach.VirtualMachineDescriptor;
 
-public class AttachInjector extends Injector {
+public class AttachDiscovery extends Discovery {
 	
-	public static void main(String[] args) throws Exception {
-		if (args.length == 1 && args[0].equals("list")) {
-			AttachDiscovery.listVMs(System.out);
-			return;
-		}
-		if (args.length < 5) {
-			System.out.println("Usage: java javapayload.builder.AttachInjector <pid> <agentPath> <stager> [stageroptions] -- <stage> [stageoptions]");
-			return;
-		}
-		new AttachInjector().inject(args);
-	}
-	
-	public AttachInjector() {
-		super("Attach to a local Java process using Java Attach API",
-				"This injector can attach to any Java process running on the same machine\r\n" +
-				"with same credentials as the current process. It requires Java 1.6 and that\r\n" +
-				"you have created a Java agent JAR file containing the desired stager first.");
+	public AttachDiscovery() {
+		super("List local Java process you can attach to using Java Attach API", "");
 	}
 	
 	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("PID", false, Parameter.TYPE_NUMBER, "Process ID to attach to"),
-				new Parameter("AGENTPATH", false, Parameter.TYPE_PATH, "Path to the agent jar")
-		};
+		return new Parameter[0];
 	}
 	
-	public void inject(String[] parameters, StagerHandler.Loader loader, String[] stagerArgs) throws Exception {
-		inject(parameters[0], parameters[1], loader);
-	}
-	
-	public static void inject(String pid, String agentPath, StagerHandler.Loader loader) throws Exception {
-		loader.handleBefore(loader.stageHandler.consoleErr, null); // may modify stagerArgs
-		String[] stagerArgs = loader.getArgs();
-		final StringBuffer agentArgs = new StringBuffer();
-		for (int i = 0; i < stagerArgs.length; i++) {
-			if (i != 0) {
-				agentArgs.append(" ");
-			}
-			agentArgs.append(stagerArgs[i]);
-		}
+	public void discover(String[] parameters) throws Exception {
+		listVMs(consoleOut);
 		try {
-			final VirtualMachine vm = VirtualMachine.attach(pid);
-			vm.loadAgent(agentPath, agentArgs.toString());
-			vm.detach();
-		} catch (AttachNotSupportedException ex) {
 			// this ugly hack is here to make sure that
 			// loading this class fails if AttachNotSupportedException
 			// cannot be loaded instead of failing when the user tries
 			// to use this stager.
-			throw ex;
+			throw new AttachNotSupportedException();
+		} catch (AttachNotSupportedException ex) {
 		}
-		loader.handleAfter(loader.stageHandler.consoleErr, null);		
+	}
+
+	public static void listVMs(PrintStream out) {
+		List vms = VirtualMachine.list();
+		for (int i = 0; i < vms.size(); i++) {
+			VirtualMachineDescriptor desc = (VirtualMachineDescriptor) vms.get(i);
+			out.println(desc.id()+"\t"+desc.displayName());
+		}
 	}
 }

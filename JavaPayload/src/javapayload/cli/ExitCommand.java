@@ -32,57 +32,21 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.cli;
 
-import java.io.PrintStream;
-
-import javapayload.Module;
 import javapayload.Parameter;
 
-public abstract class Builder extends Module {
+public class ExitCommand extends Command {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+	public ExitCommand() {
+		super("Exit from the command line interface", "");
 	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
-	}
-
+	
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
-	}
-
-	protected int getMinParameterCount() {
-		return 1;
+		return new Parameter[0];
 	}
 	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
+	public void execute(String[] parameters) throws Exception {
+		consoleOut.println("Exit can only be used without parameters from interactive mode.");
 	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

@@ -32,57 +32,31 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
-
-import java.io.PrintStream;
+package javapayload.cli;
 
 import javapayload.Module;
 import javapayload.Parameter;
+import javapayload.builder.Injector;
+import javapayload.handler.stager.StagerHandler;
 
-public abstract class Builder extends Module {
-
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
-	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
+public class InjectorCommand extends Command {
+	public InjectorCommand() {
+		super("Start an injector",
+				"This command can be used to start an injector.");
 	}
 
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
+		return new Parameter[] { new Parameter("INJECTOR", false, Command.TYPE_INJECTOR, "injector to run"), };
 	}
 
-	protected int getMinParameterCount() {
-		return 1;
+	public void execute(String[] parameters) throws Exception {
+		Injector injector = (Injector) Module.load(Injector.class, parameters[0] + "Injector");
+		final String[] injectorArgs = new String[injector.getParameters().length];
+		System.arraycopy(parameters, 1, injectorArgs, 0, injectorArgs.length);
+		final String[] stagerArgs = shiftArray(parameters, injectorArgs.length + 1);
+		StagerHandler.Loader loader = new StagerHandler.Loader(stagerArgs);
+		initIO(loader);
+		injector.inject(injectorArgs, loader, stagerArgs);
+		finishIO(loader);
 	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

@@ -34,55 +34,38 @@
 
 package javapayload.builder;
 
-import java.io.PrintStream;
-
 import javapayload.Module;
+import javapayload.IOEnabledModule;
 import javapayload.Parameter;
 
-public abstract class Builder extends Module {
+public abstract class Discovery extends IOEnabledModule {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
+			System.out.println("Usage: java javapayload.builder.Discovery <module> <arguments>");
 			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
+			System.out.println("Supported discovery modules:");
+			Module.list(System.out, Discovery.class);
 			return;
 		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
+		Discovery discoveryModule = (Discovery) Module.load(Discovery.class, args[0] + "Discovery");
+		Parameter[] params = discoveryModule.getParameters();
+		if (args.length < params.length + 3) {
+			System.out.println("Usage: java javapayload.builder.Discovery " + discoveryModule.getNameAndParameters());
 			System.out.println();
-			System.out.println(builder.getSummary());
+			System.out.println(discoveryModule.getSummary());
 			System.out.println();
-			System.out.println(builder.getDescription());
+			System.out.println(discoveryModule.getDescription());
+			System.out.println();
+			discoveryModule.printParameterDescription(System.out);
 			return;
 		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+		discoveryModule.discover(shiftArray(args, 1));
 	}
 
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
+	protected Discovery(String summary, String description) {
+		super("Discovery", Discovery.class, summary, description);
 	}
 
-	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
-	}
-
-	protected int getMinParameterCount() {
-		return 1;
-	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
+	public abstract void discover(String[] parameters) throws Exception;
 }

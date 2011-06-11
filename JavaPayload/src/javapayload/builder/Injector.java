@@ -51,11 +51,7 @@ public abstract class Injector extends Module {
 		Injector injector = (Injector) Module.load(Injector.class, args[0] + "Injector");
 		Parameter[] params = injector.getParameters();
 		if (args.length < params.length + 3) {
-			StringBuffer injectorParams = new StringBuffer();
-			for (int i = 0; i < params.length; i++) {
-				injectorParams.append(" <").append(params[i].getName()).append(">");
-			}
-			System.out.println("Usage: java javapayload.builder.Injector " + injector.getName() + injectorParams.toString() + " <stager> [stageroptions] -- <stage> [stageoptions]");
+			System.out.println("Usage: java javapayload.builder.Injector " + injector.getNameAndParameters() + " <stager> [stageroptions] -- <stage> [stageoptions]");
 			System.out.println();
 			System.out.println(injector.getSummary());
 			System.out.println();

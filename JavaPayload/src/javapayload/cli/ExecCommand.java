@@ -32,57 +32,31 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.cli;
 
-import java.io.PrintStream;
-
-import javapayload.Module;
 import javapayload.Parameter;
+import javapayload.stage.StreamForwarder;
 
-public abstract class Builder extends Module {
-
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
-	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
+public class ExecCommand extends Command {
+	public ExecCommand() {
+		super("Execute a native command",
+				"Execute a native command using Runtime.exec().");
 	}
 
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
+		return new Parameter[] { 
+				new Parameter("EXECUTABLE", false, Parameter.TYPE_ANY, "Executable name"),
+				new Parameter("ARGS", true, Parameter.TYPE_REST, "Arguments for the executable"),
+		};
 	}
 
-	protected int getMinParameterCount() {
-		return 1;
+	public void execute(String[] parameters) throws Exception {
+		Process proc = Runtime.getRuntime().exec(parameters);
+		LocalCloseInputStream lcis = new LocalCloseInputStream(consoleIn);
+		new StreamForwarder(proc.getInputStream(), consoleOut, consoleErr, false).start();
+		new StreamForwarder(proc.getErrorStream(), consoleErr, consoleErr, false).start();
+		new StreamForwarder(lcis, proc.getOutputStream(), consoleErr).start();
+		proc.waitFor();
+		lcis.closeAsync(consoleOut);
 	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

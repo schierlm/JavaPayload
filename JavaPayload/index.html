@@ -188,9 +188,11 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add PollingTunnel stager as a generic in-process tunnelling method, by now supported by LocalTest and JDWPInjector.</li>
 <li>JarBuilder: Support custom applet class name</li>
 <li>Add ready event for stagers (like BindTCP) and stager handlers (like ReverseTCP) to make automated staging and injection more reliable.</li>
-<li>Add RMI injector to load payloads via RMI (rmiregistry, rmid, ...)</li>
+<li>Add RMI injector and RMIBuilder to load payloads via RMI (rmiregistry, rmid, ...)</li>
 <li>Refactor builders and injectors to use self-documenting module objects.</li>
-<li>Make stager, dynstager and stage handlers self-documenting modules, too.</li>
+<li>Make stager and stage handlers self-documenting modules, too.</li>
+<li>Add support for self-documenting Discovery modules and provide AttachDiscovery as replacement for AttachInjector's list command</li>
+<li>Add javapayload.cli.Main class.</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -270,6 +272,10 @@ the ASM libraries and/or the JDK's <tt>tools.jar</tt> have to be in the classpat
 
 <p>For all the loaders where you pass the complete stager args via command line, if you add a + sign to the beginning of 
 the stager name, the stager will output a + sign to stdout when it is ready so you know when you can connect to it.</p>
+
+<p>As of version 0.3, there is a command line interface that can be started just by calling
+<tt>java -jar JavaPayload.jar</tt>. To use features that require <tt>tools.jar</tt>, copy it
+from your JDK directory to JavaPayload's <tt>lib</tt> folder.</p>
  
 <h3>Testing/Debugging a stage on the local machine</h3>
 

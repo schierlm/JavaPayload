@@ -34,55 +34,41 @@
 
 package javapayload.builder;
 
-import java.io.PrintStream;
+import java.util.jar.Manifest;
 
-import javapayload.Module;
-import javapayload.Parameter;
+import javapayload.loader.rmi.Loader;
 
-public abstract class Builder extends Module {
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+public class RMIBuilder extends Builder {
+
+	public RMIBuilder() {
+		super("Generate a JAR containing RMI loader classes",
+				"This builder is used to build a JAR containing RMI loader classes, which\r\n" +
+						"is used by the RMI injector to inject payloads via a RMI port.");
 	}
 
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
+	public void build(String[] args) throws Exception {
+		buildJar(args[0]);
 	}
 
-	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
+	public String getParameterSyntax() {
+		return "<filename>.jar";
 	}
 
-	protected int getMinParameterCount() {
-		return 1;
+	public static void buildJar(String filename) throws Exception {
+		ClassWriter cw = new ClassWriter(0);
+		cw.visit(Opcodes.V1_2, Opcodes.ACC_PUBLIC + Opcodes.ACC_SUPER, "javapayload/loader/rmi/LoaderImpl", null, "javapayload/loader/rmi/Loader", null);
+		MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+		mv.visitCode();
+		mv.visitVarInsn(Opcodes.ALOAD, 0);
+		mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "javapayload/loader/rmi/Loader", "<init>", "()V");
+		mv.visitInsn(Opcodes.RETURN);
+		mv.visitMaxs(1, 1);
+		mv.visitEnd();
+		cw.visitEnd();		
+		JarBuilder.buildJar(filename, new Class[] {Loader.class}, false, new Manifest(), "javapayload/loader/rmi/LoaderImpl.class", cw.toByteArray());
 	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

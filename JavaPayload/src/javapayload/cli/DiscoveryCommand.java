@@ -32,57 +32,27 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
-
-import java.io.PrintStream;
+package javapayload.cli;
 
 import javapayload.Module;
 import javapayload.Parameter;
+import javapayload.builder.Discovery;
 
-public abstract class Builder extends Module {
-
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+public class DiscoveryCommand extends Command {
+	public DiscoveryCommand() {
+		super("Start a discovery module",
+				"This command can be used to start a discovery module.");
 	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
-	}
-
+	
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
-	}
-
-	protected int getMinParameterCount() {
-		return 1;
+		return new Parameter[] {
+				new Parameter("MODULE", false, Command.TYPE_DISCOVERY, "discovery module to run"),
+		};
 	}
 	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
+	public void execute(String[] parameters) throws Exception {
+		Discovery module = (Discovery) Module.load(Discovery.class, parameters[0]+"Discovery");
+		module.cloneIO(this);
+		module.discover(shiftArray(parameters, 1));
 	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

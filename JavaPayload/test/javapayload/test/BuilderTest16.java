@@ -41,6 +41,7 @@ import java.io.PrintStream;
 import java.util.List;
 
 import javapayload.builder.AgentJarBuilder;
+import javapayload.builder.AttachDiscovery;
 import javapayload.builder.AttachInjector;
 import javapayload.stage.StreamForwarder;
 
@@ -85,7 +86,7 @@ public class BuilderTest16 extends BuilderTest {
 		}
 
 		public void cleanup() throws Exception {
-			AttachInjector.listVMs(new PrintStream(new ByteArrayOutputStream()));
+			AttachDiscovery.listVMs(new PrintStream(new ByteArrayOutputStream()));
 			if (!new File("DummyClass.class").delete())
 				throw new IOException("Unable to delete file");
 		}

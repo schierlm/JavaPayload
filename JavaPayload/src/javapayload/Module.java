@@ -220,8 +220,23 @@ public abstract class Module implements NamedElement {
 	}
 
 	public void printParameterDescription(PrintStream out) {
-		out.println("Parameters:");
+		if (getParameters().length == 0)
+			out.println("No parameters.");
+		else
+			out.println("Parameters:");
 		printList(out, getParameters());
+	}
+	
+	public String getNameAndParameters() {
+		Parameter[] params = getParameters();
+		StringBuffer commandParams = new StringBuffer();
+		for (int i = 0; i < params.length; i++) {
+			if (params[i].isOptional())
+				commandParams.append(" [<").append(params[i].getName()).append(">]");
+			else
+				commandParams.append(" <").append(params[i].getName()).append(">");
+		}
+		return getName() + commandParams.toString();
 	}
 
 	public abstract Parameter[] getParameters();

@@ -32,57 +32,24 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
-
-import java.io.PrintStream;
+package javapayload.cli;
 
 import javapayload.Module;
 import javapayload.Parameter;
+import javapayload.builder.Builder;
 
-public abstract class Builder extends Module {
-
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
-	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
+public class BuilderCommand extends Command {
+	public BuilderCommand() {
+		super("Start a Builder",
+				"This command can be used to start a Builder.");
 	}
 
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
+		return new Parameter[] { new Parameter("BUILDER", false, Command.TYPE_BUILDER, "Builder to run") };
 	}
 
-	protected int getMinParameterCount() {
-		return 1;
+	public void execute(String[] parameters) throws Exception {
+		Builder builder = (Builder) Module.load(Builder.class, parameters[0] + "Builder");
+		builder.build(shiftArray(parameters, 1));
 	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

@@ -32,57 +32,35 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.cli;
 
-import java.io.PrintStream;
-
-import javapayload.Module;
 import javapayload.Parameter;
+import javapayload.loader.DynLoader;
 
-public abstract class Builder extends Module {
-
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+public class StagerCommand extends Command {
+	public StagerCommand() {
+		super("Load a stager",
+				"This command can be used to load a (dyn)stager on the local machine to\r\n" +
+				"connect to it via the Handler command. The stager will run in the\r\n" +
+				"background in a new thread.");
 	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
-	}
-
+	
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
-	}
-
-	protected int getMinParameterCount() {
-		return 1;
-	}
-	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
+		return new Parameter[] {
+				new Parameter("STAGER", false, Parameter.TYPE_STAGER, "Stager to run"),
+				new Parameter("STAGE", false, Command.TYPE_STAGE_2DASHES, "Stage to run")
+		};
 	}
 	
-	public void printParameterDescription(PrintStream out) {
+	public void execute(final String[] parameters) throws Exception {
+		new Thread(new Runnable() {
+			public void run() {
+				try {
+					DynLoader.main(parameters);
+				} catch (Throwable t) {
+					t.printStackTrace(consoleErr);
+				}
+			}
+		}).start();
 	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }

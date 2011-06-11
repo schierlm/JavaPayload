@@ -32,57 +32,29 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.cli;
 
-import java.io.PrintStream;
-
-import javapayload.Module;
 import javapayload.Parameter;
 
-public abstract class Builder extends Module {
+public class HelpCommand extends Command {
 
-	public static void main(String[] args) throws Exception {
-		if (args.length == 0) {
-			System.out.println("Usage: java javapayload.builder.Builder <builder> [<arguments>]");
-			System.out.println();
-			System.out.println("Supported builders:");
-			Module.list(System.out, Builder.class);
-			return;
-		}
-		Builder builder = (Builder) Module.load(Builder.class, args[0] + "Builder");
-		if (args.length < builder.getMinParameterCount() + 1) {
-			System.out.println("Usage: java javapayload.builder.Builder " + builder.getNameAndParameters());
-			System.out.println();
-			System.out.println(builder.getSummary());
-			System.out.println();
-			System.out.println(builder.getDescription());
-			return;
-		}
-		String[] builderArgs = new String[args.length - 1];
-		System.arraycopy(args, 1, builderArgs, 0, builderArgs.length);
-		builder.build(builderArgs);
+	public HelpCommand() {
+		super("Provide help about a command",
+				"Call this command without parameters to show a list of commands.\r\n" +
+				"Call it with another command as parameter, and it will show help.");
 	}
-
-	protected Builder(String summary, String description) {
-		super("Builder", Builder.class, summary, description);
-	}
-
+	
 	public Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Structured parameters not available for builders");
-	}
-
-	protected int getMinParameterCount() {
-		return 1;
+		return new Parameter[] {
+				new Parameter("COMMAND", true, Command.TYPE_COMMAND, "Command to get help of")
+		};
 	}
 	
-	public String getNameAndParameters() {
-		return getName() + " " + getParameterSyntax();
+	public void execute(String[] parameters) throws Exception {
+		ShowCommand sc = new ShowCommand();
+		String[] newParams = shiftArray(parameters, -1);
+		newParams[0] = "command";
+		sc.cloneIO(this);
+		sc.execute(newParams);
 	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-	
-	public abstract void build(String[] args) throws Exception;
-
-	public abstract String getParameterSyntax();
 }
