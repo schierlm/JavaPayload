@@ -71,7 +71,8 @@ public class BuilderTest {
 				new AppletJarBuilderTestRunner(),
 				new NewNameAppletJarBuilderTestRunner(),
 				// new CVE_2008_5353TestRunner(),
-				// /* #JDK1.5 */new CVE_2010_0094TestRunner(), /**/
+				// /* #JDK1.5 */new BuilderTest15.CVE_2010_0094TestRunner(), /**/
+				// /* #JDK1.5 */new BuilderTest15.CVE_2010_4465TestRunner(), /**/
 				// new CVE_2010_0840TestRunner(),
 				/* #JDK1.6 */new BuilderTest16.AttachInjectorTestRunner(), /**/
 				/* #JDK1.3 */new BuilderTest13.JDWPInjectorTestRunner(), /**/
@@ -99,7 +100,7 @@ public class BuilderTest {
 
 	protected static void testBuilder(final BuilderTestRunner runner, String name, String testArgs) throws Exception {
 		String realName = name;
-		if (runner.getName().indexOf('_') != -1) {
+		if (runner.getName().indexOf('_') != -1 && !runner.getName().startsWith("CVE_")) {
 			realName = runner.getName().substring(0, runner.getName().indexOf('_')+1) + name;
 			if (name.equals("BindMultiTCP") || name.startsWith("Integrated$") || name.startsWith("Spawn_"))
 				return;

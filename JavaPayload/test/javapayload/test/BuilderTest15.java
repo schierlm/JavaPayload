@@ -39,6 +39,7 @@ import java.io.IOException;
 
 import javapayload.builder.AgentJarBuilder;
 import javapayload.builder.CVE_2010_0094_AppletJarBuilder;
+import javapayload.builder.CVE_2010_4465_AppletJarBuilder;
 import javapayload.stage.StreamForwarder;
 import javapayload.test.BuilderTest14.CVE_2008_5353TestRunner;
 
@@ -75,6 +76,14 @@ public class BuilderTest15 extends BuilderTest {
 
 		public void runBuilder(String[] args) throws Exception {
 			CVE_2010_0094_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
+		}
+	}
+	
+	public static class CVE_2010_4465TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
+		protected String getCVEName() { return "2010_4465"; }
+
+		public void runBuilder(String[] args) throws Exception {
+			CVE_2010_4465_AppletJarBuilder.main(new String[] { "cve.jar", args[0] });
 		}
 	}
 }
