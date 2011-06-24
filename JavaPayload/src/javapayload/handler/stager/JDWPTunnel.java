@@ -74,7 +74,7 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 	
 	private ClassType communicationClass;
 	private WrappedPipedOutputStream pipedOut;
-	private PipedInputStream pipedIn;
+	private StreamReaderThread streamReaderThread;
 	private PrintStream errorStream;
 	
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
@@ -92,10 +92,13 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 		}
 		PipedOutputStream pos = new PipedOutputStream();
 		pipedOut = new WrappedPipedOutputStream(pos);
-		pipedIn = new PipedInputStream();
+		PipedInputStream pipedIn = new PipedInputStream();
+		WrappedPipedOutputStream wpos = new WrappedPipedOutputStream(new PipedOutputStream(pipedIn));
+		streamReaderThread = new StreamReaderThread(pipedIn);
+		streamReaderThread.start();
 		
 		new Thread(this).start();
-		stageHandler.handle(new WrappedPipedOutputStream(new PipedOutputStream(pipedIn)), new PipedInputStream(pos), parameters);
+		stageHandler.handle(wpos, new PipedInputStream(pos), parameters);
 	}
 	
 	public void run() {
@@ -152,7 +155,7 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 							pipedOut.flush();
 							if (temp.length == 0) {
 								pipedOut.close();
-								pipedIn.close();
+								streamReaderThread.close();
 								done = true;
 							}
 							tr.frame(0).setValue(result, vm.mirrorOf(true));
@@ -212,8 +215,8 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 				byte[] temp = new byte[buffer.length()];
 				int len;
 				try {
-					len = pipedIn.read(temp);
-				} catch (IOException ex) {
+					len = streamReaderThread.read(temp);
+				} catch (InterruptedException ex) {
 					ex.printStackTrace();
 					len = -1;
 				}
@@ -228,6 +231,64 @@ public class JDWPTunnel extends StagerHandler implements Runnable {
 				thread.resume();
 			} catch (Throwable t) {
 				t.printStackTrace(errorStream);
+			}
+		}
+	}
+	
+	// work around a glitch in PipedInputStream when more than one thread is trying to read from it
+	public class StreamReaderThread extends Thread {
+		
+		private final PipedInputStream pipedIn;
+		private final byte[] buffer = new byte[4096];
+		private int length = 0;
+
+		public StreamReaderThread(PipedInputStream pipedIn) {
+			this.pipedIn = pipedIn;
+		}
+
+		public void run() {
+			try {
+				while(true) {
+					int newLength = pipedIn.read(buffer);
+					synchronized(this) {
+						length = newLength;
+						notifyAll();
+						if (newLength == -1) break;
+						while(length != 0) {
+							wait();
+						}
+					}
+				}
+			} catch (Throwable t) {
+				t.printStackTrace(errorStream);
+				synchronized(this) {
+					length = -1;
+				}
+			}
+		}
+		
+		public synchronized int read(byte[] buf) throws InterruptedException {
+			while (length == 0)
+				wait();
+			if (length == -1)
+				return length;
+			int result = length;
+			if (buf.length != buffer.length)
+				throw new RuntimeException(buf.length+" != "+buffer.length);
+			System.arraycopy(buffer, 0, buf, 0, result);
+			length = 0;
+			notifyAll();
+			return result;
+		}
+		
+
+		public void close() throws IOException {
+			pipedIn.close();
+			synchronized(this) {
+				if (length > 0) {
+					length = 0;
+					notifyAll();
+				}
 			}
 		}
 	}
