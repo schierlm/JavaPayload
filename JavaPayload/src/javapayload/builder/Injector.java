@@ -79,4 +79,6 @@ public abstract class Injector extends Module {
 	}
 
 	public abstract void inject(String[] parameters, StagerHandler.Loader loader, String[] stagerArgs) throws Exception;
+	
+	public abstract Class[] getSupportedExtraArgClasses();
 }

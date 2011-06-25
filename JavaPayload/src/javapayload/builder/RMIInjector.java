@@ -152,6 +152,10 @@ public class RMIInjector extends Injector {
 		}
 	}
 	
+	public Class[] getSupportedExtraArgClasses() {
+		return new Class[] { PollingTunnel.CommunicationInterface.class, null };
+	}
+	
 	/**
 	 * Invoke the clean() method on the DGC service on the given
 	 * {@link Endpoint}. The call is

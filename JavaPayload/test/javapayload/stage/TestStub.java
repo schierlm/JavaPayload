@@ -50,20 +50,13 @@ public class TestStub implements Stage, Runnable {
 		for (int i = 0; i < concurrentWrite.length; i++) {
 			concurrentWrite[i] = (byte)i;
 		}
-		if (parameters[0].endsWith("PollingTunnel") || parameters[0].endsWith("JDWPTunnel")) {
-			// TODO PollingTunnel/JDWPTunnel is not thread safe when returning data
-			for (int i = 0; i < 32; i++) {
-				out.write(concurrentWrite);
-			}
-		} else {
-			Thread[] threads = new Thread[32];
-			for (int i = 0; i < threads.length; i++) {
-				threads[i] = new WriterThread(out, concurrentWrite);
-				threads[i].start();
-			}
-			for (int i = 0; i < threads.length; i++) {
-				threads[i].join();
-			}
+		Thread[] threads = new Thread[32];
+		for (int i = 0; i < threads.length; i++) {
+			threads[i] = new WriterThread(out, concurrentWrite);
+			threads[i].start();
+		}
+		for (int i = 0; i < threads.length; i++) {
+			threads[i].join();
 		}
 		System.out.println("\t\t\t\t\t(System.out)");
 		System.err.println("\t\t\t\t\t(System.err)");

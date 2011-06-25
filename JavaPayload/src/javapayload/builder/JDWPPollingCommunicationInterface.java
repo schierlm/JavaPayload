@@ -59,16 +59,17 @@ public class JDWPPollingCommunicationInterface extends Thread implements Polling
 	private final PrintStream errorStream;
 	boolean dataAvailable = false;
 	String data = null;
+	private final ClassType pollingTunnel;
 
-	public JDWPPollingCommunicationInterface(VirtualMachine vm, PrintStream errorStream) {
-		this.vm = vm;
+	public JDWPPollingCommunicationInterface(ClassType pollingTunnel, PrintStream errorStream) {
+		this.pollingTunnel = pollingTunnel;
+		this.vm = pollingTunnel.virtualMachine();
 		this.errorStream = errorStream;
 		start();
 	}
 
 	public void run() {
 		try {
-			ClassType pollingTunnel = (ClassType) vm.classesByName("javapayload.stager.PollingTunnel").get(0);
 			Method sendData = (Method) pollingTunnel.methodsByName("sendData").get(0);
 			Location waitloop = ((Method) pollingTunnel.methodsByName("waitloop").get(0)).locationOfCodeIndex(0);
 			BreakpointRequest req = vm.eventRequestManager().createBreakpointRequest(waitloop);
