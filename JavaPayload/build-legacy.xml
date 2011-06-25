@@ -1,12 +1,17 @@
 <?xml version="1.0"?>
 <project name="JavaPayload-Legacy">
 
+	<property name="JDK_11_HOME" value="D:\Progs-Old\jdk116_009" />
+	
 	<!--
 	
-	This buildfile contains targets to help building JavaPayload on older JDKs.
+	This buildfile contains targets to build or use JavaPayload on older JREs.
 	
 	- the "jdk1x" targets are intended if you want to compile and use JavaPayload
 	  or run test cases on an older JDK.
+	- the "jre11" target creates a subset of payloads (no handlers!) suitable for
+	  Java 1.1. You can put them into a jar using the "legacyjar" target and
+	  prepend it to the classpath when targeting such old Java versions.
 	  
 	Note that these targets will modify the source code, so keep the origial
 	source code handy if you want to go back.
@@ -18,16 +23,21 @@
 			<include name="**/*.java" />
 		</replace>
 		<delete file="src/javapayload/builder/AttachInjector.java" />
+		<delete file="src/javapayload/builder/AttachDiscovery.java" />
 		<delete file="test/javapayload/test/BuilderTest16.java" />
 	</target>
 
 	<target name="jdk14" depends="jdk15">
 		<replace dir="." token="/* #JDK1.5 */" value="/* #JDK1.5 *#/" >
 			<include name="**/*.java" />
-		</replace>		<delete file="src/javapayload/loader/AgentJarLoader.java" />
+		</replace>
+		<delete file="src/javapayload/loader/AgentJarLoader.java" />
 		<delete file="src/javapayload/builder/AgentJarBuilder.java" />
 		<delete file="src/javapayload/exploit/CVE_2010_0094.java" />
 		<delete file="src/javapayload/builder/CVE_2010_0094_AppletJarBuilder.java" />
+		<delete file="src/javapayload/exploit/CVE_2010_4465.java" />
+		<delete file="src/javapayload/exploit/CVE_2010_4465_Loader.java" />
+		<delete file="src/javapayload/builder/CVE_2010_4465_AppletJarBuilder.java" />
 		<delete file="test/javapayload/test/BuilderTest15.java" />
 	</target>
 
@@ -47,6 +57,8 @@
 		<delete file="src/javapayload/exploit/CVE_2008_5353.java" />
 		<delete file="src/javapayload/builder/CVE_2010_0840_AppletJarBuilder.java" />
 		<delete file="src/javapayload/exploit/CVE_2010_0840.java" />
+		<delete file="src/javapayload/builder/CVE_2010_4452_AppletClassBuilder.java" />
+		<delete file="src/javapayload/exploit/CVE_2010_4452.java" />
 		<delete file="test/javapayload/test/BuilderTest14.java" />
 	</target>
 
@@ -62,5 +74,57 @@
 		<delete file="src/javapayload/loader/JDWPLoader.java" />
 		<delete file="src/javapayload/loader/JDWPCommunication.java" />
 		<delete file="test/javapayload/test/BuilderTest13.java" />
+	</target>
+
+	<target name="jre11-delete-files" depends="jdk12">
+		<delete>
+			<fileset dir="test/javapayload" includes="**/*.java" />
+			<fileset dir="src/javapayload/handler" includes="**/*.java" />
+			<fileset dir="src/javapayload/cli" includes="**/*.java" />
+			<fileset dir="src/javapayload/builder">
+				<include name="*Builder.java" />
+				<include name="*Injector.java" />
+				<include name="*Discovery.java" />
+				<include name="dynstager/**/*.java" />
+			</fileset>
+			<fileset file="src/javapayload/Module.java" />
+			<fileset file="src/javapayload/HandlerModule.java" />
+			<fileset file="src/javapayload/IOEnabledModule.java" />
+			<fileset file="src/javapayload/NamedElement.java" />
+			<fileset file="src/javapayload/Parameter.java" />
+			<fileset file="src/javapayload/loader/DynLoader.java" />
+			<fileset file="src/javapayload/loader/DynStagerURLStreamHandler.java" />
+			<fileset file="src/javapayload/exploit/ZendJavaBridgeInjector.java" />
+			<fileset file="src/javapayload/exploit/DeserializationExploit.java" />
+			<fileset file="src/javapayload/loader/DynStagerURLStreamHandler.java" />
+			<fileset dir="src/javapayload/loader/rmi" includes="**/Polling*.java" />
+			<fileset dir="src/javapayload/loader/rmi" includes="**/Tunnel*.java" />
+			<fileset file="src/javapayload/stage/GZ.java" />
+			<fileset file="src/javapayload/stage/RMIInfo.java" />
+		</delete>
+	</target>
+	
+	<target name="check-jre11">
+		<available file="javapayload-legacy-pre-jre1.2.patch.applied" property="jre11.patched" />
+	</target>
+
+	<target name="jre11-patch-files" depends="jre11-delete-files,check-jre11" unless="jre11.patched">
+		<patch patchfile="javapayload-legacy-pre-jre1.2.patch" dir="src" />
+		<touch file="javapayload-legacy-pre-jre1.2.patch.applied" />
+	</target>
+	
+	<target name="jre11" depends="jre11-delete-files,jre11-patch-files" />
+		
+	<target name="legacyjar" depends="jre11">
+		<mkdir dir="build/bin11" />
+		<pathconvert property="srcpath">
+			<path path="src" />
+		</pathconvert>
+		<pathconvert pathsep=" " property="javafiles11">
+			<fileset dir="src" includes="**/*.java" />
+			<map from="${srcpath}" to="src"/>
+		</pathconvert>
+		<exec command="${JDK_11_HOME}\bin\javac -d build\bin11 ${javafiles11}" failonerror="true" />
+		<jar destfile="JavaPayload-jre1.1.jar" basedir="build/bin11" />
 	</target>
 </project>

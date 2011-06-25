@@ -66,7 +66,7 @@ public class RMIDiscovery extends Discovery {
 				if (obj == null)
 					consoleOut.println("\tObject: null");
 			} catch (UnmarshalException ex) {
-				consoleOut.println("\tUnmarshal exception: " + ex.getCause().toString());
+				consoleOut.println("\tUnmarshal exception: " + ex.detail.toString());
 				obj = null;
 			}
 			if (obj != null) {
