@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -130,7 +130,7 @@ public abstract class JavaPayloadTunnelBean implements javax.ejb.SessionBean {
 
 		public void run() {
 			try {
-				new LocalTest(in, out).bootstrap(parameters);
+				new LocalTest(in, out).bootstrap(parameters, false);
 			} catch (Exception ex) {
 				exception = ex;
 			}

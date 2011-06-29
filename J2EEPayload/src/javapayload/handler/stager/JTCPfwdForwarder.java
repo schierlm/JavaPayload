@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,12 +37,24 @@ package javapayload.handler.stager;
 import java.io.PrintStream;
 import java.net.Socket;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 import jtcpfwd.Lookup;
 import jtcpfwd.listener.Listener;
 
 public class JTCPfwdForwarder extends ListeningStagerHandler {
 
+	public JTCPfwdForwarder() {
+		super("Use a JTCPfwd Forwarder to connect to a stager", true, false, "");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGERRULE", false, Parameter.TYPE_ANY, "Ignored by the stager handler"),
+				new Parameter("HANDLERRULE", false, Parameter.TYPE_ANY, "jTCPfwd Forwarder rule used by the stager handler"),
+		};
+	}
+	
 	private Listener listener = null;
 	
 	protected void startListen(String[] parameters) throws Exception {
@@ -67,5 +79,9 @@ public class JTCPfwdForwarder extends ListeningStagerHandler {
 	
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
 		return false;
+	}
+	
+	protected String getTestArguments() {
+		return null;
 	}
 }

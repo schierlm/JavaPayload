@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -47,11 +47,21 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.rmi.PortableRemoteObject;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 public class EJBTunnel extends StagerHandler {
 
-	protected void handle(StageHandler stageHandler, String[] parameters, final PrintStream errorStream, Object extraArg) throws Exception {
+	public EJBTunnel() {
+		super("Tunnel the payload stream via an EJB", true, false, "");
+	}
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+	
+	protected void handle(StageHandler stageHandler, String[] parameters, final PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null)
+			readyHandler.notifyReady();
 		PipedInputStream localIn = new PipedInputStream();
 		PipedOutputStream localOut = new PipedOutputStream();
 		final OutputStream out = new WrappedPipedOutputStream(new PipedOutputStream(localIn));
@@ -109,5 +119,9 @@ public class EJBTunnel extends StagerHandler {
 	
 	protected boolean needHandleBeforeStart() {
 		throw new IllegalStateException("No extra handler needed");
+	}
+	
+	protected String getTestArguments() {
+		return null;
 	}
 }

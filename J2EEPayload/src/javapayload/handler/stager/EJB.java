@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ import j2eepayload.ejb.JavaPayloadHome;
 
 import java.io.PrintStream;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 
 import javax.naming.Context;
@@ -47,17 +48,31 @@ import javax.rmi.PortableRemoteObject;
 
 public class EJB extends StagerHandler {
 
-	protected void handle(final StageHandler stageHandler, String[] parameters, final PrintStream errorStream, final Object extraArg) throws Exception {
+	// TODO make this an Injector?
+	
+	public EJB() {
+		super("Run a stager on an EJB Server", true, false, 
+				"This stager can launch another stager via EJB, and is therefore more like an\r\n" +
+				"injector. The EJB communication is taken from jndi.properties file.");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGER", false, Parameter.TYPE_STAGER, "Stager to run")
+		};
+	}
+	
+	protected void handle(final StageHandler stageHandler, String[] parameters, final PrintStream errorStream, final Object extraArg, final StagerHandler readyHandler) throws Exception {
 		final String[] realParameters = new String[parameters.length-1];
 		System.arraycopy(parameters, 1, realParameters, 0, realParameters.length);
-		final StagerHandler realHandler = (StagerHandler) Class.forName("javapayload.handler.stager." + realParameters[0]).newInstance();
+		final StagerHandler realHandler = StagerHandler.getStagerHandler(realParameters[0]);
 		Thread beforeThread = null;
 		if (realHandler.needHandleBeforeStart()) {
 			realHandler.prepare(realParameters); // may modify realParameters
 			beforeThread = new Thread(new Runnable() {
 				public void run() {
 					try {
-						realHandler.handle(stageHandler, realParameters, errorStream, extraArg);
+						realHandler.handle(stageHandler, realParameters, errorStream, extraArg, readyHandler);
 					} catch (final Exception ex) {
 						ex.printStackTrace();
 					}
@@ -70,12 +85,16 @@ public class EJB extends StagerHandler {
 		JavaPayload remoteObject = homeObject.create();
 		remoteObject.runPayload(realParameters);
 		if (!realHandler.needHandleBeforeStart())
-			realHandler.handle(stageHandler, realParameters, errorStream, extraArg);
+			realHandler.handle(stageHandler, realParameters, errorStream, extraArg, readyHandler);
 		if (beforeThread != null)
 			beforeThread.join();
 	}
 
 	protected boolean needHandleBeforeStart() {
 		throw new IllegalStateException("No extra handler needed");
+	}
+	
+	protected String getTestArguments() {
+		return null;
 	}
 }

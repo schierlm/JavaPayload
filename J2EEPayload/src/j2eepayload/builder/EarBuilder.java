@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -52,21 +52,38 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+import javapayload.builder.Builder;
+import javapayload.builder.JarBuilder;
 import javapayload.handler.stager.WrappedPipedOutputStream;
+import javapayload.loader.DynLoader;
 import javapayload.stager.LocalTest;
 import javapayload.stager.Stager;
 
-public class EarBuilder {
+public class EarBuilder extends Builder {
 	
 	public static void main(String[] args) throws Exception {
 		if (args.length < 2 || args[0].indexOf("!") != -1 || "!EJB!WAR!Both!".indexOf('!'+args[0]+'!') == -1) {
-			System.out.println("Usage: java j2eepayload.builder.EarBuilder EJB|WAR|Both <stager> [<moreStagers...>]");
+			System.out.println("Usage: java j2eepayload.builder.EarBuilder EJB|WAR|Both [--strip] [<filename>.ear] <stager> [<moreStagers...>]");
 			return;
 		}
+		new EarBuilder().build(args);
+	}
+	
+	public EarBuilder() {
+		super("Build an EAR file.", "");
+	}
+	
+	public String getParameterSyntax() {
+		return "EJB|WAR|Both [--strip] [<filename>.ear] <stager> [<moreStagers...>]";
+	}
+	
+	public void build(String[] args) throws Exception {
 		boolean ejb = args[0].equals("EJB") || args[0].equals("Both");
 		boolean war = args[0].equals("WAR") || args[0].equals("Both");
 		byte[] ejbJar = null;
+		String overrideName = null;
 		if (ejb) {
+			boolean stripDebugInfo = false;
 			boolean useTunnel = false, usePayload = false;
 			List classes = new ArrayList();
 			for (int i = 1; i < args.length; i++) {
@@ -74,7 +91,11 @@ public class EarBuilder {
 					continue;
 				if (args[i].equals("--") && war)
 					break;
-				if (args[i].equals("EJBTunnel")) {
+				if (args[i].equals("--strip")) {
+					stripDebugInfo = true;
+				} else if (args[i].endsWith(".ear")) {
+					overrideName = args[i];
+				} else if (args[i].equals("EJBTunnel")) {
 					useTunnel = true;
 					classes.add(JavaPayloadTunnel.class);
 					classes.add(JavaPayloadTunnelSession.class);
@@ -84,7 +105,7 @@ public class EarBuilder {
 					classes.add(WrappedPipedOutputStream.class);
 					classes.add(LocalTest.class);
 				} else {
-					classes.add(Class.forName("javapayload.stager." + args[i]));
+					classes.add(DynLoader.loadStager(args[i], null, 0));
 					if (!usePayload) {
 						usePayload = true;
 						classes.add(JavaPayload.class);
@@ -107,7 +128,7 @@ public class EarBuilder {
 				xml += getSessionBeanEntry("JavaPayload", JavaPayloadHome.class, JavaPayload.class, JavaPayloadSession.class, false);
 			xml += "   </enterprise-beans>\r\n" + 
 					"</ejb-jar>\r\n";
-			ejbJar = buildEjbJar((Class[]) classes.toArray(new Class[classes.size()]), xml);
+			ejbJar = buildEjbJar((Class[]) classes.toArray(new Class[classes.size()]), xml, stripDebugInfo);
 		}
 		if (war) {
 			List warArgs = new ArrayList();
@@ -115,7 +136,9 @@ public class EarBuilder {
 			for (int i = 1; i < args.length; i++) {
 				if (ejb && args[i].equals("EJBTunnel"))
 					continue;
-				if (args[i].equals("--")) {
+				if (args[i].endsWith(".ear")) {
+					overrideName = args[i];
+				} else if (args[i].equals("--")) {
 					for (int j = i; j < args.length; j++) {
 						warArgs.add(args[j]);
 					}
@@ -129,11 +152,11 @@ public class EarBuilder {
 		for (int i = 1; i < args.length; i++) {
 			if (args[i].equals("--"))
 				break;
-			earName.append('_').append(args[i]);
+			earName.append('_').append(args[i].equals("--strip") ? "stripped" : args[i]);
 		}
 		final Manifest manifest = new Manifest();
 		manifest.getMainAttributes().putValue("Main-Class", "javapayload.loader.StandaloneLoader");
-		buildEar(earName.append(".ear").toString(), ejbJar, "~tmp.war");
+		buildEar(overrideName != null ? overrideName : earName.append(".ear").toString(), ejbJar, "~tmp.war");
 	}
 
 	private static String getSessionBeanEntry(String name, Class home, Class remote, Class session, boolean stateful) {
@@ -147,12 +170,12 @@ public class EarBuilder {
 			"      </session>\r\n";
 	}
 
-	protected static byte[] buildEjbJar(Class[] classes, String xml) throws Exception {
+	protected static byte[] buildEjbJar(Class[] classes, String xml, boolean stripDebugInfo) throws Exception {
 		Manifest manifest = new Manifest();
 		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		final JarOutputStream jos = new JarOutputStream(baos, manifest);
-		WarBuilder.addClasses(jos, "", classes);
+		JarBuilder.addClasses(jos, "", classes, stripDebugInfo);
 		jos.putNextEntry(new ZipEntry("META-INF/ejb-jar.xml"));
 		jos.write(xml.getBytes("UTF-8"));
 		jos.close();

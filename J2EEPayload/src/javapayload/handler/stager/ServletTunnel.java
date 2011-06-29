@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -39,13 +39,30 @@ import java.io.PipedOutputStream;
 import java.io.PrintStream;
 import java.net.URLEncoder;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 import jtcpfwd.util.PollingHandler;
 import jtcpfwd.util.http.HTTPTunnelClient;
 
 public class ServletTunnel extends StagerHandler {
 
-	protected void handle(final StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	public ServletTunnel() {
+		super("Tunnel the payload stream via a tunnel servlet", true, false, 
+				"This stager will connect to a Tunnel servlet, which will be polled to receive\r\n" +
+				"the current data of the payload stream. If no data is available, the\r\n" +
+				"connection tries to block as long as possible, but not longer than the given\r\n" +
+				"TIMEOUT.");
+	}
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("URL", false, Parameter.TYPE_URL, "URL of the servlet"),
+				new Parameter("TIMEOUT", true, Parameter.TYPE_NUMBER, "Polling timeout in milliseconds")
+		};
+	}
+	
+	protected void handle(final StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
+		if (readyHandler != null)
+			readyHandler.notifyReady();
 		String baseURL = parameters[1]+getURLSuffix();
 		if (parameters[1].startsWith(":"))
 			baseURL=parameters[1].substring(1);
@@ -73,5 +90,9 @@ public class ServletTunnel extends StagerHandler {
 
 	protected boolean needHandleBeforeStart() {
 		throw new IllegalStateException("No extra handler needed");
+	}
+	
+	protected String getTestArguments() {
+		return null;
 	}
 }

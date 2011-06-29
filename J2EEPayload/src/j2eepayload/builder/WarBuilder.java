@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -41,29 +41,41 @@ import j2eepayload.servlet.PayloadServlet;
 import j2eepayload.servlet.TunnelServlet;
 
 import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+import javapayload.builder.Builder;
 import javapayload.builder.JarBuilder;
+import javapayload.loader.DynLoader;
 import javapayload.stager.Stager;
 
-public class WarBuilder {
+public class WarBuilder extends Builder {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java j2eepayload.builder.WarBuilder [<filename>.war] <stager> [<moreStagers...>] [-- <startupStage> <stageOptions>]");
+			System.out.println("Usage: java j2eepayload.builder.WarBuilder [<filename>.war] [--strip] <stager> [<moreStagers...>] [-- <startupStage> <stageOptions>]");
 			return;
 		}
+		new WarBuilder().build(args);
+	}
+	
+	public WarBuilder() {
+		super("Build a WAR file.", "");
+	}
+	
+	public String getParameterSyntax() {
+		return "[<filename>.war] [--strip] <stager> [<moreStagers...>] [-- <startupStage> <stageOptions>]";
+	}
+	
+	public void build(String[] args) throws Exception {
 		StringBuffer warName = new StringBuffer(); 
 		boolean usePayload = false, useTunnel = false, useCamouflageTunnel = false, useFindSock = false, useApacheFindSock = false;
 		final List classes = new ArrayList();
 		int startupArgsStart = -1;
-		boolean named = false;
+		boolean named = false, stripDebugInfo = false;
 		for (int i = 0; i < args.length; i++) {
 			if (i == 0 && args[i].endsWith(".war")) {
 				warName.append(args[i].substring(0, args[i].length()-4));
@@ -75,11 +87,13 @@ public class WarBuilder {
 				break;
 			}
 			if (!named) {
-				if (i > 0)
+				if (warName.length() > 0)
 					warName.append('_');
-				warName.append(args[i]);
+				warName.append(args[i].equals("--strip") ? "stripped" : args[i]);
 			}
-			if (args[i].equals("ServletFindSock")) {
+			if (args[i].equals("--strip")) {
+				stripDebugInfo = true;
+			} else if (args[i].equals("ServletFindSock")) {
 				useFindSock = true;
 				classes.add(j2eepayload.servlet.FindSockServlet.class);
 			} else if (args[i].equals("ServletApacheFindSock")) {
@@ -99,7 +113,7 @@ public class WarBuilder {
 					classes.add(j2eepayload.servlet.PayloadServlet.class);
 					classes.add(j2eepayload.servlet.PayloadServlet.PayloadRunner.class);
 				}
-				classes.add(Class.forName("javapayload.stager." + args[i]));
+				classes.add(DynLoader.loadStager(args[i], null, 0));
 			}
 		}
 		if (useTunnel || useCamouflageTunnel) {
@@ -139,7 +153,7 @@ public class WarBuilder {
 		if (useCamouflageTunnel)
 			webXml += getServletEntry("CamouflageTunnelServlet", CamouflageTunnelServlet.class, "/jpc", null);
 		webXml += "</web-app>";
-		buildWar(warName.append(".war").toString(), (Class[]) classes.toArray(new Class[classes.size()]), webXml);
+		buildWar(warName.append(".war").toString(), (Class[]) classes.toArray(new Class[classes.size()]), stripDebugInfo, webXml);
 	}
 
 	private static String getServletEntry(String name, Class clazz, String url, String startupArgs) {
@@ -162,28 +176,13 @@ public class WarBuilder {
 		"  </servlet-mapping>\r\n";
 	}
 
-	protected static void buildWar(String filename, Class[] classes, String webXml) throws Exception {
+	protected static void buildWar(String filename, Class[] classes, boolean stripDebugInfo, String webXml) throws Exception {
 		Manifest manifest = new Manifest();
 		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
 		final JarOutputStream jos = new JarOutputStream(new FileOutputStream(filename), manifest);
-		addClasses(jos, "WEB-INF/classes/", classes);
+		JarBuilder.addClasses(jos, "WEB-INF/classes/", classes, stripDebugInfo);
 		jos.putNextEntry(new ZipEntry("WEB-INF/web.xml"));
 		jos.write(webXml.getBytes("UTF-8"));
 		jos.close();
-	}
-	
-	public static void addClasses(final JarOutputStream jos, final String prefix, Class[] classes) throws IOException {
-		// TODO update this for JavaPayload 0.3 or later
-		final byte[] buf = new byte[4096];
-		int len;
-		for (int i = 0; i < classes.length; i++) {
-			final String classname = classes[i].getName().replace('.', '/') + ".class";
-			jos.putNextEntry(new ZipEntry(prefix+classname));
-			final InputStream in = JarBuilder.class.getResourceAsStream("/" + classname);
-			while ((len = in.read(buf)) != -1) {
-				jos.write(buf, 0, len);
-			}
-			in.close();
-		}
 	}
 }

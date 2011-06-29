@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -99,7 +99,7 @@ public class PayloadServlet extends HttpServlet {
 		public void run() {
 			try {
 				final Stager stager = (Stager) Class.forName("javapayload.stager." + args[0]).newInstance();
-				stager.bootstrap(args);
+				stager.bootstrap(args, false);
 			} catch (Exception ex) {
 				exception = ex;
 			}

@@ -1,7 +1,7 @@
 /*
  * J2EE Payloads.
  * 
- * Copyright (c) 2010, Michael 'mihi' Schierl
+ * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -37,18 +37,36 @@ package javapayload.handler.stager;
 import java.io.PrintStream;
 import java.net.Socket;
 
+import javapayload.Parameter;
 import javapayload.handler.stage.StageHandler;
 import jtcpfwd.Lookup;
 import jtcpfwd.forwarder.Forwarder;
 
 public class JTCPfwdListener extends StagerHandler {
 
-	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg) throws Exception {
+	public JTCPfwdListener() {
+		super("Use a JTCPfwd Listener to connect to a stager", true, false, "");
+	}
+	
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("STAGERRULE", false, Parameter.TYPE_ANY, "Ignored by the stager handler"),
+				new Parameter("HANDLERRULE", false, Parameter.TYPE_ANY, "jTCPfwd Listener rule used by the stager handler"),
+		};
+	}
+	
+	protected void handle(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		Forwarder f = Lookup.lookupForwarder(parameters[2]);
+		if (readyHandler != null)
+			readyHandler.notifyReady();
 		final Socket s = f.connect(null);
 		f.dispose();
 		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
 	}
 	
 	protected boolean needHandleBeforeStart() { return false; }
+	
+	protected String getTestArguments() {
+		return null;
+	}
 }
