@@ -97,6 +97,7 @@ public class Main {
 		cmd.consoleIn = consoleIn;
 		cmd.consoleOut = consoleOut;
 		cmd.consoleErr = consoleErr;
+		cmd.mainClass = this;
 		cmd.execute(parameters);
 	}
 }

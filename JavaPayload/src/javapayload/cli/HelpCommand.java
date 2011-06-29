@@ -55,6 +55,7 @@ public class HelpCommand extends Command {
 		String[] newParams = shiftArray(parameters, -1);
 		newParams[0] = "command";
 		sc.cloneIO(this);
+		sc.mainClass = mainClass;
 		sc.execute(newParams);
 	}
 }

@@ -71,7 +71,7 @@ public abstract class Builder extends Module {
 		throw new UnsupportedOperationException("Structured parameters not available for builders");
 	}
 
-	protected int getMinParameterCount() {
+	public int getMinParameterCount() {
 		return 1;
 	}
 	

@@ -52,7 +52,7 @@ public class EmbeddedClassBuilder extends Builder {
 		super("Build a standalone Class file that has its command line built in", "");
 	}
 	
-	protected int getMinParameterCount() {
+	public int getMinParameterCount() {
 		return 4;
 	}
 	

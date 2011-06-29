@@ -51,7 +51,7 @@ public class EmbeddedJarBuilder extends Builder {
 		super("Build a Jar that has its command line built in", "");
 	}
 	
-	protected int getMinParameterCount() {
+	public int getMinParameterCount() {
 		return 4;
 	}
 	

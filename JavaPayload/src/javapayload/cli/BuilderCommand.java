@@ -45,7 +45,10 @@ public class BuilderCommand extends Command {
 	}
 
 	public Parameter[] getParameters() {
-		return new Parameter[] { new Parameter("BUILDER", false, Command.TYPE_BUILDER, "Builder to run") };
+		return new Parameter[] { 
+				new Parameter("BUILDER", false, Command.TYPE_BUILDER, "Builder to run"),
+				new Parameter("BUILDERARG", true, Parameter.TYPE_REST, "Any optional builder argument")
+		};
 	}
 
 	public void execute(String[] parameters) throws Exception {

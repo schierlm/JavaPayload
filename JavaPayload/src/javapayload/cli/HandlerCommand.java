@@ -46,7 +46,7 @@ public class HandlerCommand extends Command {
 	
 	public Parameter[] getParameters() {
 		return new Parameter[] {
-				new Parameter("STAGER", false, Parameter.TYPE_STAGER, "Stager to run handler of"),
+				new Parameter("STAGER", false, Command.TYPE_STAGER_HANDLER, "Stager to run handler of"),
 				new Parameter("STAGE", false, Command.TYPE_STAGE_2DASHES, "Stage to run handler of")
 		};
 	}

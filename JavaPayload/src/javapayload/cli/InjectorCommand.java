@@ -46,7 +46,11 @@ public class InjectorCommand extends Command {
 	}
 
 	public Parameter[] getParameters() {
-		return new Parameter[] { new Parameter("INJECTOR", false, Command.TYPE_INJECTOR, "injector to run"), };
+		return new Parameter[] { 
+				new Parameter("INJECTOR", false, Command.TYPE_INJECTOR, "injector to run"), 
+				new Parameter("STAGER", false, Command.TYPE_STAGER_AND_HANDLER, "Stager to run handler of"),
+				new Parameter("STAGE", false, Command.TYPE_STAGE_2DASHES, "Stage to run handler of")
+		};
 	}
 
 	public void execute(String[] parameters) throws Exception {

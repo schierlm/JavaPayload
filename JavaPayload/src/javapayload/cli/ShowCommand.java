@@ -121,7 +121,7 @@ public class ShowCommand extends Command {
 			try {
 				mod = load(type.getModuleClass(), type.getModuleName(parameters[1]));
 			} catch (IllegalArgumentException ex) {
-				System.out.println("No " + type.getPluralName() + " found: " + parameters[1]);
+				consoleOut.println("No " + type.getPluralName() + " found: " + parameters[1]);
 				return;
 			}
 			consoleOut.println(mod.getNameAndParameters());

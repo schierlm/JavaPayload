@@ -50,7 +50,11 @@ public abstract class Command extends IOEnabledModule {
 	public static final int TYPE_DISCOVERY = 84;
 	public static final int TYPE_INJECTOR = 85;
 	public static final int TYPE_BUILDER = 86;
-	
+	public static final int TYPE_STAGER_HANDLER = 87;
+	public static final int TYPE_STAGER_AND_HANDLER = 88;
+
+	public Main mainClass = null;
+
 	public Command(String summary, String description) {
 		super("Command", Command.class, summary, description);
 	}

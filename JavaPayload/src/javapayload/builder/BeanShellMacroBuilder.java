@@ -54,7 +54,7 @@ public class BeanShellMacroBuilder extends Builder {
 		super("Build a BeanShell Macro for OpenOffice.org", "");
 	}
 	
-	protected int getMinParameterCount() {
+	public int getMinParameterCount() {
 		return 3;
 	}
 	

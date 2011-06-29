@@ -79,7 +79,7 @@ public class CVE_2010_4452_AppletClassBuilder extends Builder {
 		return "<host> <stager> [<classname>]";
 	}
 	
-	protected int getMinParameterCount() {
+	public int getMinParameterCount() {
 		return 2;
 	}
 	
