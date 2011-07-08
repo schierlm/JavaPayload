@@ -206,6 +206,12 @@ public class JSh implements Stage, Runnable {
 			}
 			cmd = cmd.toLowerCase().intern();
 			try {
+				File fp = null;
+				if (cmd == "cd" || cmd == "cat" || cmd == "paste") {
+					fp = new File(params);
+					if (!fp.isAbsolute())
+						fp = new File(pwd, params);
+				}
 				if (cmd == "info") {
 					if (params.length() == 0) {
 						final Enumeration e = System.getProperties().propertyNames();
@@ -219,16 +225,10 @@ public class JSh implements Stage, Runnable {
 				} else if (cmd == "pwd") {
 					pout.println(pwd.getPath());
 				} else if (cmd == "cd") {
-					File f = new File(pwd, params);
-					if (f.exists() && f.isDirectory()) {
-						pwd = f.getCanonicalFile();
+					if (fp.exists() && fp.isDirectory()) {
+						pwd = fp.getCanonicalFile();
 					} else {
-						f = new File(params);
-						if (f.exists() && f.isDirectory()) {
-							pwd = f.getCanonicalFile();
-						} else {
-							pout.println("Path not found.");
-						}
+						pout.println("Path not found.");
 					}
 					pout.println(pwd.getPath());
 				} else if (cmd == "ls") {
@@ -245,14 +245,17 @@ public class JSh implements Stage, Runnable {
 					Process proc;
 					handleBackgroundJob(in, new Object[] { "exec " + params, proc = Runtime.getRuntime().exec(params), proc.getOutputStream(), new JShStreamForwarder(proc.getInputStream(), pout, ss), new JShStreamForwarder(proc.getErrorStream(), pout, ss) });
 				} else if (cmd == "cat") {
-					final FileInputStream fis = new FileInputStream(new File(pwd, params));
+					final FileInputStream fis = new FileInputStream(fp);
 					forward(fis, pout);
 				} else if (cmd == "wget") {
 					pos = params.indexOf(' ');
 					if (pos == -1) {
 						pout.println("  Usage: wget <URL> <filename>");
 					} else {
-						final FileOutputStream fos = new FileOutputStream(new File(pwd, params.substring(pos + 1)));
+						File f = new File(params.substring(pos + 1));
+						if (!f.isAbsolute())
+							f = new File(pwd, params.substring(pos + 1));
+						final FileOutputStream fos = new FileOutputStream(f);
 						forward(new URL(params.substring(0, pos)).openStream(), fos);
 						fos.close();
 					}
@@ -266,7 +269,7 @@ public class JSh implements Stage, Runnable {
 					}
 				} else if (cmd == "paste") {
 					FileOutputStream fos;
-					handleBackgroundJob(in, new Object[] { "paste " + params, fos = new FileOutputStream(new File(pwd, params)), fos });
+					handleBackgroundJob(in, new Object[] { "paste " + params, fos = new FileOutputStream(fp), fos });
 				} else if (cmd == "jobs") {
 					if (params.length() == 0) {
 						for (int i = 0; i < jobs.size(); i++) {

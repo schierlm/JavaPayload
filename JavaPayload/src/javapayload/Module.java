@@ -170,7 +170,7 @@ public abstract class Module implements NamedElement {
 		/* #JDK1.5 */try {
 			// note that we cannot use String#replace here since its method signature uses the
 			// interface CharSequence which does not exist in earlier Java versions.
-			return original.replaceAll(java.util.regex.Pattern.quote(original), java.util.regex.Matcher.quoteReplacement(replacement));
+			return base.replaceAll(java.util.regex.Pattern.quote(original), java.util.regex.Matcher.quoteReplacement(replacement));
 		} catch (NoClassDefFoundError ex) /**/{
 			StringBuffer result = new StringBuffer();
 			int pos;
