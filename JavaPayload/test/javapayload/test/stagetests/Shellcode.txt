@@ -1,0 +1,16 @@
+Shellcode shellcode/win32_shellcode-prefix.payload shellcode/win32_metasploit_touch_payload-status.payload
+=-=|payload_status.txt
+=-=
+\Q[*] Address size: 4
+[*] Shellcode class has 5 methods.
+[*] Obtaining method array (slot 29)
+[+] Successfully obtained method array
+[*] Obtaining method object (slot 0)
+[+] Successfully obtained method object
+[*] Obtaining NMETHOD pointer (slot 17)
+[+] Successfully obtained NMETHOD pointer
+[*] Obtaining entry point pointer (offset 30)
+[+] Successfully obtained entry point pointer
+[+] Successfully overwritten JIT method
+[*] Executing native method (drum roll...)
+[+] Executed native method and returned!\E

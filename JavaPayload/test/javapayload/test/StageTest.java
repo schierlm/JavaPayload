@@ -170,6 +170,11 @@ public class StageTest {
 		String stage = stagePrefix + desc.readLine();
 		StringBuffer sb = new StringBuffer();
 		String delimiter = desc.readLine();
+		File markerFile = null;
+		if (delimiter.contains("|")) {
+			markerFile = new File(delimiter.substring(delimiter.indexOf('|')+1));
+			delimiter = delimiter.substring(0, delimiter.indexOf('|'));
+		}
 		String line;
 		while ((line = desc.readLine()) != null) {
 			if (line.equals(delimiter))
@@ -183,6 +188,9 @@ public class StageTest {
 		if (stager.indexOf("#") != -1)
 			stager = Module.replaceString(stager, "#", ""+(++stageCounter));
 		String[] args = StageMenu.splitArgs(stager + " -- " + stage);
+		if (markerFile != null) {
+			markerFile.delete();
+		}
 		StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		PrintStream out = new PrintStream(baos);
@@ -204,6 +212,17 @@ public class StageTest {
 			outputStr = outputStr.substring(0, outputStr.length() - 1);
 		output.write(outputStr);
 		output.flush();
+		if (markerFile != null) {
+			for (int i = 0; !markerFile.exists() && i < 20; i++) {
+				Thread.sleep(100);	
+			}
+			if (markerFile.exists()) {
+				markerFile.delete();
+			} else {
+				output.write("\nFile missing!");
+				output.flush();
+			}
+		}
 		return new TestResult(sb.toString());
 	}
 
