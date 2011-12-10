@@ -1,0 +1,90 @@
+CrudeScript
+=-=
+"Hello, 
+"World!
+1/conc
+1 3 2
+4/len
+4 5
+"java.math.BigInteger
+7/getClass
+7 8
+9 8
+10/forName
+10 12 7
+10/getConstructors
+13 14
+15
+19/newInstance
+"21
+9 [ 23
+19 22 24
+"2
+9 [ 26
+19 22 27
+25/mult
+25 29 28
+30/intV
+30 31
+"java.lang.Object
+10 12 33
+10/newInstance
+34 35
+36
+exit
+=-=
+\QWelcome to CrudeScript.
+ "str        create String literal
+ 1            print methods of Object/class 1, members of array 1
+ 1/foo        print methods of Object/class 1 starting with foo
+ 1 2 3 4      invoke methods 2 on object 1 with params 3 4
+ 1 [ 2 3      create Array of class 1 with elements 2 3
+ exit         get out of here
+
+0:	null
+$> 1:	Hello, 
+$> 2:	World!
+$> 3:	public java.lang.String java.lang.String.concat(java.lang.String)
+$> 4:	Hello, World!
+$> 5:	public int java.lang.String.length()
+$> 6:	13
+$> 7:	java.math.BigInteger
+$> 8:	public final native java.lang.Class java.lang.Object.getClass()
+$> 9:	class java.lang.String
+$> 10:	class java.lang.Class
+$> 11:	public static java.lang.Class java.lang.Class.forName(java.lang.String,boolean,java.lang.ClassLoader) throws java.lang.ClassNotFoundException
+12:	public static java.lang.Class java.lang.Class.forName(java.lang.String) throws java.lang.ClassNotFoundException
+$> 13:	class java.math.BigInteger
+$> 14:	public java.lang.reflect.Constructor[] java.lang.Class.getConstructors() throws java.lang.SecurityException
+$> 15:	[Ljava.lang.reflect.Constructor;@\E[0-9a-f]+\Q
+$> 16:	public java.math.BigInteger(byte[])
+17:	public java.math.BigInteger(int,byte[])
+18:	public java.math.BigInteger(java.lang.String,int)
+19:	public java.math.BigInteger(java.lang.String)
+20:	public java.math.BigInteger(int,java.util.Random)
+21:	public java.math.BigInteger(int,int,java.util.Random)
+$> 22:	public java.lang.Object java.lang.reflect.Constructor.newInstance(java.lang.Object[]) throws java.lang.InstantiationException,java.lang.IllegalAccessException,java.lang.IllegalArgumentException,java.lang.reflect.InvocationTargetException
+$> 23:	21
+$> 24:	[Ljava.lang.String;@\E[0-9a-f]+\Q
+$> 25:	21
+$> 26:	2
+$> 27:	[Ljava.lang.String;@\E[0-9a-f]+\Q
+$> 28:	2
+$> 29:	public java.math.BigInteger java.math.BigInteger.multiply(java.math.BigInteger)
+$> 30:	42
+$> 31:	public int java.math.BigInteger.intValue()
+$> 32:	42
+$> 33:	java.lang.Object
+$> 34:	class java.lang.Object
+$> 35:	public java.lang.Object java.lang.Class.newInstance() throws java.lang.InstantiationException,java.lang.IllegalAccessException
+$> 36:	java.lang.Object@\E[0-9a-f]+\Q
+$> 37:	public final native void java.lang.Object.wait(long) throws java.lang.InterruptedException
+38:	public final void java.lang.Object.wait() throws java.lang.InterruptedException
+39:	public final void java.lang.Object.wait(long,int) throws java.lang.InterruptedException
+40:	public boolean java.lang.Object.equals(java.lang.Object)
+41:	public java.lang.String java.lang.Object.toString()
+42:	public native int java.lang.Object.hashCode()
+43:	public final native java.lang.Class java.lang.Object.getClass()
+44:	public final native void java.lang.Object.notify()
+45:	public final native void java.lang.Object.notifyAll()
+$> \E

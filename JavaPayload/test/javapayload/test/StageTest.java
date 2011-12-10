@@ -93,6 +93,8 @@ public class StageTest {
 				ClassBuilder.main(new String[] { stagerArgs[0], "BuilderTestClass" });
 				Process proc = BuilderTest.runJava(".", null, "BuilderTestClass", stagerArgs);
 				for (int i = 0; i < files.length; i++) {
+					if (!files[i].getName().endsWith(".txt"))
+						continue;
 					if(files[i].getName().startsWith("Drop")) {
 						JarBuilder.main(new String[] {"StageTestJar.jar", "LocalStage_BindTCP", "--", "test/./javapayload/test/stagetests/DropExec.exe", "DropExec", "SendParameters"});
 						Process proc2 = BuilderTest.runJava("StageTestJar.jar", null, "javapayload.loader.StandaloneLoader", new String[] {"LocalStage_BindTCP", "localhost", "60321", "--", "SendParameters"});

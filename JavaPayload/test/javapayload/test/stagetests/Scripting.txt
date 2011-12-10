@@ -1,0 +1,19 @@
+Scripting js
+=-=
+40+2
+"Result: "+(2*3*7)
+"Hello, "+(21*2)+" worlds!"
+[].length
+var c=java.lang.Class.forName("java.lang.Object")
+c
+c.getDeclaredMethods()[2]
+exit
+=-=
+\Q~> 42.0
+~> Result: 42
+~> Hello, 42 worlds!
+~> 0.0
+~> null
+~> class java.lang.Object
+~> public final void java.lang.Object.wait() throws java.lang.InterruptedException
+~> \E
