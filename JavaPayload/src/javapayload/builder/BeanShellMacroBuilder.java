@@ -63,28 +63,10 @@ public class BeanShellMacroBuilder extends Builder {
 	}
 	
 	public void build(String[] args) throws Exception {
-		String[] builderArgs = new String[args.length+1];
-		System.arraycopy(args, 0, builderArgs, 1, args.length);
-		builderArgs[0] = "Tmp";
-		ByteArrayOutputStream baos = new ByteArrayOutputStream();
-		InputStream in = new ByteArrayInputStream(ClassBuilder.buildClassBytes(builderArgs[0], builderArgs[1], EmbeddedClassBuilderTemplate.class, EmbeddedClassBuilder.buildEmbeddedArgs(builderArgs), builderArgs));
-		new sun.misc.BASE64Encoder().encode(in, baos);
-		in.close();
-		new File("Tmp.class").delete();
-		String data = new String(baos.toByteArray(), "ISO-8859-1");
-		data = replaceString(data,"\r\n", "\n");
-		data = data.replace('\r','\n');
-		data = replaceString(data, "\n", "\"+\r\n  \"");
-		System.out.println("String BASE64 = \""+data+"\";");
-		System.out.println("byte[] DATA = new sun.misc.BASE64Decoder().decodeBuffer(BASE64);");
-		System.out.println("ClassLoader ldr = new URLClassLoader(new URL[0]);");
-		System.out.println("java.lang.reflect.Method m = ClassLoader.class.getDeclaredMethod(\"defineClass\", new Class[] {byte[].class, int.class, int.class});");
-		System.out.println("m.setAccessible(true);");
-		System.out.println("Class c = (Class)m.invoke(ldr, new Object[] {DATA, 0, DATA.length});");
-		System.out.println("m = ClassLoader.class.getDeclaredMethod(\"resolveClass\", new Class[] {Class.class});");
-		System.out.println("m.setAccessible(true);");
-		System.out.println("m.invoke(ldr, new Object[] {c});");
-		System.out.println("run() { c.getMethod(\"main\", new Class[] {String[].class}).invoke(null, new Object[] {new String[0]});}");
-		System.out.println("new Thread(this).start();");
+		String[] builderArgs = new String[args.length+2];
+		System.arraycopy(args, 0, builderArgs, 2, args.length);
+		builderArgs[0] = "BeanShellMacro.bsh";
+		builderArgs[1] = "-";
+		new TemplateBuilder().build(builderArgs);
 	}
 }

