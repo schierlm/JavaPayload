@@ -153,7 +153,7 @@ class ModuleParameterHandler extends ParameterHandler {
 
 		TypeHandler listeningStagerHandlerType = new TypeHandler() {
 			public ParameterHandler getHandler(ParameterContext context, Parameter param) {
-				return new RealStagerParameterHandler(context, param, new DynStagerHandler[0], new Class[] { null }, true, false) {
+				return new RealStagerParameterHandler(context, param, new DynStagerHandler[0], new Class[] { null }, true, false, null) {
 					public NamedElement[] getPossibleValues() {
 						NamedElement[] unfiltered = super.getPossibleValues();
 						List filtered = new ArrayList();
@@ -313,7 +313,11 @@ class ModuleParameterHandler extends ParameterHandler {
 			DynStagerHandler dsh = (DynStagerHandler) module;
 			List prevDynstagers = new ArrayList(Arrays.asList(previousDynstagers));
 			prevDynstagers.add(dsh);
-			StagerParameterHandler nextHandler = new StagerParameterHandler(context, origParameter, handler, target, (DynStagerHandler[]) prevDynstagers.toArray(new DynStagerHandler[prevDynstagers.size()]), extraArgTypes);
+			DynStagerHandler[] currentDynstagers = (DynStagerHandler[]) prevDynstagers.toArray(new DynStagerHandler[prevDynstagers.size()]);
+			ParameterHandler nextHandler = new StagerParameterHandler(context, origParameter, handler, target, currentDynstagers, extraArgTypes);
+			if (dsh.getCoupledStagers() != null) {
+				nextHandler = new RealStagerParameterHandler(context, origParameter, currentDynstagers, extraArgTypes, handler, target, dsh.getCoupledStagers());	
+			}			
 			if (dsh.getExtraArg() != null) {
 				if (dsh.getExtraArg().isOptional())
 					throw new IllegalStateException("Dynstager extra arg may not be optional");
@@ -322,7 +326,7 @@ class ModuleParameterHandler extends ParameterHandler {
 							protected void validate(String input) throws ParameterFormatException {
 								for (int i = 0; i < input.length(); i++) {
 									char ch = input.charAt(i);
-									if (ch == '_' || ch == '$' || !Character.isJavaIdentifierPart(ch))
+									if (ch == '_' || !Character.isJavaIdentifierPart(ch))
 										throw new ParameterFormatException("Invalid character '" + ch + "' in dynstager argument");
 								}
 							}
@@ -349,7 +353,7 @@ class ModuleParameterHandler extends ParameterHandler {
 
 		protected ParameterHandler[] getNextHandlersOptional() {
 			return new ParameterHandler[] {
-					new RealStagerParameterHandler(context, origParameter, previousDynstagers, extraArgTypes, handler, target)
+					new RealStagerParameterHandler(context, origParameter, previousDynstagers, extraArgTypes, handler, target, null)
 			};
 		}
 	}
@@ -357,11 +361,13 @@ class ModuleParameterHandler extends ParameterHandler {
 	private static class RealStagerParameterHandler extends HandlerModuleParameterHandler {
 		private final DynStagerHandler[] dynstagers;
 		private final Class[] extraArgTypes;
+		private final Class[] stagerWhitelist;
 
-		public RealStagerParameterHandler(ParameterContext context, Parameter parameter, DynStagerHandler[] dynstagers, Class[] extraArgTypes, boolean handler, boolean stager) {
+		public RealStagerParameterHandler(ParameterContext context, Parameter parameter, DynStagerHandler[] dynstagers, Class[] extraArgTypes, boolean handler, boolean stager, Class[] stagerWhitelist) {
 			super(context, parameter, new ModuleType(StagerHandler.class, "", null), handler, stager);
 			this.dynstagers = dynstagers;
 			this.extraArgTypes = extraArgTypes;
+			this.stagerWhitelist = stagerWhitelist;
 		}
 
 		public NamedElement[] getPossibleValues() {
@@ -381,6 +387,8 @@ class ModuleParameterHandler extends ParameterHandler {
 				List secondFilter = new ArrayList();
 				for (int i = 0; i < firstFilter.size(); i++) {
 					StagerHandler module = (StagerHandler) firstFilter.get(i);
+					if (stagerWhitelist != null && !Arrays.asList(stagerWhitelist).contains(module.getClass()))
+						continue;
 					StagerHandler.Loader loader = new StagerHandler.Loader(new String[] { module.getName(), "--", "JSh" });
 					for (int j = 0; j < extraArgTypes.length; j++) {
 						if (loader.canHandleExtraArg(extraArgTypes[j])) {
