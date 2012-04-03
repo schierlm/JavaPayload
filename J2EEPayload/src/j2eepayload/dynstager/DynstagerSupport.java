@@ -1,7 +1,7 @@
 /*
- * Java Payloads.
+ * J2EE Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,44 +32,43 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.dynstager;
+package j2eepayload.dynstager;
 
-import java.io.PrintStream;
+import java.io.InputStream;
+import java.io.OutputStream;
 
-import javapayload.Parameter;
-import javapayload.handler.stage.InternalLocalStageHandler;
-import javapayload.handler.stage.StageHandler;
-import javapayload.handler.stager.StagerHandler;
+import javapayload.stager.LocalTest;
+import javapayload.stager.Stager;
 
-public class LocalStage extends DynStagerHandler {
+public class DynstagerSupport {
 
-	public LocalStage() {
-		super("Modify a stager to load stages locally", true, true,
-				"This dynstager (and its handler) can be used with Jar builders, it will\r\n" +
-				"lookup stages from the class path instead of staging it via the network.");
-	}
-	
-	public Parameter[] getParameters() {
-		return new Parameter[0];
-	}
-	
-	public Parameter getExtraArg() {
-		return null;
-	}
-	
-	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
-		for (int i = 0; i < dynstagers.length; i++) {
-			if (!(dynstagers[i] instanceof Spawn))
-				return false;
+	public static void run(InputStream in, OutputStream out, String[] args) throws Exception {
+		DynstagerSupport support = new DynstagerSupport();
+		for (int i = 1; i < 10; i++) {
+			try {
+				support = (DynstagerSupport) Class.forName(DynstagerSupport.class.getName() + i).newInstance();
+				break;
+			} catch (Exception ex) {
+			}
 		}
-		return true;
+
+		String[] extraArgs = support.getExtraArgs();
+		if (extraArgs.length > 0) {
+			String[] realArgs = args;
+			args = new String[extraArgs.length + realArgs.length];
+			System.arraycopy(extraArgs, 0, args, 1, extraArgs.length);
+			System.arraycopy(realArgs, 1, args, extraArgs.length + 1, realArgs.length - 1);
+			args[0] = realArgs[0];
+		}
+
+		support.createStager(in, out).bootstrap(args, false);
 	}
-	
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
+
+	protected Stager createStager(InputStream in, OutputStream out) throws Exception {
+		return new LocalTest(in, out);
 	}
-	
-	public String getTestExtraArg() {
-		return null;
+
+	protected String[] getExtraArgs() {
+		return new String[0];
 	}
 }

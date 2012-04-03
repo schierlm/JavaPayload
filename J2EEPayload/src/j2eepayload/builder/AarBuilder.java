@@ -37,6 +37,7 @@ package j2eepayload.builder;
 import j2eepayload.axis.PayloadException;
 import j2eepayload.axis.PayloadService;
 import j2eepayload.axis.TunnelService;
+import j2eepayload.dynstager.DynstagerSupportBuilder;
 
 import java.io.FileOutputStream;
 import java.util.ArrayList;
@@ -56,7 +57,7 @@ public class AarBuilder extends Builder {
 	}
 
 	public String getParameterSyntax() {
-		return "[<filename>.aar] [--strip] <stager> [<moreStagers...>]";
+		return "[<filename>.aar] [--strip] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>]";
 	}
 
 	public void build(String[] args) throws Exception {
@@ -74,6 +75,15 @@ public class AarBuilder extends Builder {
 				named = true;
 				continue;
 			}
+			if (args[i].endsWith("_")) {
+				List dynstagerArgs = new ArrayList();
+				for(int j = i+1; j < args.length; j++) {
+					dynstagerArgs.add(args[j]);
+				}
+				classes.add(DynLoader.loadStager(args[i]+"LocalTest", null, 0));
+				classes.add(DynstagerSupportBuilder.buildSupport(args[i], dynstagerArgs));
+				break;
+			}
 			if (!named) {
 				if (aarName.length() > 0)
 					aarName.append('_');
@@ -88,6 +98,7 @@ public class AarBuilder extends Builder {
 				classes.add(TunnelService.class);
 				classes.add(TunnelService.PayloadRunner.class);
 				classes.add(javapayload.stager.LocalTest.class);
+				classes.add(j2eepayload.dynstager.DynstagerSupport.class);
 			} else {
 				classes.add(DynLoader.loadStager(args[i], null, 0));
 			}

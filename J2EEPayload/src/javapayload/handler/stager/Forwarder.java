@@ -1,7 +1,7 @@
 /*
- * Java Payloads.
+ * J2EE Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,44 +32,18 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.dynstager;
+package javapayload.handler.stager;
 
-import java.io.PrintStream;
+import javapayload.handler.dynstager.DynStagerHandler;
+import javapayload.handler.dynstager.JTCPfwd;
 
-import javapayload.Parameter;
-import javapayload.handler.stage.InternalLocalStageHandler;
-import javapayload.handler.stage.StageHandler;
-import javapayload.handler.stager.StagerHandler;
+public class Forwarder extends JTCPfwdForwarder {
 
-public class LocalStage extends DynStagerHandler {
+	public Forwarder() {
+		super("Use a JTCPfwd Forwarder for the dynstager", true, true, "");
+	}
 
-	public LocalStage() {
-		super("Modify a stager to load stages locally", true, true,
-				"This dynstager (and its handler) can be used with Jar builders, it will\r\n" +
-				"lookup stages from the class path instead of staging it via the network.");
-	}
-	
-	public Parameter[] getParameters() {
-		return new Parameter[0];
-	}
-	
-	public Parameter getExtraArg() {
-		return null;
-	}
-	
-	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
-		for (int i = 0; i < dynstagers.length; i++) {
-			if (!(dynstagers[i] instanceof Spawn))
-				return false;
-		}
-		return true;
-	}
-	
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
-	}
-	
-	public String getTestExtraArg() {
-		return null;
+	public boolean isStagerUsableWith(DynStagerHandler[] dynstagers) {
+		return dynstagers.length > 0 && dynstagers[dynstagers.length - 1] instanceof JTCPfwd;
 	}
 }

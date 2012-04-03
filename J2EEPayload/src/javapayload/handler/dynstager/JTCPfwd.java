@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -34,42 +34,34 @@
 
 package javapayload.handler.dynstager;
 
-import java.io.PrintStream;
-
 import javapayload.Parameter;
-import javapayload.handler.stage.InternalLocalStageHandler;
-import javapayload.handler.stage.StageHandler;
-import javapayload.handler.stager.StagerHandler;
+import javapayload.handler.stager.Forwarder;
+import javapayload.handler.stager.Listener;
 
-public class LocalStage extends DynStagerHandler {
+public class JTCPfwd extends DynStagerHandler {
 
-	public LocalStage() {
-		super("Modify a stager to load stages locally", true, true,
-				"This dynstager (and its handler) can be used with Jar builders, it will\r\n" +
-				"lookup stages from the class path instead of staging it via the network.");
+	public JTCPfwd() {
+		super("Dynamically create a stager from a jTCPfwd module", true, true,
+				"This dynstager only works with the Forwarder and Listener pseudo-stagers");
 	}
-	
+
 	public Parameter[] getParameters() {
 		return new Parameter[0];
 	}
-	
+
 	public Parameter getExtraArg() {
-		return null;
+		return new Parameter("MODULE", false, Parameter.TYPE_ANY, "Name of the listener/forwarder module to use");
 	}
-	
+
 	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
-		for (int i = 0; i < dynstagers.length; i++) {
-			if (!(dynstagers[i] instanceof Spawn))
-				return false;
-		}
 		return true;
 	}
-	
-	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
-		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
+
+	public Class[] getCoupledStagers() {
+		return new Class[] { Forwarder.class, Listener.class };
 	}
-	
+
 	public String getTestExtraArg() {
-		return null;
+		throw new UnsupportedOperationException();
 	}
 }

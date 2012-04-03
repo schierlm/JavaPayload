@@ -61,6 +61,8 @@ stager.</p>
 <li>WarBuilder, EarBuilder: Support stripping debug info from classes.</li>
 <li>EarBuilder: Support giving a custom output filename, like WarBuilder already did.</li>
 <li>Add AarBuilder and Axis2 injector/tunnel.</li>
+<li>Add jTCPfwd dynstagers</li>
+<li>Add dynstager support to FindSock/Tunnel modules</li>
 </ul>
 
 <h2>System requirements</h2>
@@ -253,6 +255,15 @@ work.</p>
 <p>&mdash; or, to use your own parameters &mdash;</p>
 <p><tt>java javapayload.handler.stager.StagerHandler ServletCamouflageTunnel :http://victim.example.com/Example4c/jpc?count=#C#&amp;x=1#POST#foo=bar&amp;JP=#DATA#&fun=#R99# 1000 -- JSh</tt></p>
 
+<h3>Dynstager support</h3>
+
+<p>All FindSock and Tunnel stagers can use dynstagers, most notably
+the <tt>AES</tt> dynstager. There can be only one dynstager configuration in
+every WAR file. Just add for example <tt>AES$ mypassword</tt> to the
+end of the <tt>WarBuilder</tt> command line (or before the <tt>--</tt>),
+if present, and use an <tt>AES$ServletFindSock</tt> or 
+<tt>AES$ServletTunnel</tt> stager.</p>
+
 <h2>Axis2 services</h2>
 
 <p>When using the Eclipse wizard to create an Axis2 service from a WSDL, 
@@ -372,6 +383,8 @@ first)</p>
 
 <h2>jTCPfwd based stagers</h2>
 
+<h3>Generated stagers</h3>
+
 <p>To create a jTCPfwd based stager, run <tt>java
 j2eepayload.builder.JTCPfwdBuilder</tt> (which will need <tt>asm-3.2.jar</tt>
 on the class path), followed by <tt>F</tt> or <tt>L</tt> (for Forwarder
@@ -388,6 +401,19 @@ handlers expect two parameters. The first one is the listener/forwarder
 rule used by the stager, and the second one is the forwarder/listener
 rule the stager handler should use to communicate with the stager (which
 is usually not the same as the rule used by the stager).</p>
+
+<h3>Dynstagers</h3>
+
+<p>Dynstagers are the preferred way to use jTCPfwd based stagers.</p>
+
+<p>Use either the <tt>JTCPfwd$<i>name</i>_Forwarder</tt> or 
+<tt>JTCPfwd$<i>name</i>_Listener</tt> syntax. Multiple module names
+can be separated by <tt>$</tt> signs. In case the dynstager has access
+to the full command line, <i>name</i> can be left empty; it is then
+automatically inferred from the arguments.</p>
+
+<p>The parameters for the dynstagers and their handlers are the same as
+for the generated stagers.</p>
 
 </body>
 </html>

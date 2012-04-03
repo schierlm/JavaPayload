@@ -65,16 +65,17 @@ public class SpawnTemplate extends Stager {
 			parameters[0] = "+" + parameters[0];
 		}
 		Process proc = launch("SpawnedClass", tempDir.getAbsolutePath(), parameters);
-		Thread.sleep(1000);
-		tempFile.delete();
-		tempDir.delete();
 		if (needWait) {
 			proc.getInputStream().read();
 			synchronized(this) {
 				ready = true;
 				notifyAll();
 			}
+		} else {
+			Thread.sleep(1000);
 		}
+		tempFile.delete();
+		tempDir.delete();
 	}
 	
 	public synchronized void waitReady() throws InterruptedException {

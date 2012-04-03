@@ -34,8 +34,8 @@
 
 package j2eepayload.ejb;
 
+import j2eepayload.dynstager.DynstagerSupport;
 import javapayload.handler.stager.WrappedPipedOutputStream;
-import javapayload.stager.LocalTest;
 import java.io.*;
 
 public abstract class JavaPayloadTunnelBean implements javax.ejb.SessionBean {
@@ -130,7 +130,7 @@ public abstract class JavaPayloadTunnelBean implements javax.ejb.SessionBean {
 
 		public void run() {
 			try {
-				new LocalTest(in, out).bootstrap(parameters, false);
+				DynstagerSupport.run(in, out, parameters);
 			} catch (Exception ex) {
 				exception = ex;
 			}

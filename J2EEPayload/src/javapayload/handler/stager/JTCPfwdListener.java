@@ -48,6 +48,10 @@ public class JTCPfwdListener extends StagerHandler {
 		super("Use a JTCPfwd Listener to connect to a stager", true, false, "");
 	}
 	
+	protected JTCPfwdListener(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
+		super(summary, handlerUsable, stagerUsable, description);
+	}
+	
 	public Parameter[] getParameters() {
 		return new Parameter[] {
 				new Parameter("STAGERRULE", false, Parameter.TYPE_ANY, "Ignored by the stager handler"),

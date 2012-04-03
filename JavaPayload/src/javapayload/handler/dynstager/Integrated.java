@@ -59,7 +59,23 @@ public class Integrated extends DynStagerHandler {
 		return new Parameter("TOKEN", false, Parameter.TYPE_ANY, "Token to distinguish this Integrated dynstager from others");
 	}
 	
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
+		for (int i = 0; i < dynstagers.length; i++) {
+			if (!(dynstagers[i] instanceof Spawn))
+				return false;
+		}
+		return true;
+	}
+	
 	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		super.handleDyn(new InternalIntegratedStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
+	}
+	
+	private static int testCounter = 0;
+	
+	public String getTestExtraArg() {
+		synchronized(Integrated.class){ 
+			return "Instance"+(++testCounter);
+		}
 	}
 }
