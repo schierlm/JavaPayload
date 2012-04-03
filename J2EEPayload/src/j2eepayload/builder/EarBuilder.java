@@ -34,6 +34,7 @@
 
 package j2eepayload.builder;
 
+import j2eepayload.dynstager.DynstagerSupportBuilder;
 import j2eepayload.ejb.JavaPayload;
 import j2eepayload.ejb.JavaPayloadBean;
 import j2eepayload.ejb.JavaPayloadHome;
@@ -63,7 +64,7 @@ public class EarBuilder extends Builder {
 	
 	public static void main(String[] args) throws Exception {
 		if (args.length < 2 || args[0].indexOf("!") != -1 || "!EJB!WAR!Both!".indexOf('!'+args[0]+'!') == -1) {
-			System.out.println("Usage: java j2eepayload.builder.EarBuilder EJB|WAR|Both [--strip] [<filename>.ear] <stager> [<moreStagers...>]");
+			System.out.println("Usage: java j2eepayload.builder.EarBuilder EJB|WAR|Both [--strip] [<filename>.ear] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>]");
 			return;
 		}
 		new EarBuilder().build(args);
@@ -74,7 +75,7 @@ public class EarBuilder extends Builder {
 	}
 	
 	public String getParameterSyntax() {
-		return "EJB|WAR|Both [--strip] [<filename>.ear] <stager> [<moreStagers...>]";
+		return "EJB|WAR|Both [--strip] [<filename>.ear] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>]";
 	}
 	
 	public void build(String[] args) throws Exception {
@@ -91,6 +92,17 @@ public class EarBuilder extends Builder {
 					continue;
 				if (args[i].equals("--") && war)
 					break;
+				if (args[i].endsWith("_")) {
+					List dynstagerArgs = new ArrayList();
+					for(int j = i+1; j < args.length; j++) {
+						if (args[j].equals("--") && war)
+							break;
+						dynstagerArgs.add(args[j]);
+					}
+					classes.add(DynLoader.loadStager(args[i]+"LocalTest", null, 0));
+					classes.add(DynstagerSupportBuilder.buildSupport(args[i], dynstagerArgs));
+					break;
+				}
 				if (args[i].equals("--strip")) {
 					stripDebugInfo = true;
 				} else if (args[i].endsWith(".ear")) {
@@ -104,6 +116,7 @@ public class EarBuilder extends Builder {
 					classes.add(JavaPayloadTunnelBean.PayloadRunner.class);
 					classes.add(WrappedPipedOutputStream.class);
 					classes.add(LocalTest.class);
+					classes.add(j2eepayload.dynstager.DynstagerSupport.class);
 				} else {
 					classes.add(DynLoader.loadStager(args[i], null, 0));
 					if (!usePayload) {
