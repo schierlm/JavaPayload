@@ -57,7 +57,19 @@ public class LocalStage extends DynStagerHandler {
 		return null;
 	}
 	
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
+		for (int i = 0; i < dynstagers.length; i++) {
+			if (!(dynstagers[i] instanceof Spawn))
+				return false;
+		}
+		return true;
+	}
+	
 	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		super.handleDyn(new InternalLocalStageHandler(stageHandler), parameters, errorStream, extraArg, readyHandler);
+	}
+	
+	public String getTestExtraArg() {
+		return null;
 	}
 }

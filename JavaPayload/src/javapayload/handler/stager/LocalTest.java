@@ -40,6 +40,9 @@ import java.io.PipedOutputStream;
 import java.io.PrintStream;
 
 import javapayload.Parameter;
+import javapayload.handler.dynstager.DynStagerHandler;
+import javapayload.handler.dynstager.LocalStage;
+import javapayload.handler.dynstager.Spawn;
 import javapayload.handler.stage.StageHandler;
 import javapayload.loader.DynLoader;
 import javapayload.stager.Stager;
@@ -52,6 +55,16 @@ public class LocalTest extends StagerHandler implements Runnable {
 	
 	public Parameter[] getParameters() {
 		return new Parameter[0];
+	}
+	
+	public boolean isStagerUsableWith(DynStagerHandler[] dynstagers) {
+		for (int i = 0; i < dynstagers.length; i++) {
+			if (dynstagers[i] instanceof Spawn)
+				return false;
+			if (dynstagers[i] instanceof LocalStage && i < dynstagers.length-1)
+				return false;
+		}
+		return true;
 	}
 	
 	private InputStream in;

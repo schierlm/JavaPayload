@@ -74,19 +74,23 @@ public class StagerTest {
 		String[] stagers = getStagers();
 		for (int i = 0; i < stagers.length; i++) {
 			String name = stagers[i];
-			System.out.println("\t" + name);
-			String[] testArgs = getTestArgs(name);
-			for (int j = 0; j < testArgs.length; j++) {
-				System.out.println("\t\t" + testArgs[j]);
-				testStager(name, testArgs[j]);
-			}
+			testStager(name, name.contains("UDP") || name.contains("$"));
 		}
 		System.out.println("Stager tests finished.");
 		new ThreadWatchdogThread(5000).start();
 	}
 
-	private static void testStager(String name, String testArgs) throws Exception {
-		String[] args = StageMenu.splitArgs(name + " " + testArgs + " -- TestStub");
+	public static void testStager(String name, boolean fast) throws Exception {
+		System.out.println("\t" + name);
+		String[] testArgs = getTestArgs(name);
+		for (int j = 0; j < testArgs.length; j++) {
+			System.out.println("\t\t" + testArgs[j]);
+			testStager(name, testArgs[j], fast);
+		}
+	}
+
+	private static void testStager(String name, String testArgs, boolean fast) throws Exception {
+		String[] args = StageMenu.splitArgs(name + " " + testArgs + " -- TestStub" + (fast ? " Fast" : ""));
 		final StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		loader.handleBefore(System.err, null);
 		final Throwable[] tt = new Throwable[1];
@@ -163,6 +167,7 @@ public class StagerTest {
 			if (args != null)
 				result.add(className);
 		}
+		// TODO still needed?
 		// add AES/Integrated dynstagers
 		int origSize = result.size();
 		for (int i = 0; i < origSize; i++) {

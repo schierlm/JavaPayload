@@ -24,6 +24,10 @@ public class AES extends DynStagerHandler {
 		};
 	}
 	
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
+		return true;
+	}
+	
 	protected void handleDyn(StageHandler stageHandler, String[] parameters, PrintStream errorStream, Object extraArg, StagerHandler readyHandler) throws Exception {
 		String[] newParameters = new String[parameters.length - 1];
 		System.arraycopy(parameters, 2, newParameters, 1, newParameters.length - 1);
@@ -54,5 +58,9 @@ public class AES extends DynStagerHandler {
 			handlerArgs[i] = "# "+origHandlerArgs[i];
 		}
 		return handlerArgs;
+	}
+	
+	public String getTestExtraArg() {
+		return null;
 	}
 }

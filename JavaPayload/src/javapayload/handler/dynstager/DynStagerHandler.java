@@ -44,6 +44,10 @@ public abstract class DynStagerHandler extends DynStagerHandlerHelper {
 	}
 	
 	public abstract Parameter getExtraArg();
+	
+	public abstract String getTestExtraArg();
+	
+	public abstract boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers);
 		
 	protected final String getTestArguments() {
 		throw new IllegalStateException("Use getTestArgumentArray!");

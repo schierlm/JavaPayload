@@ -290,6 +290,25 @@ class ModuleParameterHandler extends ParameterHandler {
 			return previousDynstagers.length;
 		}
 
+		public NamedElement[] getPossibleValues() {
+			try {
+				NamedElement[] unfiltered = super.getPossibleValues();
+				if (previousDynstagers.length == 0) {
+					return unfiltered;
+				} else {
+					List filtered = new ArrayList();
+					for (int i = 0; i < unfiltered.length; i++) {
+						DynStagerHandler module = (DynStagerHandler) unfiltered[i];
+						if (module.isDynstagerUsableWith(previousDynstagers))
+							filtered.add(module);
+					}
+					return (HandlerModule[]) filtered.toArray(new HandlerModule[filtered.size()]);
+				}
+			} catch (Exception ex) {
+				throw new RuntimeException("Error while loading module list", ex);
+			}
+		}
+
 		protected ParameterHandler[] getNextHandlers(Module module) {
 			DynStagerHandler dsh = (DynStagerHandler) module;
 			List prevDynstagers = new ArrayList(Arrays.asList(previousDynstagers));

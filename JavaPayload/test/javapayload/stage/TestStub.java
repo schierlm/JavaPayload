@@ -42,30 +42,35 @@ import java.util.Random;
 
 public class TestStub implements Stage, Runnable {
 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
-		byte[] concurrentRead = new byte[4096];
-		in.readFully(concurrentRead);
-		if (!checkConcurrentRead(concurrentRead))
-			throw new RuntimeException("Concurrent read returned wrong result");
-		final byte[] concurrentWrite = new byte[128];
-		for (int i = 0; i < concurrentWrite.length; i++) {
-			concurrentWrite[i] = (byte)i;
+		int bufsize = 4096;
+		if (parameters[parameters.length-1].equals("Fast")) {
+			bufsize = 50;
+		} else {
+			byte[] concurrentRead = new byte[4096];
+			in.readFully(concurrentRead);
+			if (!checkConcurrentRead(concurrentRead))
+				throw new RuntimeException("Concurrent read returned wrong result");
+			final byte[] concurrentWrite = new byte[128];
+			for (int i = 0; i < concurrentWrite.length; i++) {
+				concurrentWrite[i] = (byte)i;
+			}
+			Thread[] threads = new Thread[32];
+			for (int i = 0; i < threads.length; i++) {
+				threads[i] = new WriterThread(out, concurrentWrite);
+				threads[i].start();
+			}
+			for (int i = 0; i < threads.length; i++) {
+				threads[i].join();
+			}
+			System.out.println("\t\t\t\t\t(System.out)");
+			System.err.println("\t\t\t\t\t(System.err)");
 		}
-		Thread[] threads = new Thread[32];
-		for (int i = 0; i < threads.length; i++) {
-			threads[i] = new WriterThread(out, concurrentWrite);
-			threads[i].start();
-		}
-		for (int i = 0; i < threads.length; i++) {
-			threads[i].join();
-		}
-		System.out.println("\t\t\t\t\t(System.out)");
-		System.err.println("\t\t\t\t\t(System.err)");
-		byte[] outdata = new byte[4096];
+		byte[] outdata = new byte[bufsize];
 		Random r = new Random();
 		r.nextBytes(outdata);
 		out.write(outdata);
 		out.flush();
-		byte[] indata = new byte[4096];
+		byte[] indata = new byte[bufsize];
 		in.readFully(indata);
 		MessageDigest digest = MessageDigest.getInstance("SHA-1");
 		byte[] indigest = digest.digest(indata);

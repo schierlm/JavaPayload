@@ -69,28 +69,33 @@ public class TestStub extends StageHandler {
 	
 	public void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 		DataInputStream dis = new DataInputStream(in);
-		final byte[] concurrentWrite = new byte[128];
-		for (int i = 0; i < concurrentWrite.length; i++) {
-			concurrentWrite[i] = (byte)i;
+		int bufsize = 4096;
+		if (parameters[parameters.length-1].equals("Fast")) {
+			bufsize = 50;
+		} else {
+			final byte[] concurrentWrite = new byte[128];
+			for (int i = 0; i < concurrentWrite.length; i++) {
+				concurrentWrite[i] = (byte)i;
+			}
+			Thread[] threads = new Thread[32];
+			for (int i = 0; i < threads.length; i++) {
+				threads[i] = new WriterThread(out, concurrentWrite);
+				threads[i].start();
+			}
+			for (int i = 0; i < threads.length; i++) {
+				threads[i].join();
+			}
+			byte[] concurrentRead = new byte[4096];
+			dis.readFully(concurrentRead);
+			if (!javapayload.stage.TestStub.checkConcurrentRead(concurrentRead))
+				throw new RuntimeException("Concurrent read returned wrong result");
+			System.out.println("\t\t\t\t\t(System.out)");
+			System.err.println("\t\t\t\t\t(System.err)");
 		}
-		Thread[] threads = new Thread[32];
-		for (int i = 0; i < threads.length; i++) {
-			threads[i] = new WriterThread(out, concurrentWrite);
-			threads[i].start();
-		}
-		for (int i = 0; i < threads.length; i++) {
-			threads[i].join();
-		}
-		byte[] concurrentRead = new byte[4096];
-		dis.readFully(concurrentRead);
-		if (!javapayload.stage.TestStub.checkConcurrentRead(concurrentRead))
-			throw new RuntimeException("Concurrent read returned wrong result");
-		byte[] indata = new byte[4096];
+		byte[] indata = new byte[bufsize];
 		dis.readFully(indata);
 		Thread.sleep(wait);
-		System.out.println("\t\t\t\t\t(System.out)");
-		System.err.println("\t\t\t\t\t(System.err)");
-		byte[] outdata = new byte[4096];
+		byte[] outdata = new byte[bufsize];
 		Random r = new Random();
 		r.nextBytes(outdata);
 		out.write(outdata);
