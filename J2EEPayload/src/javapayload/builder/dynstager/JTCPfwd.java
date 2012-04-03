@@ -1,7 +1,7 @@
 /*
- * J2EE Payloads.
+ * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,60 +32,44 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stager;
+package javapayload.builder.dynstager;
 
+import j2eepayload.builder.JTCPfwdBuilder;
+
+import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
-import java.net.Socket;
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.StringTokenizer;
 
-import javapayload.Parameter;
-import javapayload.handler.stage.StageHandler;
+import jtcpfwd.CustomLiteBuilder;
 import jtcpfwd.Lookup;
+import jtcpfwd.Module;
+import jtcpfwd.forwarder.Forwarder;
 import jtcpfwd.listener.Listener;
 
-public class JTCPfwdForwarder extends ListeningStagerHandler {
+public class JTCPfwd extends DynStagerBuilder {
 
-	public JTCPfwdForwarder() {
-		super("Use a JTCPfwd Forwarder to connect to a stager", true, false, "");
-	}
-	
-	protected JTCPfwdForwarder(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
-		super(summary, handlerUsable, stagerUsable, description);
-	}
-	
-	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("STAGERRULE", false, Parameter.TYPE_ANY, "Ignored by the stager handler"),
-				new Parameter("HANDLERRULE", false, Parameter.TYPE_ANY, "jTCPfwd Forwarder rule used by the stager handler"),
-		};
-	}
-	
-	private Listener listener = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (listener == null) {
-			listener = Lookup.lookupListener(parameters[2]);
+	public byte[] buildStager(String stagerResultName, Class baseStagerClass, String extraArg, String[] args) throws Exception {
+		boolean listener = false;
+		if (baseStagerClass == javapayload.stager.Listener.class) {
+			listener = true;
+		} else if (baseStagerClass != javapayload.stager.Forwarder.class) {
+			throw new IllegalStateException("Unsupported base stager: " + baseStagerClass);
 		}
-	}
-	
-	protected Object acceptSocket() throws Exception {
-		return listener.accept();
-	}
-	
-	protected void stopListen() throws Exception {
-		listener.dispose();
-		listener = null;
-	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return null;
+		HashSet /* <String> */classNameSet = new HashSet();
+		if (extraArg != null && extraArg.length() > 0) {
+			StringTokenizer st = new StringTokenizer(extraArg, "$");
+			while (st.hasMoreTokens()) {
+				CustomLiteBuilder.addRequiredClasses(classNameSet, Module.lookup(listener ? Listener.class : Forwarder.class, st.nextToken()));
+			}
+		} else {
+			Module mainModule = Lookup.lookupClass(listener ? Listener.class : Forwarder.class, args[1]);
+			CustomLiteBuilder.addRequiredClasses(new int[CustomLiteBuilder.BASECLASS.length], classNameSet, mainModule);
+			mainModule.dispose();
+		}
+		List /* <String> */classNames = new ArrayList(classNameSet);
+		return JTCPfwdBuilder.buildClass("javapayload/stager/" + stagerResultName, listener, classNames, new PrintStream(new ByteArrayOutputStream()));
 	}
 }

@@ -40,6 +40,7 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
 import java.io.InputStream;
+import java.io.PrintStream;
 import java.net.Socket;
 import java.net.URL;
 import java.security.AllPermission;
@@ -75,8 +76,6 @@ import org.objectweb.asm.Opcodes;
 
 public class JTCPfwdBuilder extends Builder {
 	
-	// TODO make this a DynStager?
-	
 	public static void main(String[] args) throws Exception {
 		if (args.length != 2 || args[0].length() != 1 || "FL".indexOf(args[0]) == -1) {
 			System.out.println("Usage: java j2eepayload.builder.JTCPfwdBuilder F|L <rule>");
@@ -99,7 +98,18 @@ public class JTCPfwdBuilder extends Builder {
 		HashSet /*<String>*/ classNameSet = new HashSet();
 		CustomLiteBuilder.addRequiredClasses(new int[CustomLiteBuilder.BASECLASS.length], classNameSet, mainModule);
 		mainModule.dispose();
-		List /*<String>*/ classNames = new ArrayList(classNameSet);
+		List /*<String>*/ classNames = new ArrayList(classNameSet);		
+		String classname = listener?"javapayload/stager/JTCPfwdListener" : "javapayload/stager/JTCPfwdForwarder";
+		final byte[] newBytecode = buildClass(classname, listener, classNames, System.out);
+		Manifest manifest = new Manifest();
+		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
+		final JarOutputStream jos = new JarOutputStream(new FileOutputStream("jtcpfwd-stager.jar"), manifest);
+		jos.putNextEntry(new ZipEntry(classname+".class"));
+		jos.write(newBytecode);
+		jos.close();
+	}
+	
+	public static byte[] buildClass(String classname, boolean listener, List classNames, PrintStream out) throws Exception {
 		classNames.add(listener ? JTCPfwdListenerAdapter.class.getName() : JTCPfwdForwarderAdapter.class.getName());
 
 		ByteArrayOutputStream classesOut = new ByteArrayOutputStream();
@@ -116,11 +126,11 @@ public class JTCPfwdBuilder extends Builder {
 		}
 		dos.writeInt(0);
 		dos.close();
-		embedIntoClass(listener?"javapayload/stager/JTCPfwdListener" : "javapayload/stager/JTCPfwdForwarder", classesOut.toByteArray());
+		return getEmbeddedClass(classname, classesOut.toByteArray(), out);
 	}
 
 
-	protected static void embedIntoClass(final String classname, byte[] prependData) throws Exception {
+	private static byte[] getEmbeddedClass(final String classname, byte[] prependData, PrintStream out) throws Exception {
 		final ClassWriter cw = new ClassWriter(0);
 		class MyMethodVisitor extends MethodAdapter {
 			private final String newClassName;
@@ -153,20 +163,20 @@ public class JTCPfwdBuilder extends Builder {
 		String prependDataString = new String(prependData, "ISO-8859-1");
 		final List prependDataStrings = new ArrayList();
 		final int MAXLEN = 65535;
-		System.out.println("Encoding embed data...");
+		out.println("Encoding embed data...");
 		while (prependDataString.length() > MAXLEN || getUTFLen(prependDataString) > MAXLEN) {
-			System.out.println("Remaining embed data is "+prependDataString.length()+" bytes, needs splitting.");
+			out.println("Remaining embed data is "+prependDataString.length()+" bytes, needs splitting.");
 			int len = Math.min(MAXLEN, prependDataString.length()), utflen;
 			while ((utflen = getUTFLen(prependDataString.substring(0, len))) > MAXLEN) {
 				len -= (utflen-MAXLEN+1)/2;
-				System.out.println("Trying to encode "+len+" bytes");
+				out.println("Trying to encode "+len+" bytes");
 			}
 			prependDataStrings.add(prependDataString.substring(0, len));
 			prependDataString=prependDataString.substring(len);
 		}
-		System.out.println("Remaining embed data is "+prependDataString.length()+" bytes.");
+		out.println("Remaining embed data is "+prependDataString.length()+" bytes.");
 		prependDataStrings.add(prependDataString);
-		System.out.println("Finished encoding embed data");
+		out.println("Finished encoding embed data");
 		final ClassVisitor integratorVisitor = new ClassAdapter(cw) {
 			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
 				if (!superName.equals("javapayload/stager/Stager") || !name.equals(StagerTemplate.class.getName().replace('.', '/')))
@@ -207,13 +217,7 @@ public class JTCPfwdBuilder extends Builder {
 		final ClassReader cr = new ClassReader(is);
 		cr.accept(integratorVisitor, 0);
 		is.close();
-		final byte[] newBytecode = cw.toByteArray();
-		Manifest manifest = new Manifest();
-		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
-		final JarOutputStream jos = new JarOutputStream(new FileOutputStream("jtcpfwd-stager.jar"), manifest);
-		jos.putNextEntry(new ZipEntry(classname+".class"));
-		jos.write(newBytecode);
-		jos.close();
+		return cw.toByteArray();
 	}
 
 	private static int getUTFLen(String str) {

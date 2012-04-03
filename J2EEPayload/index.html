@@ -372,6 +372,8 @@ first)</p>
 
 <h2>jTCPfwd based stagers</h2>
 
+<h3>Generated stagers</h3>
+
 <p>To create a jTCPfwd based stager, run <tt>java
 j2eepayload.builder.JTCPfwdBuilder</tt> (which will need <tt>asm-3.2.jar</tt>
 on the class path), followed by <tt>F</tt> or <tt>L</tt> (for Forwarder
@@ -388,6 +390,19 @@ handlers expect two parameters. The first one is the listener/forwarder
 rule used by the stager, and the second one is the forwarder/listener
 rule the stager handler should use to communicate with the stager (which
 is usually not the same as the rule used by the stager).</p>
+
+<h3>Dynstagers</h3>
+
+<p>Dynstagers are the preferred way to use jTCPfwd based stagers.</p>
+
+<p>Use either the <tt>JTCPfwd$<i>name</i>_Forwarder</tt> or 
+<tt>JTCPfwd$<i>name</i>_Listener</tt> syntax. Multiple module names
+can be separated by <tt>$</tt> signs. In case the dynstager has access
+to the full command line, <i>name</i> can be left empty; it is then
+automatically inferred from the arguments.</p>
+
+<p>The parameters for the dynstagers and their handlers are the same as
+for the generated stagers.</p>
 
 </body>
 </html>

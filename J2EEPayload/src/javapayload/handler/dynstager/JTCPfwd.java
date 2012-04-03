@@ -1,7 +1,7 @@
 /*
- * J2EE Payloads.
+ * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,60 +32,36 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.handler.stager;
-
-import java.io.PrintStream;
-import java.net.Socket;
+package javapayload.handler.dynstager;
 
 import javapayload.Parameter;
-import javapayload.handler.stage.StageHandler;
-import jtcpfwd.Lookup;
-import jtcpfwd.listener.Listener;
+import javapayload.handler.stager.Forwarder;
+import javapayload.handler.stager.Listener;
 
-public class JTCPfwdForwarder extends ListeningStagerHandler {
+public class JTCPfwd extends DynStagerHandler {
 
-	public JTCPfwdForwarder() {
-		super("Use a JTCPfwd Forwarder to connect to a stager", true, false, "");
+	public JTCPfwd() {
+		super("Dynamically create a stager from a jTCPfwd module", true, true,
+				"This dynstager only works with the Forwarder and Listener pseudo-stagers");
 	}
-	
-	protected JTCPfwdForwarder(String summary, boolean handlerUsable, boolean stagerUsable, String description) {
-		super(summary, handlerUsable, stagerUsable, description);
-	}
-	
+
 	public Parameter[] getParameters() {
-		return new Parameter[] {
-				new Parameter("STAGERRULE", false, Parameter.TYPE_ANY, "Ignored by the stager handler"),
-				new Parameter("HANDLERRULE", false, Parameter.TYPE_ANY, "jTCPfwd Forwarder rule used by the stager handler"),
-		};
+		return new Parameter[0];
 	}
-	
-	private Listener listener = null;
-	
-	protected void startListen(String[] parameters) throws Exception {
-		if (listener == null) {
-			listener = Lookup.lookupListener(parameters[2]);
-		}
+
+	public Parameter getExtraArg() {
+		return new Parameter("MODULE", false, Parameter.TYPE_ANY, "Name of the listener/forwarder module to use");
 	}
-	
-	protected Object acceptSocket() throws Exception {
-		return listener.accept();
+
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
+		return true;
 	}
-	
-	protected void stopListen() throws Exception {
-		listener.dispose();
-		listener = null;
+
+	public Class[] getCoupledStagers() {
+		return new Class[] { Forwarder.class, Listener.class };
 	}
-	
-	protected void handleSocket(Object socket, StageHandler stageHandler, String[] parameters, PrintStream errorStream) throws Exception {
-		Socket s = (Socket) socket;
-		stageHandler.handle(s.getOutputStream(), s.getInputStream(), parameters);
-	}
-	
-	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		return false;
-	}
-	
-	protected String getTestArguments() {
-		return null;
+
+	public String getTestExtraArg() {
+		throw new UnsupportedOperationException();
 	}
 }
