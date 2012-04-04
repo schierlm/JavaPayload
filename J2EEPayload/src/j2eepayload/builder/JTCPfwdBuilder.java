@@ -39,15 +39,12 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.Socket;
-import java.net.URL;
 import java.security.AllPermission;
-import java.security.CodeSource;
 import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -242,14 +239,12 @@ public class JTCPfwdBuilder extends Builder {
 	}
 	
 	private Map /*<String,byte[]>*/ classCache;
-	private ProtectionDomain pd;
 	private boolean ready;
 	
 	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
 		final DataInputStream in = new DataInputStream(new ByteArrayInputStream(getEmbeddedClasses().getBytes("ISO-8859-1")));
 		final Permissions permissions = new Permissions();
 		permissions.add(new AllPermission());
-		pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
 		classCache = new HashMap();
 		String className;
 		int length = in.readInt();
@@ -275,7 +270,11 @@ public class JTCPfwdBuilder extends Builder {
 		byte[] classfile = (byte[]) classCache.get(name);
 		if (classfile == null)
 			return super.findClass(name);
-		return defineClass(null, classfile, 0, classfile.length, pd);
+		try {
+			return define(classfile);
+		} catch (IOException ex) {
+			throw new RuntimeException(ex.toString());
+		}
 	}
 	
 	public synchronized void waitReady() throws InterruptedException {
