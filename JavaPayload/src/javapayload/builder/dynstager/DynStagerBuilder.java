@@ -56,7 +56,7 @@ public abstract class DynStagerBuilder {
 	public abstract byte[] buildStager(String stagerName, Class baseStagerClass, String extraArg, String[] args) throws Exception;
 	
 
-	protected void visitStringConstant(MethodVisitor mv, String constant) {
+	public static void visitStringConstant(MethodVisitor mv, String constant) {
 		final List stringParts = new ArrayList();
 		final int MAXLEN = 65535;
 		while (constant.length() > MAXLEN || getUTFLen(constant) > MAXLEN) {

