@@ -170,7 +170,10 @@ that one with Metasploit's meterpreter, a special LocalProxy stage handler is pr
 
 <p>This stage expects a stager and its arguments as parameters; this stager will be
 launched from the stage handler and the sockets will be connected to the stage handler's sockets,
-making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stager handler.</p> 
+making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stager handler.</p>
+
+<p>In case you want to use one of the <tt>java/*/reverse_http*</tt> payloads from Metasploit,
+you can use the <tt>MetasploitURL</tt> stager in JavaPayload to connect to them.</p>
 
 <h2>Changes since version 0.2</h2>
 
@@ -194,6 +197,7 @@ making it possible to connect a ReverseTCP stager directly to a JDWPTunnel stage
 <li>Add support for self-documenting Discovery modules and provide AttachDiscovery as replacement for AttachInjector's list command</li>
 <li>Add javapayload.cli.Main class.</li>
 <li>Add Crypter support.</li>
+<li>Add <tt>MetasploitURL</tt> stager</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
