@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -34,30 +34,43 @@
 
 package javapayload.stage;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultiStage implements Stage {
+public class Background implements Stage {
 
 	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
-		List/* <MultiStagerClassLoader> */stages = new ArrayList();
-		while (true) {
-			int index = in.readInt();
-			if (index == -1)
-				break;
-			if (index < 0 || index > stages.size()) {
-				throw new RuntimeException("Invalid stage index: " + index + " (stages size = " + stages.size() + ")");
+		boolean go = false;
+		List /* <String> */stagerParameters = new ArrayList();
+		List /* <String> */currentParameters = new ArrayList();
+		for (int i = 0; i < parameters.length; i++) {
+			if (!go) {
+				stagerParameters.add(parameters[i]);
+				if (parameters[i].equals("--")) {
+					go = true;
+					i++;
+				}
+				continue;
 			}
-			if (index == stages.size()) {
-				stages.add(new MultiStageClassLoader(in, new MultiStageOutputStream(out)));
+			if (parameters[i].equals("---")) {
+				currentParameters.addAll(0, stagerParameters);
+				String[] params = (String[]) currentParameters.toArray(new String[currentParameters.size()]);
+				currentParameters.clear();
+				byte[] bytes = new byte[in.readInt()];
+				in.readFully(bytes);
+				new MultiStageClassLoader(params, new ByteArrayInputStream(bytes), new ByteArrayOutputStream(), true);
+			} else if (parameters[i].startsWith("---")) {
+				currentParameters.add(parameters[i].substring(1));
+			} else {
+				currentParameters.add(parameters[i]);
 			}
-			MultiStageClassLoader stage = (MultiStageClassLoader) stages.get(index);
-			((MultiStageOutputStream)stage.getOutputStream()).forward(stage, in);
 		}
-		while(in.read() != -1)
-			;
-		out.close();
+		currentParameters.addAll(0, stagerParameters);
+		String[] params = (String[]) currentParameters.toArray(new String[currentParameters.size()]);
+		new MultiStageClassLoader(params, in, out, false);
 	}
 }

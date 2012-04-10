@@ -198,6 +198,7 @@ you can use the <tt>MetasploitURL</tt> stager in JavaPayload to connect to them.
 <li>Add javapayload.cli.Main class.</li>
 <li>Add Crypter support.</li>
 <li>Add <tt>MetasploitURL</tt> stager</li>
+<li>Add <tt>PasswordProtect</tt> stage</li>
 </ul>
 
 <h2>Changes since version 0.1</h2>
@@ -507,6 +508,15 @@ stage (separated by ---) where the user can select from. For example.</p>
 <p><tt>StageMenu Shell --- JSh --- SystemInfo --- StopListening</tt></p>
 
 <p>creates a menu of four different stages, still making it possible to stage anything else if desired.</p>
+
+<p>While normal JavaPayload stagers can easily be protected from abuse by using an AES password,
+this is not possible for Integrated dynstagers (as most telnet clients do not support AES).
+Therefore, the PasswordProtect stage can be used in front of a real other stage. To avoid
+having to enter the password every time, and to make it possible to stage other
+stages via StageMenu, it can work together with the BindMultiTCP stager
+to ask for the password only once per source IP:</p>
+
+<p><tt>BindMultiTCP victim.example.com 12345 RemoteIP -- PasswordProtect /remember:3,... StageMenu ...</tt></p>
 
 <h3>LocalStage dynstager</h3>
 

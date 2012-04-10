@@ -34,6 +34,9 @@
 
 package javapayload.stage;
 
+import java.io.BufferedOutputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -146,5 +149,23 @@ public class MultiStageOutputStream extends OutputStream {
 			}
 		}
 		throw new IOException("Premature end of stream");
+	}
+	
+	public void forward(MultiStageClassLoader loader, DataInputStream in) throws IOException {
+		start();
+		boolean alive;
+		synchronized (loader) {
+			loader.forwarding = true;
+			alive = loader.alive;
+		}
+		BufferedOutputStream buffOut = loader.getBuffer();
+		decodeForward(in, alive ? (OutputStream) buffOut : new ByteArrayOutputStream());
+		if (alive)
+			buffOut.flush();
+		synchronized (loader) {
+			loader.forwarding = false;
+			loader.notifyAll();
+		}
+		stop();
 	}
 }
