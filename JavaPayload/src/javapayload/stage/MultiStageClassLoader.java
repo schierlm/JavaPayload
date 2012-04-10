@@ -35,7 +35,6 @@
 package javapayload.stage;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -52,27 +51,39 @@ import java.security.cert.Certificate;
 
 public class MultiStageClassLoader extends ClassLoader implements Runnable {
 
-	private final MultiStageOutputStream msOut;
-	private final PipedOutputStream out;
+	private final OutputStream msOut;
+	private final InputStream in;
 	private final BufferedOutputStream buffOut;
 	private final String[] params;
-	private boolean alive = true, forwarding = false;
+	protected boolean alive = true, forwarding = false;
 
-	public MultiStageClassLoader(DataInputStream baseIn, OutputStream baseOut) throws IOException {
+	public MultiStageClassLoader(DataInputStream baseIn, OutputStream msOut) throws IOException {
 		int paramCount = baseIn.readUnsignedShort();
 		params = new String[paramCount];
 		for (int i = 0; i < params.length; i++) {
 			params[i] = baseIn.readUTF();
 		}
-		msOut = new MultiStageOutputStream(baseOut);
-		out = new PipedOutputStream();
+		this.msOut = msOut;
+		PipedOutputStream out = new PipedOutputStream();
+		in = new PipedInputStream(out);
 		buffOut = new BufferedOutputStream(out);
 		new Thread(this).start();
 	}
 
+	public MultiStageClassLoader(String[] params, InputStream in, OutputStream out, boolean threaded) throws IOException {
+		this.params = params;
+		this.in = in;
+		this.msOut = out;
+		buffOut = new BufferedOutputStream(out);
+		if (threaded) {
+			new Thread(this).start();
+		} else {
+			run();
+		}
+	}
+
 	public void run() {
 		try {
-			PipedInputStream in = new PipedInputStream(out);
 			bootstrap(in, msOut, params);
 			synchronized (this) {
 				alive = false;
@@ -108,21 +119,12 @@ public class MultiStageClassLoader extends ClassLoader implements Runnable {
 			t.printStackTrace(new PrintStream(out, true));
 		}
 	}
-
-	public void forward(DataInputStream in) throws IOException {
-		msOut.start();
-		boolean alive;
-		synchronized (this) {
-			forwarding = true;
-			alive = this.alive;
-		}
-		MultiStageOutputStream.decodeForward(in, alive ? (OutputStream) buffOut : new ByteArrayOutputStream());
-		if (alive)
-			buffOut.flush();
-		synchronized (this) {
-			forwarding = false;
-			notifyAll();
-		}
-		msOut.stop();
+	
+	protected OutputStream getOutputStream() {
+		return msOut;
+	}
+	
+	protected BufferedOutputStream getBuffer() {
+		return buffOut;
 	}
 }

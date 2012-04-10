@@ -1,0 +1,7 @@
+Background SystemInfo --- Scripting js
+=-=
+2+3
+exit
+=-=
+~> 5.0
+~> 

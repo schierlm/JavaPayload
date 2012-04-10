@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -34,30 +34,53 @@
 
 package javapayload.stage;
 
-import java.io.DataInputStream;
+import java.io.DataOutputStream;
+import java.io.IOException;
 import java.io.OutputStream;
-import java.util.ArrayList;
-import java.util.List;
 
-public class MultiStage implements Stage {
+public class MultiStageMuxOutputStream extends OutputStream {
 
-	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
-		List/* <MultiStagerClassLoader> */stages = new ArrayList();
-		while (true) {
-			int index = in.readInt();
-			if (index == -1)
-				break;
-			if (index < 0 || index > stages.size()) {
-				throw new RuntimeException("Invalid stage index: " + index + " (stages size = " + stages.size() + ")");
-			}
-			if (index == stages.size()) {
-				stages.add(new MultiStageClassLoader(in, new MultiStageOutputStream(out)));
-			}
-			MultiStageClassLoader stage = (MultiStageClassLoader) stages.get(index);
-			((MultiStageOutputStream)stage.getOutputStream()).forward(stage, in);
+	private final DataOutputStream out;
+	private boolean closed = false;
+	private final int index;
+
+	public MultiStageMuxOutputStream(int index, DataOutputStream out) {
+		this.index = index;
+		this.out = out;
+	}
+
+	public void write(byte[] b, int off, int len) throws IOException {
+		synchronized (this) {
+			if (closed)
+				throw new IOException("Stream closed");
+			if (len == 0)
+				return;
 		}
-		while(in.read() != -1)
-			;
-		out.close();
+		writeInternal(b, off, len);
+	}
+
+	public void write(int b) throws IOException {
+		write(new byte[] { (byte) b });
+	}
+
+	public void close() throws IOException {
+		synchronized(this) {
+			if (closed)
+				return;
+			closed = true;			
+		}
+		writeInternal(new byte[0], 0, 0);
+	}
+
+	private void writeInternal(byte[] bs, int off, int len) throws IOException {
+		synchronized(out) {
+			out.writeInt(index);
+			out.writeInt(len);
+			out.write(bs, off, len);
+		}
+	}
+
+	public synchronized void flush() throws IOException {
+		out.flush();
 	}
 }

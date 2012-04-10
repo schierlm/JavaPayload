@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -35,29 +35,46 @@
 package javapayload.stage;
 
 import java.io.DataInputStream;
+import java.io.DataOutputStream;
 import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-public class MultiStage implements Stage {
+public class MultiStageMux implements Stage {
 
-	public void start(DataInputStream in, OutputStream out, String[] parameters) throws Exception {
-		List/* <MultiStagerClassLoader> */stages = new ArrayList();
-		while (true) {
-			int index = in.readInt();
-			if (index == -1)
-				break;
-			if (index < 0 || index > stages.size()) {
-				throw new RuntimeException("Invalid stage index: " + index + " (stages size = " + stages.size() + ")");
+	public void start(DataInputStream in, OutputStream rawOut, String[] parameters) throws Exception {
+		DataOutputStream out = new DataOutputStream(rawOut);
+		try {
+			List/* <MultiStageClassLoader> */stages = new ArrayList();
+			while (true) {
+				int index = in.readInt();
+				if (index == -1)
+					break;
+				if (index < 0 || index > stages.size()) {
+					throw new RuntimeException("Invalid stage index: " + index + " (stages size = " + stages.size() + ")");
+				}
+				if (index == stages.size()) {
+					stages.add(new MultiStageClassLoader(in, new MultiStageMuxOutputStream(index, out)));
+				} else {
+					OutputStream outBuf = ((MultiStageClassLoader) stages.get(index)).getBuffer();
+					byte[] buf = new byte[in.readInt()];
+					if (buf.length == 0) {
+						outBuf.close();
+					} else {
+						in.readFully(buf);
+						outBuf.write(buf);
+						outBuf.flush();
+					}
+				}
 			}
-			if (index == stages.size()) {
-				stages.add(new MultiStageClassLoader(in, new MultiStageOutputStream(out)));
-			}
-			MultiStageClassLoader stage = (MultiStageClassLoader) stages.get(index);
-			((MultiStageOutputStream)stage.getOutputStream()).forward(stage, in);
+			while (in.read() != -1)
+				;
+			out.writeInt(-1);
+			out.close();
+			out = null;
+		} finally {
+			if (out != null)
+				out.writeInt(-2);
 		}
-		while(in.read() != -1)
-			;
-		out.close();
 	}
 }

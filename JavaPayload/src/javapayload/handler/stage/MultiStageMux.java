@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -48,22 +48,25 @@ import java.util.List;
 import java.util.StringTokenizer;
 
 import javapayload.Parameter;
-import javapayload.stage.MultiStageOutputStream;
+import javapayload.handler.stage.MultiStage.ConsoleWrapper;
+import javapayload.stage.MultiStageMuxOutputStream;
 
-public class MultiStage extends StageHandler {
+public class MultiStageMux extends StageHandler {
 
-	public MultiStage() {
-		super("Stage multiplexer with job control", true, true,
-				"Multiplexes between multiple stages over the same connection.");
+	public MultiStageMux() {
+		super("Stage multiplexer with background streams and job control", true, true,
+				"Multiplexes between multiple stages over the same connection. Background\r\n" +
+				"stages continue sending data, only the output is buffered.");
 	}
-	
+
 	public Parameter[] getParameters() {
 		return new Parameter[0];
 	}
-	
+
 	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
 		DataInputStream dis = new DataInputStream(consoleIn);
 		List/* <MultiStage.Stage> */runningStages = new ArrayList();
+		new Thread(new DecodeForwarder(new DataInputStream(in), runningStages)).start();
 		while (true) {
 			consoleOut.println();
 			for (int i = 0; i < runningStages.size(); i++) {
@@ -104,7 +107,6 @@ public class MultiStage extends StageHandler {
 					consoleOut.println("Invalid stage index.");
 					continue;
 				}
-				out.writeInt(number - 1);
 				stage = (Stage) runningStages.get(number - 1);
 			} catch (NumberFormatException ex) {
 				try {
@@ -113,11 +115,10 @@ public class MultiStage extends StageHandler {
 					t.printStackTrace(consoleOut);
 					continue;
 				}
-				out.writeInt(runningStages.size());
-				stage.bootstrap(in, out);
+				stage.bootstrap(runningStages.size(), out);
 				runningStages.add(stage);
 			}
-			stage.forward();
+			stage.interact();
 		}
 		out.writeInt(-1);
 		for (int i = 0; i < runningStages.size(); i++) {
@@ -129,26 +130,26 @@ public class MultiStage extends StageHandler {
 	}
 
 	public Class[] getNeededClasses() {
-		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.MultiStageClassLoader.class, javapayload.stage.MultiStageOutputStream.class, javapayload.stage.MultiStage.class };
+		return new Class[] { javapayload.stage.Stage.class, javapayload.stage.MultiStageClassLoader.class, javapayload.stage.MultiStageMuxOutputStream.class, javapayload.stage.MultiStageMux.class };
 	}
 
 	protected StageHandler createClone() {
-		return new MultiStage();
+		return new MultiStageMux();
 	}
 
 	private class Stage {
 		private final String commandLine;
 		private final String[] arguments;
 		private final StageHandler handler;
-		private MultiStageOutputStream msOut;
-		private DecodeForwarder df;
+		private MultiStageMuxOutputStream msOut;
 		private PipedOutputStream console;
+		private BufferedOutputStream buffer;
 		private ConsoleWrapper consoleWrapper;
 		private volatile boolean alive = true;
 
 		public Stage(String commandLine) throws Exception {
 			this.commandLine = commandLine;
-			StringTokenizer st = new StringTokenizer("MultiStage -- "+commandLine, " ");
+			StringTokenizer st = new StringTokenizer("MultiStage -- " + commandLine, " ");
 			arguments = new String[st.countTokens()];
 			for (int i = 0; i < arguments.length; i++) {
 				arguments[i] = st.nextToken();
@@ -160,13 +161,21 @@ public class MultiStage extends StageHandler {
 			return alive;
 		}
 
-		public void bootstrap(InputStream in, DataOutputStream out) throws Exception {
-			out.writeShort(arguments.length);
-			for (int i = 0; i < arguments.length; i++) {
-				out.writeUTF(arguments[i]);
-			}
-			msOut = new MultiStageOutputStream(out);
+		public BufferedOutputStream getBuffer() {
+			return buffer;
+		}
+
+		public void bootstrap(int index, DataOutputStream out) throws Exception {
 			final PipedOutputStream pipedOut = new PipedOutputStream();
+			buffer = new BufferedOutputStream(pipedOut);
+			synchronized (out) {
+				out.writeInt(index);
+				out.writeShort(arguments.length);
+				for (int i = 0; i < arguments.length; i++) {
+					out.writeUTF(arguments[i]);
+				}
+			}
+			msOut = new MultiStageMuxOutputStream(index, out);
 			console = new PipedOutputStream();
 			handler.consoleIn = new PipedInputStream(console);
 			handler.consoleOut = new PrintStream(consoleWrapper = new ConsoleWrapper(consoleOut), true);
@@ -184,13 +193,10 @@ public class MultiStage extends StageHandler {
 					}
 				}
 			}).start();
-			new Thread(df = new DecodeForwarder(in, pipedOut)).start();
 		}
 
-		public void forward() throws Exception {
-			msOut.start();
+		public void interact() throws Exception {
 			consoleWrapper.start();
-			df.start();
 			boolean escape = false;
 			while (true) {
 				int b = consoleIn.read();
@@ -208,9 +214,7 @@ public class MultiStage extends StageHandler {
 					console.write(b);
 				}
 			}
-			msOut.stop();
 			consoleWrapper.stop();
-			df.waitFor();
 		}
 
 		public String getCommandLine() {
@@ -218,112 +222,50 @@ public class MultiStage extends StageHandler {
 		}
 
 		public void shutdown() throws IOException {
-			df.shutdown();
 			// make sure all pending data/exceptions can be sent
-			msOut.start();
 			consoleWrapper.start();
-		}
-
-		private class DecodeForwarder implements Runnable {
-
-			private boolean active = false, shutdown = false;
-			private final InputStream in;
-			private final BufferedOutputStream out;
-
-			public DecodeForwarder(InputStream in, OutputStream out) {
-				this.in = in;
-				this.out = new BufferedOutputStream(out);
-			}
-
-			public synchronized void shutdown() {
-				if (active)
-					throw new IllegalStateException();
-				shutdown = true;
-				notifyAll();
-			}
-
-			public void run() {
-				try {
-					while (true) {
-						synchronized (this) {
-							while (!active && !shutdown)
-								wait();
-							if (shutdown)
-								return;
-						}
-						MultiStageOutputStream.decodeForward(in, out);
-						out.flush();
-						synchronized (this) {
-							active = false;
-							notifyAll();
-						}
-					}
-				} catch (Throwable t) {
-					t.printStackTrace(consoleErr);
-				}
-			}
-
-			public synchronized void start() {
-				active = true;
-				notifyAll();
-			}
-
-			public synchronized void waitFor() throws InterruptedException {
-				while (active) {
-					wait();
-				}
-			}
 		}
 	}
 
-	public static class ConsoleWrapper extends OutputStream {
+	private class DecodeForwarder implements Runnable {
+		private final DataInputStream in;
+		private final List/* <MultiStage.Stage> */runningStages;
 
-			private final OutputStream out;
-			private boolean active = false;
+		public DecodeForwarder(DataInputStream in, List/* <MultiStage.Stage> */runningStages) {
+			this.in = in;
+			this.runningStages = runningStages;
+		}
 
-			public ConsoleWrapper(OutputStream out) {
-				this.out = out;
-			}
-
-			public void write(byte[] b, int off, int len) throws IOException {
-				writeInternal(b, off, len);
-			}
-
-			public void write(int b) throws IOException {
-				write(new byte[] { (byte) b });
-			}
-
-			private synchronized void writeInternal(byte[] bs, int off, int len) throws IOException {
-				while (!active) {
-					try {
-						wait();
-					} catch (InterruptedException ex) {
+		public void run() {
+			try {
+				while (true) {
+					int index = in.readInt();
+					if (index == -1)
+						break;
+					if (index == -2) {
+						int b;
+						while ((b = in.read()) != -1)
+							consoleOut.write(b);
+						break;
+					}
+					if (index < 0 || index >= runningStages.size()) {
+						throw new RuntimeException("Invalid stage index: " + index + " (stages size = " + runningStages.size() + ")");
+					}
+					OutputStream outBuf = ((Stage) runningStages.get(index)).getBuffer();
+					byte[] buf = new byte[in.readInt()];
+					if (buf.length == 0) {
+						outBuf.close();
+					} else {
+						in.readFully(buf);
+						outBuf.write(buf);
+						outBuf.flush();
 					}
 				}
-				out.write(bs, off, len);
+				while (in.read() != -1)
+					;
+			} catch (Throwable t) {
+				t.printStackTrace(consoleErr);
 			}
-
-			public synchronized void flush() throws IOException {
-				while (!active) {
-					try {
-						wait();
-					} catch (InterruptedException ex) {
-					}
-				}
-				out.flush();
-			}
-
-			public synchronized void start() throws IOException {
-				if (active)
-					throw new IllegalStateException();
-				active = true;
-				notifyAll();
-			}
-
-			public synchronized void stop() throws IOException {
-				if (!active)
-					throw new IllegalStateException();
-				active = false;
-			}
+		}
 	}
 }
