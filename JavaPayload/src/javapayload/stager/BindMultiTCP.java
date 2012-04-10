@@ -55,8 +55,11 @@ public class BindMultiTCP extends Stager implements Runnable {
 			ready = true;
 			notifyAll();
 		}
+		boolean replaceIP = parameters != null && parameters.length > 3 && parameters[3].equals("RemoteIP");
 		while (true) {
 			final Socket s = ss.accept();
+			if (replaceIP)
+				parameters[3] = s.getInetAddress().getHostAddress();
 			new Thread(new BindMultiTCP().init(s, parameters)).start();
 			if (parameters != null && parameters.length > 0 && parameters[0].equals("-STOP-"))
 				break;
