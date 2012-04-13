@@ -38,11 +38,9 @@ import java.util.jar.Manifest;
 
 import javapayload.loader.DynStagerURLStreamHandler;
 
-import org.objectweb.asm.ClassAdapter;
-import org.objectweb.asm.ClassVisitor;
 import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodAdapter;
 import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
 
 public class AppletJarBuilder extends Builder {
 	public static void main(String[] args) throws Exception {
@@ -62,7 +60,7 @@ public class AppletJarBuilder extends Builder {
 	}
 	
 	public void build(String[] args) throws Exception {
-		final Class[] baseClasses = new Class[] {
+		Class[] baseClasses = new Class[] {
 				javapayload.loader.AppletLoader.class,
 				javapayload.loader.AppletLoader.ReadyNotifier.class,
 				javapayload.stager.Stager.class,
@@ -74,25 +72,23 @@ public class AppletJarBuilder extends Builder {
 			args = newArgs;
 			
 			final ClassWriter cw = new ClassWriter(0);
-			final ClassVisitor renameVisitor = new ClassAdapter(cw) {
-				public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-					super.visit(version, access, className.replace('.', '/'), signature, superName, interfaces);
-				}
-				
-				public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-					return new MethodAdapter(super.visitMethod(access, name, desc, signature, exceptions)) {
-						public void visitMethodInsn(int opcode, String owner, String name, String desc) {
-							if (owner.equals("javapayload/loader/AppletLoader"))
-								owner = className.replace('.', '/');
-							super.visitMethodInsn(opcode, owner, name, desc);
-						}
-					};
-				}
-			};
-			ClassBuilder.visitClass(javapayload.loader.AppletLoader.class, renameVisitor, cw);
+			cw.visit(Opcodes.V1_1, Opcodes.ACC_PUBLIC + Opcodes.ACC_SUPER, className.replace('.', '/'), null, "javapayload/loader/AppletLoader", null);
+			MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
+			mv.visitCode();
+			mv.visitVarInsn(Opcodes.ALOAD, 0);
+			mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "javapayload/loader/AppletLoader", "<init>", "()V");
+			mv.visitInsn(Opcodes.RETURN);
+			mv.visitMaxs(1, 1);
+			mv.visitEnd();
+			cw.visitEnd();
 			DynStagerURLStreamHandler ush = DynStagerURLStreamHandler.getInstance();
 			ush.addClass(className, cw.toByteArray());
-			baseClasses[0] = ush.getDynClassLoader().loadClass(className);
+			baseClasses = new Class[] {
+					ush.getDynClassLoader().loadClass(className),
+					baseClasses[0],
+					baseClasses[1],
+					baseClasses[2],
+			};
 		}
 		JarBuilder.buildJarFromArgs(args, "Applet", baseClasses, new Manifest(), null, null);
 	}
