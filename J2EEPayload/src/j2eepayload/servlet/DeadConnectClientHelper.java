@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * J2EE Payloads.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -31,30 +31,35 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package j2eepayload.servlet;
 
-package javapayload.crypter;
-
+import java.io.ByteArrayOutputStream;
+import java.io.PipedInputStream;
+import java.io.PipedOutputStream;
 import java.io.PrintStream;
+import java.net.URLEncoder;
 
-import javapayload.Module;
-import javapayload.Parameter;
+import jtcpfwd.util.PollingHandler;
+import jtcpfwd.util.http.HTTPTunnelClient;
 
-public abstract class Crypter extends Module {
+public class DeadConnectClientHelper {
 
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
-	}
-
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
+	public static Object[] go(String baseURL, String token, String timeout) throws Exception {
+		PrintStream nullStream = new PrintStream(new ByteArrayOutputStream());
+		return go(baseURL, token, timeout, nullStream, nullStream);
 	}
 	
-	public String getNameAndParameters() {
-		return getName();
+	public static Object[] go(String baseURL, String token, String timeout, PrintStream outputStream, PrintStream errorStream) throws Exception {
+		final int timeoutValue;
+		if (timeout.equals("--"))
+			timeoutValue = 0;
+		else
+			timeoutValue=Integer.parseInt(timeout);
+		String createParam = "create=" + URLEncoder.encode(token,"UTF-8");
+		
+		PipedInputStream localIn = new PipedInputStream();
+		final PollingHandler pth = new PollingHandler(new PipedOutputStream(localIn), 1048576);
+		HTTPTunnelClient.handle(baseURL, timeoutValue, createParam, pth, outputStream, errorStream);
+		return new Object[] {localIn, pth};
 	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
 }

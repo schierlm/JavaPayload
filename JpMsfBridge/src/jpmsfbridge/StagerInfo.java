@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * JpMsfBridge.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -31,30 +31,20 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package jpmsfbridge;
 
-package javapayload.crypter;
+import javapayload.handler.stager.StagerHandler;
 
-import java.io.PrintStream;
+public class StagerInfo extends ModuleInfo {
 
-import javapayload.Module;
-import javapayload.Parameter;
+	private final String connectionType;
 
-public abstract class Crypter extends Module {
-
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
+	public StagerInfo(StagerHandler module, String connectionType) {
+		super(module);
+		this.connectionType = connectionType;
 	}
 
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
+	public String getConnectionType() {
+		return connectionType;
 	}
-	
-	public String getNameAndParameters() {
-		return getName();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
 }

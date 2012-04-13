@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * JpMsfBridge.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -31,30 +31,38 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package jpmsfbridge;
 
-package javapayload.crypter;
-
-import java.io.PrintStream;
-
-import javapayload.Module;
 import javapayload.Parameter;
 
-public abstract class Crypter extends Module {
+public class ParameterInfo {
+	private final Parameter parameter;
 
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
-	}
-
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
+	public ParameterInfo(Parameter parameter) {
+		this.parameter = parameter;
 	}
 	
-	public String getNameAndParameters() {
-		return getName();
+	public Parameter getParameter() {
+		return parameter;
 	}
 	
-	public void printParameterDescription(PrintStream out) {
+	public String getRubyType() {
+		switch(parameter.getType()) {		
+			case Parameter.TYPE_HOST:
+				return "OptAddress";
+			case Parameter.TYPE_PORT:
+			case Parameter.TYPE_PORT_HASH:
+				return "OptPort";
+			case Parameter.TYPE_PATH:
+				return "OptPath";
+			case Parameter.TYPE_NUMBER:
+				return "OptInt";
+			default:
+				return "OptString";
+		}
 	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
+	
+	public String getRubyMandatory() {
+		return parameter.isOptional() ? "false" : "true";
+	}
 }

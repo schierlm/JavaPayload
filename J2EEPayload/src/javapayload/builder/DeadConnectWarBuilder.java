@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * J2EE Payloads.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -32,29 +32,8 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.crypter;
+package javapayload.builder;
 
-import java.io.PrintStream;
-
-import javapayload.Module;
-import javapayload.Parameter;
-
-public abstract class Crypter extends Module {
-
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
-	}
-
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
-	}
-	
-	public String getNameAndParameters() {
-		return getName();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
+public class DeadConnectWarBuilder extends j2eepayload.builder.DeadConnectWarBuilder {
+	// wrapper to make the builder findable via CLI
 }

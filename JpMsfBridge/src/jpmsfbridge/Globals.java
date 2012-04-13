@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * JpMsfBridge.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -31,30 +31,48 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package jpmsfbridge;
 
-package javapayload.crypter;
-
-import java.io.PrintStream;
+import java.io.File;
+import java.net.URL;
+import java.net.URLClassLoader;
 
 import javapayload.Module;
-import javapayload.Parameter;
 
-public abstract class Crypter extends Module {
+public class Globals {
+	public static final Globals instance = new Globals();
 
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
+	private String classPath = null;
+	private String javaExecutable = null;
+
+	public String getClassPath() throws Exception {
+		if (classPath != null)
+			return classPath;
+		StringBuffer sb = new StringBuffer(".");
+		URL[] urls = new URL[0];
+		ClassLoader ucl = Module.class.getClassLoader();
+		if (ucl instanceof URLClassLoader)
+			urls = ((URLClassLoader) ucl).getURLs();
+		for (int i = 0; i < urls.length; i++) {
+			File f = Module.urlToFile(urls[i]);
+			sb.append(File.pathSeparatorChar).append(f.getAbsolutePath());
+		}
+		return classPath = sb.toString();
 	}
 
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
-	}
-	
-	public String getNameAndParameters() {
-		return getName();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
+	public String getJavaExecutable() {
+		return javaExecutable;
 	}
 
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
+	protected void setJavaExecutable(String javaExecutable) {
+		this.javaExecutable = javaExecutable;
+	}
+
+	public String toLowerUnderscores(String input) {
+		return input.replaceAll("([a-z])([A-Z])", "$1_$2").toLowerCase();
+	}
+
+	public String indent(String input, int tabCount) {
+		return input.replaceAll("\n", "\n\t\t\t\t\t\t\t\t\t\t".substring(0, tabCount + 1));
+	}
 }

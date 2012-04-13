@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * JpMsfBridge.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -31,30 +31,34 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package jpmsfbridge;
 
-package javapayload.crypter;
-
-import java.io.PrintStream;
-
-import javapayload.Module;
 import javapayload.Parameter;
 
-public abstract class Crypter extends Module {
+import javapayload.Module;
 
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
-	}
+public class ModuleInfo {
+	
+	private final Module module;
 
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
+	public ModuleInfo(Module module) {
+		this.module = module;
 	}
 	
-	public String getNameAndParameters() {
-		return getName();
+	public String getName() {
+		return module.getName();
 	}
 	
-	public void printParameterDescription(PrintStream out) {
+	public Module getModule() {
+		return module;
 	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
+	
+	public ParameterInfo[] getParameters() {
+		Parameter[] params = module.getParameters();
+		ParameterInfo[] result = new ParameterInfo[params.length]; 
+		for (int i = 0; i < result.length; i++) {
+			result[i] = new ParameterInfo(params[i]);
+		}
+		return result;
+	}
 }

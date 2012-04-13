@@ -1,5 +1,5 @@
 /*
- * Java Payloads.
+ * JpMsfBridge.
  * 
  * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
@@ -31,30 +31,38 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
-
-package javapayload.crypter;
+package jpmsfbridge.stage;
 
 import java.io.PrintStream;
+import java.net.InetAddress;
+import java.net.Socket;
 
-import javapayload.Module;
-import javapayload.Parameter;
+import javapayload.handler.stage.StageHandler;
+import jpmsfbridge.Logger;
 
-public abstract class Crypter extends Module {
-
-	public Crypter(String summary, String description) {
-		super(null, Crypter.class, summary, description);
+public class StageBridge {
+	public static void main(String[] args) throws Exception {
+		if (args.length == 0) {
+			System.err.println("This program is called internally from JpMsfBridge.");
+			return;
+		}
+		try {
+			Logger.startLogging(true);
+			int port = Integer.parseInt(args[0]);
+			Socket toMsf = new Socket(InetAddress.getLocalHost(), port);
+			try {
+				Socket toStager = new Socket(InetAddress.getLocalHost(), port);
+				StageHandler sh = (StageHandler) Class.forName("javapayload.handler.stage." + args[2]).newInstance();
+				sh.consoleOut = new PrintStream(toMsf.getOutputStream());
+				sh.consoleIn = toMsf.getInputStream();
+				sh.handle(toStager.getOutputStream(), toStager.getInputStream(), args);
+			} finally {
+				toMsf.close();
+			}
+		} catch (Throwable ex) {
+			ex.printStackTrace();
+		} finally {
+			Logger.stopLogging(args);
+		}
 	}
-
-	public final Parameter[] getParameters() {
-		throw new UnsupportedOperationException("Parameters not available for crypters");
-	}
-	
-	public String getNameAndParameters() {
-		return getName();
-	}
-	
-	public void printParameterDescription(PrintStream out) {
-	}
-
-	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;
 }

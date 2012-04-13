@@ -44,6 +44,7 @@ import java.util.List;
 
 import javapayload.builder.AppletJarBuilder;
 import javapayload.builder.ClassBuilder;
+import javapayload.builder.EmbeddedAppletJarBuilder;
 import javapayload.builder.EmbeddedClassBuilder;
 import javapayload.builder.EmbeddedJarBuilder;
 import javapayload.builder.JarBuilder;
@@ -70,7 +71,10 @@ public class BuilderTest {
 				/* #JDK1.5 */new BuilderTest15.AgentJarBuilderTestRunner(), /**/
 				new AppletJarBuilderTestRunner(),
 				new NewNameAppletJarBuilderTestRunner(),
-				// new CVE_2008_5353TestRunner(),
+				new EmbeddedAppletJarBuilderTestRunner(),
+				new EmbeddedNewNameAppletJarBuilderTestRunner(),
+				// /* #JDK1.4 */new BuilderTest14.CVE_2008_5353TestRunner(), /**/
+				// /* #JDK1.4 */new BuilderTest14.EmbeddedCVE_2008_5353TestRunner(), /**/
 				// /* #JDK1.5 */new BuilderTest15.CVE_2010_0094TestRunner(), /**/
 				// /* #JDK1.5 */new BuilderTest15.CVE_2010_4465TestRunner(), /**/
 				// new CVE_2010_0840TestRunner(),
@@ -168,7 +172,11 @@ public class BuilderTest {
 	}
 
 	public static void runAppletAndWait(final WaitingBuilderTestRunner runner, String archive, String className, String policyfile, String[] args) throws Exception {
-		final ServerSocket ss = new ServerSocket(0);
+		runAppletAndWait(runner, archive, className, policyfile, args, null);
+	}
+	
+	public static void runAppletAndWait(final WaitingBuilderTestRunner runner, String archive, String className, String policyfile, String[] args, ServerSocket notifierForEmbedded) throws Exception {
+		final ServerSocket ss = notifierForEmbedded != null ? notifierForEmbedded : new ServerSocket(0);
 		new Thread(new Runnable() {
 			public void run() {
 				try {
@@ -187,11 +195,13 @@ public class BuilderTest {
 		if (childClassPath.startsWith(";")) {
 			childClassPath=",file:///"+childClassPath.substring(1);
 		}
-		fw.write("<applet archive=\"" + archive + childClassPath + "\" code=\"" + className + "\" width=\"100\" height=\"100\">\r\n" +
-				"		<param name=\"readyURL\" value=\"http://localhost:" + ss.getLocalPort() + "/foo\">\r\n" +
-				"		<param name=\"argc\" value=\"" + args.length + "\">\r\n");
-		for (int i = 0; i < args.length; i++) {
-			fw.write("		<param name=\"arg" + i + "\" value=\"" + args[i] + "\" />\r\n");
+		fw.write("<applet archive=\"" + archive + childClassPath + "\" code=\"" + className + "\" width=\"100\" height=\"100\">\r\n");
+		if (notifierForEmbedded == null) {
+			fw.write("		<param name=\"readyURL\" value=\"http://localhost:" + ss.getLocalPort() + "/foo\">\r\n" +
+					"		<param name=\"argc\" value=\"" + args.length + "\">\r\n");
+			for (int i = 0; i < args.length; i++) {
+				fw.write("		<param name=\"arg" + i + "\" value=\"" + args[i] + "\" />\r\n");
+			}
 		}
 		fw.write("		</applet></tt></p>");
 		fw.close();
@@ -402,6 +412,61 @@ public class BuilderTest {
 		public void runResult(String[] args) throws Exception {
 			runAppletAndWait(this, "Applet_" + args[0] + ".jar", "some.funny.ClassName", "grant { permission java.security.AllPermission; };", args);
 			if (!new File("Applet_" + args[0] + ".jar").delete())
+				throw new IOException("Unable to delete file");
+		}		
+	}
+
+	public static class EmbeddedAppletJarBuilderTestRunner extends WaitingBuilderTestRunner {
+		public String getName() { return "EmbeddedAppletJarBuilder [kill]";	}
+
+		private ServerSocket ss;
+
+		public void runBuilder(String[] args) throws Exception {
+			ss = new ServerSocket(0);
+			String[] builderArgs = new String[args.length+2];
+			builderArgs[0] = "--readyURL";
+			builderArgs[1] = "http://localhost:" + ss.getLocalPort() + "/foo";
+			System.arraycopy(args, 0, builderArgs, 2, args.length);
+			new EmbeddedAppletJarBuilder().build(builderArgs);
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runAppletAndWait(this, "EmbeddedAppletJar.jar", "javapayload.loader.AppletLoader", "grant { permission java.security.AllPermission; };", null, ss);
+			ss = null;
+			if (!new File("EmbeddedAppletJar.jar").delete())
+				throw new IOException("Unable to delete file");
+		}
+
+		public void cleanup() throws Exception {
+			if (!new File("applettest.html").delete())
+				throw new IOException("Unable to delete file");
+			if (!new File("applettest.policy").delete())
+				throw new IOException("Unable to delete file");
+		}
+	}
+	
+	public static class EmbeddedNewNameAppletJarBuilderTestRunner extends AppletJarBuilderTestRunner {
+		public String getName() { return "EmbeddedNewNameAppletJarBuilder [kill]";	}
+
+		private ServerSocket ss;
+
+		public void runBuilder(String[] args) throws Exception {
+			ss = new ServerSocket(0);
+			String[] builderArgs = new String[args.length+7];
+			builderArgs[0] = "--builder";
+			builderArgs[1] = "AppletJar";
+			builderArgs[2] = "--readyURL";
+			builderArgs[3] = "http://localhost:" + ss.getLocalPort() + "/foo";
+			builderArgs[4] = "--name";
+			builderArgs[5] = "some.funny.ClassName";
+			builderArgs[6] = "funny.jar";
+			System.arraycopy(args, 0, builderArgs, 7, args.length);
+			new EmbeddedAppletJarBuilder().build(builderArgs);
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runAppletAndWait(this, "funny.jar", "some.funny.ClassName", "grant { permission java.security.AllPermission; };", null, ss);
+			if (!new File("funny.jar").delete())
 				throw new IOException("Unable to delete file");
 		}		
 	}

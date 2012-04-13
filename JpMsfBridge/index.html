@@ -1,0 +1,102 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+<style type="text/css">
+body { font-family: Verdana, Arial, sans-serif;  font-size: 10pt;}
+p {margin-left: 2em; margin-right: 2em;}
+</style>
+<title>JpMsfBridge - Integrate JavaPayload into Metasploit Framework</title>
+</head>
+<body>
+<h1>JpMsfBridge - Integrate JavaPayload into Metasploit Framework</h1>
+
+<p><i>&copy; 2012 Michael 'mihi' Schierl, <tt>&lt;schierlm at users dot sourceforge dot net&gt;</tt></i></p>
+
+<h2>Introduction</h2>
+
+<p>This archive provides a way to launch JavaPayload stagers, stages and more directly from
+Metasploit framework. It is possible to combine JavaPayload modules with Metasploit modules
+in almost all sensible ways (e. g. a Metasploit exploit using a JavaPayload stager to stage)
+a Meterpreter stage).</p>
+
+<h2>System requirements</h2>
+
+<p>Metasploit Framework and JavaPayload <tt>:-)</tt>. Additional payloads
+like J2EEPayload can be integrated if desired.</p>
+
+<h2>Installation</h2>
+
+<p>First, you will have to use the <i>Generator</i> to generate Metasploit
+modules from the JavaPayload modules. Therefore, set up the classpath so that
+it contains at least <tt>JavaPayload.jar</tt> and <tt>JpMsfBridge.jar</tt>.
+You can add other Jars like <tt>J2EEPayload.jar</tt> if you like. Note that these
+Jars have their own dependencies, so to make sure they are found, do not copy the
+Jars but instead use them inside the respective distribution. As the generated
+Metasploit modules will reference their dependencies with absolute path names,
+put both JpMsfBridge and the module jars at a place where they will stay (i. e.
+not <tt>/tmp</tt>). You will need an empty modules directory where the modules
+should be created, you can create a msf3 directory below the JvMsfBridge directory
+or create it anywhere else &ndash; putting the generated modules into the Metasploit
+module directory is not recommended. Once you finished setting up your layout, run
+the generator (run it in the JpMsfBridge directory so it finds the templates
+folder):</p>
+
+<p><tt>java -cp JpMsfBridge.jar;c:\JavaPayload\JavaPayload.jar jpmsfbridge.Generator msf3 C:\Programs\Java\jre6\bin\java.exe</tt></p>
+
+<p>The last parameter tells JpMsfBridge which Java version you want to use for running the payloads inside Metasploit.</p>
+
+<p>Now start up Metasploit and integrate your directory into <tt>MsfModulePaths</tt>:</p>
+
+<p><tt>msf &gt; setg MsfModulePaths c:/JpMsfBridge/msf3</tt></p>
+
+<p>If you have more than one module path to add, separate them by semicolons.</p>
+
+<p>Restart Metasploit Framework and you will notice you have more modules now!</p>
+
+<h2>Module Mapping</h2>
+
+<h3>Naming conventions</h3>
+
+<p>Each module generated from JavaPayload will have a name starting with <tt>javapayload_</tt>.
+The rest of the name is similar to the JavaPayload name, only that it is all lowercase and
+wherever a capital letter was after a noncapital one, an underscore is added: JSh becomes jsh,
+BindTCP becomes bind_tcp, UpExec becomes up_exec etc. Parameter names are like those inside
+JavaPayload (they are all uppercase anyway).</p>
+
+<h3>Stages</h3>
+
+<p>All JavaPayload stages are available in Metasploit, as Java stages, like
+<tt>java/javapayload_jsh/reverse_tcp</tt>. They are compatible with all
+JavaPayload stagers and with the <tt>reverse_tcp</tt> and <tt>bind_tcp</tt>
+Metasploit stagers. From the Metasploit perspective, they are like a
+Command shell, so there are no advanced features like tab completion
+available.</p>
+
+<h3>Stagers</h3>
+
+<p>All JavaPayload stagers that can be started without extra arguments
+(an example that requires extra arguments is JDWPTunnel) are available
+as stagers in Metasploit. They have a ConnectionType of either
+<tt>bind</tt> or <tt>reverse</tt> and be compatible with all exploits
+that are compatible with these connection types. Stagers that require
+extra arguments use their own connection types, therefore they are
+currently not usable from any exploit.</p>
+
+<p>Stagers can be used to generate payload war and jar files, 
+to connect to those payload war and jar files via <tt>multi/handler</tt>
+and to do both from an exploit.</p>
+
+<h3>Injectors</h3>
+
+<p>Are still to be implemented.</p>
+
+<h3>Dynstagers</h3>
+
+<p>Come later.</p>
+
+<h3>And the rest</h3>
+
+<p>Comes when all the things above are working.</p>
+
+</body>
+</html>
