@@ -1,0 +1,38 @@
+<?xml version="1.0"?>
+<project name="JavaPayload" default="jar">
+
+	<property name="LIB" value="lib" />
+	<property name="JAVAPAYLOAD" value="../JavaPayload" />
+	
+	<target name="clean">
+		<delete dir="build" />
+	</target>
+
+	<target name="compile">
+		<mkdir dir="build/bin" />
+		<javac srcdir="src" destdir="build/bin" source="1.1" target="1.1" debug="yes">
+			<classpath>
+				<pathelement path="${JAVAPAYLOAD}/JavaPayload.jar" />
+				<pathelement path="${LIB}/commons-collections.jar" />
+				<pathelement path="${LIB}/commons-lang.jar" />
+				<pathelement path="${LIB}/velocity.jar" />
+			</classpath>
+		</javac>
+	</target>
+
+	<target name="jar" depends="compile">
+		<jar destfile="JpMsfBridge.jar" basedir="build/bin">
+			<manifest>
+				<attribute name="Main-Class" value="jpmsfbridge.Generator" />
+				<attribute name="Class-Path" value="lib/commons-collections.jar lib/commons-lang.jar lib/velocity.jar" />
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="dist" depends="jar">
+		<mkdir dir="build/dist" />
+		<copy todir="build/dist">
+			<fileset dir="." includes="lib/**,src/**,template/**,*.xml,*.jar,index.html" />
+		</copy>
+	</target>
+</project>

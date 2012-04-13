@@ -1,0 +1,8 @@
+OBTAINING LIBRARIES
+===================
+
+To compile JpMsfBridge, you will need Apache Velocity library, version
+1.7, available from http://velocity.apache.org/ or from the binary release.
+  -> velocity.jar
+  -> commons-lang.jar
+  -> commons-collections.jar
