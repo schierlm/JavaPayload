@@ -50,7 +50,9 @@ import java.util.Random;
 public class RnR extends TemplateBasedCrypter {
 
 	public RnR() {
-		super("Reflection and Randomization", "");
+		super("Reflection and Randomization", 
+				"Crypt a main class by XORing with pseudorandom data.\r\n" +
+				"The classloader used to load the class is built via reflection.");
 	}
 
 	protected byte[] generateReplaceData(String className, byte[] innerClassBytes, long seed) throws Exception {

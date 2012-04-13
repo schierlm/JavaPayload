@@ -34,6 +34,8 @@
 
 package javapayload.crypter;
 
+import java.io.PrintStream;
+
 import javapayload.Module;
 import javapayload.Parameter;
 
@@ -45,6 +47,13 @@ public abstract class Crypter extends Module {
 
 	public final Parameter[] getParameters() {
 		throw new UnsupportedOperationException("Parameters not available for crypters");
+	}
+	
+	public String getNameAndParameters() {
+		return getName();
+	}
+	
+	public void printParameterDescription(PrintStream out) {
 	}
 
 	public abstract byte[] crypt(String className, byte[] innerClassBytes) throws Exception;

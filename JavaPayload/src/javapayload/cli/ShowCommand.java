@@ -45,6 +45,7 @@ import javapayload.Parameter;
 import javapayload.builder.Builder;
 import javapayload.builder.Discovery;
 import javapayload.builder.Injector;
+import javapayload.crypter.Crypter;
 import javapayload.handler.dynstager.DynStagerHandler;
 import javapayload.handler.stage.StageHandler;
 import javapayload.handler.stager.StagerHandler;
@@ -61,6 +62,7 @@ public class ShowCommand extends Command {
 		addModuleType("injector", new ModuleType(Injector.class, "Injector", "injectors"));
 		addModuleType("stage", new ModuleType(StageHandler.class, "", "stages / stage handlers"));
 		addModuleType("stager", new ModuleType(StagerHandler.class, "", "stagers / stager handlers"));
+		addModuleType("crypter", new ModuleType(Crypter.class, "", "crypters"));
 	}
 
 	// can be called by plugins to add more module types
