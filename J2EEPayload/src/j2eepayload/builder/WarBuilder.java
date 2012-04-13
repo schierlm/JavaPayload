@@ -172,7 +172,7 @@ public class WarBuilder extends Builder {
 		buildWar(warName.append(".war").toString(), (Class[]) classes.toArray(new Class[classes.size()]), stripDebugInfo, webXml);
 	}
 
-	private static String getServletEntry(String name, Class clazz, String url, String startupArgs) {
+	protected static String getServletEntry(String name, Class clazz, String url, String startupArgs) {
 		String startupXml = "";
 		if (startupArgs != null) {
 			startupXml = "    <init-param>\r\n" + 
