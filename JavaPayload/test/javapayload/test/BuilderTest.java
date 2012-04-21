@@ -36,6 +36,7 @@ package javapayload.test;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
@@ -44,12 +45,15 @@ import java.util.List;
 
 import javapayload.builder.AppletJarBuilder;
 import javapayload.builder.ClassBuilder;
+import javapayload.builder.CryptedJarBuilder;
 import javapayload.builder.EmbeddedAppletJarBuilder;
 import javapayload.builder.EmbeddedClassBuilder;
 import javapayload.builder.EmbeddedJarBuilder;
 import javapayload.builder.JarBuilder;
 import javapayload.builder.RMIInjector;
 import javapayload.builder.SpawnTemplate;
+import javapayload.crypter.JarLayout;
+import javapayload.crypter.MainClass;
 import javapayload.handler.stage.TestStub;
 import javapayload.handler.stager.StagerHandler;
 import javapayload.stage.StageMenu;
@@ -65,9 +69,11 @@ public class BuilderTest {
 				new EmbeddedClassBuilderTestRunner(),
 				new JarBuilderTestRunner(),
 				new StripJarBuilderTestRunner(),
+				new JarCrypterTestRunner(new StripJarBuilderTestRunner(), "stripped.jar", new MainClass(), new String[] {"StaLo"}),
 				new EmbeddedJarBuilderTestRunner(),
 				new StripEmbeddedJarBuilderTestRunner(),
 				new LocalStageJarBuilderTestRunner(),
+				new JarCrypterTestRunner(new LocalStageJarBuilderTestRunner(), "LocalStage.jar", new MainClass(), new String[] {"StaLo"}),
 				/* #JDK1.5 */new BuilderTest15.AgentJarBuilderTestRunner(), /**/
 				new AppletJarBuilderTestRunner(),
 				new NewNameAppletJarBuilderTestRunner(),
@@ -232,6 +238,63 @@ public class BuilderTest {
 		void cleanup() throws Exception;
 	}
 	
+	public static class JarCrypterTestRunner implements BuilderTestRunner {
+		private final BuilderTestRunner runner;
+		private final String jarName;
+		private final JarLayout jarLayout;
+		private final String[] layoutArgs;
+
+		public JarCrypterTestRunner(BuilderTestRunner runner, String jarName, JarLayout jarLayout, String[] layoutArgs) {
+			this.runner = runner;
+			this.jarName = jarName;
+			this.jarLayout = jarLayout;
+			this.layoutArgs = layoutArgs;
+			try {
+				Field f = runner.getClass().getField("loaderName");
+				if (layoutArgs.length > 0)
+					f.set(runner, layoutArgs[layoutArgs.length-1]);
+			} catch (Exception ex) {
+			}
+		}
+
+		public String getName() {
+			return runner.getName()+" + JarCrypter";
+		}
+
+		public void waitReady() throws InterruptedException {
+			runner.waitReady();
+		}
+
+		public void runBuilder(String[] args) throws Exception {
+			runner.runBuilder(args);
+			new File(jarName).renameTo(new File("uncrypted.jar"));
+			String[] crypterArgs = new String[] {
+					"uncrypted.jar",
+					jarName,
+					"RnR",
+					"HashNames",
+					jarLayout.getName(),
+			};
+			if (layoutArgs.length > 0) {
+				String[] tmp = crypterArgs;
+				crypterArgs = new String[tmp.length+layoutArgs.length];
+				System.arraycopy(tmp, 0, crypterArgs, 0, tmp.length);
+				System.arraycopy(layoutArgs, 0, crypterArgs, tmp.length, layoutArgs.length);
+			}
+			new CryptedJarBuilder().build(crypterArgs);
+			if (!new File("uncrypted.jar").delete()) 
+				throw new IOException("Unable to delete file");
+		}
+
+		public void runResult(String[] args) throws Exception {
+			runner.runResult(args);
+		}
+
+		public void cleanup() throws Exception {
+			runner.cleanup();
+		}
+	}
+	
 	public static abstract class WaitingBuilderTestRunner implements BuilderTestRunner {
 		private boolean ready = false;
 		
@@ -305,6 +368,8 @@ public class BuilderTest {
 	}
 	
 	public static class StripJarBuilderTestRunner extends WaitingBuilderTestRunner {
+		public String loaderName = "javapayload.loader.StandaloneLoader";
+	
 		public String getName() { return "JarBuilder (stripped)"; }
 
 		public void runBuilder(String[] args) throws Exception {
@@ -314,7 +379,7 @@ public class BuilderTest {
 		public void runResult(String[] args) throws Exception {
 			String[] a = (String[])args.clone();
 			a[0] = "+" + a[0];
-			runJavaAndWait(this, "stripped.jar", null, "javapayload.loader.StandaloneLoader", a);
+			runJavaAndWait(this, "stripped.jar", null, loaderName, a);
 		}
 
 		public void cleanup() throws Exception {
@@ -362,6 +427,8 @@ public class BuilderTest {
 	}
 	
 	public static class LocalStageJarBuilderTestRunner extends WaitingBuilderTestRunner {
+		public String loaderName = "javapayload.loader.StandaloneLoader";
+		
 		public String getName() { return "LocalStage_JarBuilder"; }
 
 		public void runBuilder(String[] args) throws Exception {
@@ -371,7 +438,7 @@ public class BuilderTest {
 		public void runResult(String[] args) throws Exception {
 			String[] a = (String[])args.clone();
 			a[0] = "+" + a[0];
-			runJavaAndWait(this, "LocalStage.jar", null, "javapayload.loader.StandaloneLoader", a);
+			runJavaAndWait(this, "LocalStage.jar", null, loaderName, a);
 		}
 
 		public void cleanup() throws Exception {

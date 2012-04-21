@@ -50,6 +50,9 @@ import javapayload.cli.HandlerCommand;
 import javapayload.cli.InjectorCommand;
 import javapayload.cli.ShowCommand.ModuleType;
 import javapayload.cli.StagerCommand;
+import javapayload.crypter.Crypter;
+import javapayload.crypter.JarCrypter;
+import javapayload.crypter.JarLayout;
 import javapayload.handler.dynstager.DynStagerHandler;
 import javapayload.handler.stage.StageHandler;
 import javapayload.handler.stager.ListeningStagerHandler;
@@ -480,6 +483,9 @@ class ModuleParameterHandler extends ParameterHandler {
 					new ModuleTypeInfo("injector", new ModuleType(Injector.class, "Injector", null), "Injector"),
 					new ModuleTypeInfo("stage", new ModuleType(StageHandler.class, "", null), "Stage or stage handler"),
 					new ModuleTypeInfo("stager", new ModuleType(StagerHandler.class, "", null), "stager or stager handler"),
+					new ModuleTypeInfo("crypter", new ModuleType(Crypter.class, "", null), "Crypter"),
+					new ModuleTypeInfo("jarcrypter", new ModuleType(JarCrypter.class, "", null), "Jar Crypter"),
+					new ModuleTypeInfo("jarlayout", new ModuleType(JarLayout.class, "", null), "Jar Layout"),
 			};
 		}
 
