@@ -107,7 +107,7 @@ public abstract class TemplateBasedJarLayout extends JarLayout {
 			}
 		};
 		ClassBuilder.visitClass(templateClass, templateAdapter, cw);
-		jos.putNextEntry(new ZipEntry(stubClassName + ".class"));
+		jos.putNextEntry(new ZipEntry(getPrefix() + stubClassName + ".class"));
 		jos.write(cw.toByteArray());
 	}
 

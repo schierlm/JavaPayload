@@ -32,30 +32,30 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.crypter;
+package javapayload.handler.dynstager;
 
-import java.util.jar.JarEntry;
-import java.util.jar.JarInputStream;
-import java.util.jar.JarOutputStream;
-import java.util.jar.Manifest;
+import javapayload.Parameter;
 
-import javapayload.Module;
+public class GrowSize extends DynStagerHandler {
 
-public abstract class JarLayout extends Module {
-
-	public JarLayout(String summary, String description) {
-		super(null, JarLayout.class, summary, description);
+	public GrowSize() {
+		super("Increase the size of a stager", true, true,
+				"Useful for testing how dynstagers/builders/crypters handle huge class files");
 	}
 
-	public abstract void init(String[] parameters, Manifest manifest) throws Exception;
+	public Parameter getExtraArg() {
+		return new Parameter("COUNT", false, Parameter.TYPE_NUMBER, "Number of 50KB blocks to add");
+	}
 
-	public abstract void addStubs(JarOutputStream jos, String cryptedLoaderClassName) throws Exception;
+	public Parameter[] getParameters() {
+		return new Parameter[0];
+	}
 
-	public boolean shouldInclude(JarEntry je, JarInputStream jis) throws Exception {
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
 		return true;
 	}
-	
-	public String getPrefix() {
-		return "";
+
+	public String getTestExtraArg() {
+		return "5";
 	}
 }

@@ -85,6 +85,7 @@ public class BuilderTest {
 				new JarCrypterTestRunner(new EmbeddedAppletJarBuilderTestRunner(), "EmbeddedAppletJar.jar", new SignedApplet(), new String[] {"javapayload.loader.AppletLoader", "AppLo"}),
 				new EmbeddedNewNameAppletJarBuilderTestRunner(),
 				// /* #JDK1.4 */new BuilderTest14.CVE_2008_5353TestRunner(), /**/
+				// /* #JDK1.4 */new JarCrypterTestRunner(new BuilderTest14.CVE_2008_5353TestRunner(), "cve.jar", new javapayload.crypter.SignedApplet(), new String[] {"javapayload.exploit.CVE_2008_5353", "Expy"}), /**/
 				// /* #JDK1.4 */new BuilderTest14.EmbeddedCVE_2008_5353TestRunner(), /**/
 				// /* #JDK1.5 */new BuilderTest15.CVE_2010_0094TestRunner(), /**/
 				// /* #JDK1.5 */new BuilderTest15.CVE_2010_4465TestRunner(), /**/

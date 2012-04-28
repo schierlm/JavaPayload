@@ -57,7 +57,7 @@ public abstract class JarCrypter extends Module {
 	public void printParameterDescription(PrintStream out) {
 	}
 
-	public abstract void addFile(JarOutputStream jos, String filename, byte[] content) throws Exception;
+	public abstract void addFile(JarOutputStream jos, String prefix, String filename, byte[] content) throws Exception;
 
-	public abstract byte[] createLoaderClass(JarOutputStream jos, String className) throws Exception;
+	public abstract byte[] createLoaderClass(JarOutputStream jos, String prefix, String className) throws Exception;
 }

@@ -45,6 +45,12 @@ $$#end
 		@class_files = [ ]
 	end
 
+	# payload_set.recalculate will call this for every stager/stage combination. So hardcode this to
+	# a realistic approximate value...
+	def size
+		7500
+	end
+
 	def config
 $$		cmdline = "${info.name}" +
 $$#foreach($param in ${info.parameters})
