@@ -43,6 +43,7 @@ import javapayload.builder.EmbeddedAppletJarBuilder;
 
 public class BuilderTest14 extends BuilderTest {
 	public static class CVE_2008_5353TestRunner extends WaitingBuilderTestRunner {
+		public String loaderName = "javapayload.exploit.CVE_"+getCVEName();
 		protected String getCVEName() { return "2008_5353"; }
 		public String getName() { return "CVE_"+getCVEName()+" [kill]"; }
 
@@ -51,7 +52,7 @@ public class BuilderTest14 extends BuilderTest {
 		}
 
 		public void runResult(String[] args) throws Exception {
-			runAppletAndWait(this, "cve.jar", "javapayload.exploit.CVE_"+getCVEName(), null, args);
+			runAppletAndWait(this, "cve.jar", loaderName, null, args);
 		}
 
 		public void cleanup() throws Exception {

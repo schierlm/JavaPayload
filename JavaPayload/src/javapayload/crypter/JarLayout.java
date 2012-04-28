@@ -54,4 +54,8 @@ public abstract class JarLayout extends Module {
 	public boolean shouldInclude(JarEntry je, JarInputStream jis) throws Exception {
 		return true;
 	}
+	
+	public String getPrefix() {
+		return "";
+	}
 }

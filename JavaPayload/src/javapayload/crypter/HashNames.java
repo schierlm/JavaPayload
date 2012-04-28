@@ -83,7 +83,7 @@ public class HashNames extends JarCrypter{
 		tpl = new LoaderClassTemplate(key);
 	}
 
-	public void addFile(JarOutputStream jos, String filename, byte[] content) throws Exception {
+	public void addFile(JarOutputStream jos, String prefix, String filename, byte[] content) throws Exception {
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		byte[] iv = new byte[16];
 		rnd.nextBytes(iv);
@@ -93,11 +93,11 @@ public class HashNames extends JarCrypter{
 		CipherOutputStream cos = new CipherOutputStream(baos, cipher);
 		cos.write(content);
 		cos.close();
-		jos.putNextEntry(new ZipEntry(tpl.hashName("/"+filename)));
+		jos.putNextEntry(new ZipEntry(prefix + tpl.hashName("/"+filename)));
 		baos.writeTo(jos);
 	}
 
-	public byte[] createLoaderClass(JarOutputStream jos, final String className) throws Exception {
+	public byte[] createLoaderClass(JarOutputStream jos, String prefix, final String className) throws Exception {
 		final String keyString = new String(key, "ISO-8859-1");
 		class MyMethodVisitor extends MethodAdapter {
 			public MyMethodVisitor(MethodVisitor mv) {
@@ -147,7 +147,7 @@ public class HashNames extends JarCrypter{
 			}
 		};
 		ClassBuilder.visitClass(HelperClassTemplate.class, helperVisitor, cw);
-		addFile(jos, "HelperClass", cw.toByteArray());
+		addFile(jos, prefix, "HelperClass", cw.toByteArray());
 		
 		cw = new ClassWriter(0);
 		ClassVisitor loaderVisitor = new ClassAdapter(cw) {

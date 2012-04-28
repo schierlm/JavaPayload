@@ -68,7 +68,7 @@ public class WarBuilder extends Builder {
 	}
 	
 	public String getParameterSyntax() {
-		return "[<filename>.war] [--strip] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>] [-- <startupStage> <stageOptions>]";
+		return "[<filename>.war] [--strip] <stager> [<moreStagers...>] [<dynstagers>_ <dynstagerArgs>] [-- <startupArgs>]";
 	}
 	
 	public void build(String[] args) throws Exception {

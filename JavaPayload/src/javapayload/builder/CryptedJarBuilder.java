@@ -71,8 +71,9 @@ public class CryptedJarBuilder extends Builder {
 		ByteArrayOutputStream manifestStream = new ByteArrayOutputStream();
 		manifest.write(manifestStream);
 		jarLayout.init(jarLayoutArgs, manifest);
+		String prefix = jarLayout.getPrefix();
 		JarOutputStream jos = new JarOutputStream(new FileOutputStream(args[1]), manifest);
-		jarCrypter.addFile(jos, JarFile.MANIFEST_NAME, manifestStream.toByteArray());
+		jarCrypter.addFile(jos, prefix, JarFile.MANIFEST_NAME, manifestStream.toByteArray());
 		JarEntry je;
 		int length;
 		byte[] buf = new byte[4096];
@@ -84,11 +85,16 @@ public class CryptedJarBuilder extends Builder {
 			while ((length = jis.read(buf)) != -1) {
 				out.write(buf, 0, length);
 			}
-			jarCrypter.addFile(jos, je.getName(), out.toByteArray());
+			if (!je.getName().startsWith(prefix)) {
+				jos.putNextEntry(je);
+				out.writeTo(jos);
+				continue;
+			}
+			jarCrypter.addFile(jos, prefix, je.getName().substring(prefix.length()), out.toByteArray());
 		}
 		String cryptedLoaderName = createRandomClassName();
-		byte[] cryptedLoader = crypter.crypt(cryptedLoaderName, jarCrypter.createLoaderClass(jos, cryptedLoaderName+"$"));
-		jos.putNextEntry(new ZipEntry(cryptedLoaderName+".class"));
+		byte[] cryptedLoader = crypter.crypt(cryptedLoaderName, jarCrypter.createLoaderClass(jos, prefix, cryptedLoaderName+"$"));
+		jos.putNextEntry(new ZipEntry(prefix + cryptedLoaderName + ".class"));
 		jos.write(cryptedLoader);
 		jarLayout.addStubs(jos, cryptedLoaderName);
 		jis.close();
