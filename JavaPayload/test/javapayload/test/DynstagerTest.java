@@ -84,6 +84,8 @@ public class DynstagerTest {
 				}
 			}
 		}
+		System.out.println("Dynstager tests finished.");
+		new ThreadWatchdogThread(5000).start();
 	}
 
 	private static void testDynstager(DynStagerHandler[] dynStagerHandlers, boolean fast) throws Exception {
@@ -98,8 +100,6 @@ public class DynstagerTest {
 		if (reverseTCP.isStagerUsableWith(dynStagerHandlers)) {
 			StagerTest.testStager(buildDynStagerName(dynStagerHandlers, "ReverseTCP"), fast);
 		}
-		System.out.println("Dynstager tests finished.");
-		new ThreadWatchdogThread(5000).start();
 	}
 
 	private static String buildDynStagerName(DynStagerHandler[] dynStagerHandlers, String stagerName) {
