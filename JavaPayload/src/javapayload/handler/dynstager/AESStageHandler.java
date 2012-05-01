@@ -33,6 +33,7 @@
  */
 package javapayload.handler.dynstager;
 
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.InputStream;
@@ -81,7 +82,7 @@ public class AESStageHandler extends StageHandler {
 		co.init(Cipher.ENCRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(outIV), sr);
 		Cipher ci = Cipher.getInstance("AES/CFB8/NoPadding");
 		ci.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(inIV), sr);
-		handler.handle(new SynchronizedOutputStream(new CipherOutputStream(out, co)), new CipherInputStream(din, ci), parameters);
+		handler.handle(new BufferedOutputStream(new CipherOutputStream(out, co)), new CipherInputStream(din, ci), parameters);
 	}
 
 	protected StageHandler createClone() {

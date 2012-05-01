@@ -33,18 +33,13 @@
  */
 package javapayload.handler.dynstager;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
-import java.io.IOException;
 import java.io.InputStream;
 import java.util.zip.GZIPOutputStream;
 
 import javapayload.Parameter;
-import javapayload.handler.dynstager.GZIPChunkInputStream;
-import javapayload.handler.dynstager.GZIPChunkOutputStream;
 import javapayload.handler.stage.StageHandler;
 
 public class InternalFullGZIPStageHandler extends StageHandler {

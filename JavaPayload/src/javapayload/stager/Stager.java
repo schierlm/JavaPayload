@@ -58,9 +58,6 @@ public abstract class Stager extends ClassLoader {
 				in.readFully(classfile);
 				clazz = define(classfile);
 				length = in.readInt();
-				if (length == 0) {
-					break;
-				}
 			} while (length > 0);
 			final Object stage = clazz.newInstance();
 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
