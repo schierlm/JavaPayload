@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -31,44 +31,46 @@
  * TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
+package javapayload.handler.stage;
 
-package javapayload.builder;
+import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
+import java.io.InputStream;
+import java.util.zip.GZIPOutputStream;
 
-import java.util.jar.Manifest;
+import javapayload.Parameter;
 
-import javapayload.loader.rmi.Loader;
+public class InternalGZIPStageHandler extends StageHandler {
 
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
+	private final StageHandler handler;
 
-public class RMIBuilder extends Builder {
-
-	public RMIBuilder() {
-		super("Generate a JAR containing RMI loader classes",
-				"This builder is used to build a JAR containing RMI loader classes, which\r\n" +
-						"is used by the RMI injector to inject payloads via a RMI port.");
+	public InternalGZIPStageHandler(StageHandler handler) {
+		super(null, false, false, null);
+		this.handler = handler;
 	}
 
-	public void build(String[] args) throws Exception {
-		buildJar(args[0]);
+	public Parameter[] getParameters() {
+		throw new UnsupportedOperationException();
 	}
 
-	public String getParameterSyntax() {
-		return "<filename>.jar";
+	public Class[] getNeededClasses() {
+		return new Class[0];
 	}
 
-	public static void buildJar(String filename) throws Exception {
-		ClassWriter cw = new ClassWriter(0);
-		cw.visit(Opcodes.V1_2, Opcodes.ACC_PUBLIC + Opcodes.ACC_SUPER, "javapayload/loader/rmi/LoaderImpl", null, "javapayload/loader/rmi/Loader", null);
-		MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-		mv.visitCode();
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
-		mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "javapayload/loader/rmi/Loader", "<init>", "()V");
-		mv.visitInsn(Opcodes.RETURN);
-		mv.visitMaxs(1, 1);
-		mv.visitEnd();
-		cw.visitEnd();		
-		JarBuilder.buildJar(filename, new Class[] {Loader.class}, false, false, new Manifest(), "javapayload/loader/rmi/LoaderImpl.class", cw.toByteArray());
+	protected void customUpload(DataOutputStream out, String[] parameters) throws Exception {
+		ByteArrayOutputStream baos = new ByteArrayOutputStream();
+		DataOutputStream dos = new DataOutputStream(new GZIPOutputStream(baos));
+		handler.handleBootstrap(parameters, dos);
+		dos.close();
+		out.writeInt(baos.size());
+		out.write(baos.toByteArray());
+	}
+
+	protected void handleStreams(DataOutputStream out, InputStream in, String[] parameters) throws Exception {
+		handler.handleStreams(out, in, parameters);
+	}
+
+	protected StageHandler createClone() {
+		return new InternalGZIPStageHandler(handler);
 	}
 }

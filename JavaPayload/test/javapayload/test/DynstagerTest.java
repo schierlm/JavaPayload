@@ -84,6 +84,8 @@ public class DynstagerTest {
 				}
 			}
 		}
+		System.out.println("Dynstager tests finished.");
+		new ThreadWatchdogThread(5000).start();
 	}
 
 	private static void testDynstager(DynStagerHandler[] dynStagerHandlers, boolean fast) throws Exception {

@@ -109,9 +109,6 @@ public class MultiStageClassLoader extends ClassLoader implements Runnable {
 				in.readFully(classfile);
 				resolveClass(clazz = defineClass(null, classfile, 0, length, pd));
 				length = in.readInt();
-				if (length == 0) {
-					break;
-				}
 			} while (length > 0);
 			final Object stage = clazz.newInstance();
 			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });

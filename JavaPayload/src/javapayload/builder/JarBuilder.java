@@ -49,18 +49,57 @@ import java.util.jar.JarOutputStream;
 import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
 
+import org.objectweb.asm.ClassAdapter;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
 import javapayload.handler.stage.StageHandler;
 import javapayload.loader.DynLoader;
 import javapayload.stage.StreamForwarder;
+import javapayload.stager.Stager;
 
 public class JarBuilder extends Builder {
 
-	public static final String ARGS_SYNTAX = "[--strip] [<filename>.jar] <stager> [<moreStagers...>] [-- [<filename.ext>] <stage> [<moreStages...>]]";
+	public static final String ARGS_SYNTAX = "[--strip] [--cryptedstagers] [<filename>.jar] <stager> [<moreStagers...>] [-- [<filename.ext>] <stage> [<moreStages...>]]";
 
-	protected static void buildJar(String filename, Class[] classes, boolean stripDebugInfo, Manifest manifest, String extraResourceName, byte[] extraResource) throws Exception {
+	protected static void buildJar(String filename, Class[] classes, boolean stripDebugInfo, boolean miniStagerClass, Manifest manifest, String extraResourceName, byte[] extraResource) throws Exception {
 		manifest.getMainAttributes().putValue("Manifest-Version", "1.0");
 		final JarOutputStream jos = new JarOutputStream(new FileOutputStream(filename), manifest);
+		if (miniStagerClass) {
+			Class[] origClasses = classes;
+			boolean found = false;
+			classes = new Class[classes.length-1];
+			System.arraycopy(origClasses, 0, classes, 0, classes.length);
+			for (int i = 0; i < origClasses.length; i++) {
+				if (origClasses[i] == Stager.class) {
+					found = true;
+					if (i != classes.length)
+						classes[i] = origClasses[classes.length];
+				}
+			}
+			if (!found)
+				throw new IllegalStateException("Cannot use -mini if no Stage class present");
+		}
 		addClasses(jos, "", classes, stripDebugInfo);
+		if (miniStagerClass) {
+			String classname = Stager.class.getName().replace('.', '/') + ".class";
+			jos.putNextEntry(new ZipEntry(classname));
+			ClassWriter cw = new ClassWriter(0);
+			InputStream in = Stager.class.getResourceAsStream("/" + classname);			
+			final ClassReader cr = new ClassReader(in);
+			cr.accept(new ClassAdapter(cw) {
+				public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+					if ((access & Opcodes.ACC_PROTECTED) == 0)
+						return super.visitMethod(access, name, desc, signature, exceptions);
+					else
+						return null;
+				}
+			}, ClassReader.SKIP_DEBUG);
+			in.close();
+			jos.write(cw.toByteArray());
+		}
 		if (extraResource != null) {
 			jos.putNextEntry(new ZipEntry(extraResourceName));
 			jos.write(extraResource, 0, extraResource.length);
@@ -113,7 +152,7 @@ public class JarBuilder extends Builder {
 	}
 
 	public static void buildJarFromArgs(String[] args, String baseName, final Class[] baseClasses, final Manifest manifest, String extraResourceName, byte[] extraResource) throws ClassNotFoundException, Exception {
-		boolean stripDebugInfo = false;
+		boolean stripDebugInfo = false, miniStagerClass = false;
 		final List classes = new ArrayList();
 		classes.addAll(Arrays.asList(baseClasses));
 		StringBuffer jarName = new StringBuffer(baseName);
@@ -121,7 +160,10 @@ public class JarBuilder extends Builder {
 		for (int i = 0; i < args.length; i++) {
 			if (jarName.length() > 0)
 				jarName.append('_');
-			if (args[i].equals("--strip")) {
+			if (args[i].equals("--cryptedstagers")) {
+				jarName.append("crypted");
+				miniStagerClass = true;
+			} else if (args[i].equals("--strip")) {
 				jarName.append("stripped");
 				stripDebugInfo = true;
 			} else if (args[i].endsWith(".jar")) {
@@ -164,6 +206,6 @@ public class JarBuilder extends Builder {
 				classes.add(DynLoader.loadStager(args[i], null, 0));
 			}
 		}
-		buildJar(overrideName != null ? overrideName : jarName.append(".jar").toString(), (Class[]) classes.toArray(new Class[classes.size()]), stripDebugInfo, manifest, extraResourceName, extraResource);
+		buildJar(overrideName != null ? overrideName : jarName.append(".jar").toString(), (Class[]) classes.toArray(new Class[classes.size()]), stripDebugInfo, miniStagerClass, manifest, extraResourceName, extraResource);
 	}
 }
