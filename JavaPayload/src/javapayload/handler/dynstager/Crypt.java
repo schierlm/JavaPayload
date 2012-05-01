@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -32,43 +32,36 @@
  * USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
-package javapayload.builder;
+package javapayload.handler.dynstager;
 
-import java.util.jar.Manifest;
+import javapayload.Parameter;
 
-import javapayload.loader.rmi.Loader;
+public class Crypt extends DynStagerHandler {
 
-import org.objectweb.asm.ClassWriter;
-import org.objectweb.asm.MethodVisitor;
-import org.objectweb.asm.Opcodes;
-
-public class RMIBuilder extends Builder {
-
-	public RMIBuilder() {
-		super("Generate a JAR containing RMI loader classes",
-				"This builder is used to build a JAR containing RMI loader classes, which\r\n" +
-						"is used by the RMI injector to inject payloads via a RMI port.");
+	public Crypt() {
+		super("Crypt a Stager class with a Crypter", true, true,
+				"This dynstager can be used to crypt a Stager. When adding this stager to a\r\n" +
+				"Jar, you can use the --cryptedstagers switch to remove unused code from the\r\n" +
+				"Stager base class.");
 	}
 
-	public void build(String[] args) throws Exception {
-		buildJar(args[0]);
+	public Parameter getExtraArg() {
+		return new Parameter("CRYPTER", false, Parameter.TYPE_ANY, "Crypter to crypt the stager with");
 	}
 
-	public String getParameterSyntax() {
-		return "<filename>.jar";
+	public Parameter[] getParameters() {
+		return new Parameter[0];
 	}
 
-	public static void buildJar(String filename) throws Exception {
-		ClassWriter cw = new ClassWriter(0);
-		cw.visit(Opcodes.V1_2, Opcodes.ACC_PUBLIC + Opcodes.ACC_SUPER, "javapayload/loader/rmi/LoaderImpl", null, "javapayload/loader/rmi/Loader", null);
-		MethodVisitor mv = cw.visitMethod(Opcodes.ACC_PUBLIC, "<init>", "()V", null, null);
-		mv.visitCode();
-		mv.visitVarInsn(Opcodes.ALOAD, 0);
-		mv.visitMethodInsn(Opcodes.INVOKESPECIAL, "javapayload/loader/rmi/Loader", "<init>", "()V");
-		mv.visitInsn(Opcodes.RETURN);
-		mv.visitMaxs(1, 1);
-		mv.visitEnd();
-		cw.visitEnd();		
-		JarBuilder.buildJar(filename, new Class[] {Loader.class}, false, false, new Manifest(), "javapayload/loader/rmi/LoaderImpl.class", cw.toByteArray());
+	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
+		for (int i = 0; i < dynstagers.length; i++) {
+			if (dynstagers[i] instanceof Integrated || dynstagers[i] instanceof LocalStage)
+				return false;
+		}
+		return true;
+	}
+
+	public String getTestExtraArg() {
+		return "RnR";
 	}
 }

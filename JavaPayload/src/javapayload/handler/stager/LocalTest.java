@@ -40,6 +40,7 @@ import java.io.PipedOutputStream;
 import java.io.PrintStream;
 
 import javapayload.Parameter;
+import javapayload.handler.dynstager.Crypt;
 import javapayload.handler.dynstager.DynStagerHandler;
 import javapayload.handler.dynstager.LocalStage;
 import javapayload.handler.dynstager.Spawn;
@@ -60,6 +61,8 @@ public class LocalTest extends StagerHandler implements Runnable {
 	public boolean isStagerUsableWith(DynStagerHandler[] dynstagers) {
 		for (int i = 0; i < dynstagers.length; i++) {
 			if (dynstagers[i] instanceof Spawn)
+				return false;
+			if (dynstagers[i] instanceof Crypt)
 				return false;
 			if (dynstagers[i] instanceof LocalStage && i < dynstagers.length-1)
 				return false;

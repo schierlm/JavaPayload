@@ -56,13 +56,19 @@ public class EmbeddedJarBuilder extends Builder {
 	}
 	
 	public String getParameterSyntax() {
-		return "[--strip] [<filename>.jar] <stager> [stageroptions] -- <stage> [stageoptions]";
+		return "[--strip] [--cryptedstagers] [<filename>.jar] <stager> [stageroptions] -- <stage> [stageoptions]";
 	}
 	
 	public void build(String[] args) throws Exception {
-		boolean stripDebugInfo = false;
+		boolean stripDebugInfo = false, miniStagerClass = false;
 		if (args[0].equals("--strip")) {
 			stripDebugInfo = true;
+			String[] oldArgs = args;
+			args = new String[oldArgs.length-1];
+			System.arraycopy(oldArgs, 1, args, 0, args.length);
+		}
+		if (args[0].equals("--cryptedstagers")) {
+			miniStagerClass = true;
 			String[] oldArgs = args;
 			args = new String[oldArgs.length-1];
 			System.arraycopy(oldArgs, 1, args, 0, args.length);
@@ -82,6 +88,6 @@ public class EmbeddedJarBuilder extends Builder {
 		for (int i = 0; i < args.length; i++) {
 			manifest.getMainAttributes().putValue("Argument-" + i, args[i]);
 		}
-		JarBuilder.buildJar(jarName, classes, stripDebugInfo, manifest, null, null);
+		JarBuilder.buildJar(jarName, classes, stripDebugInfo, miniStagerClass, manifest, null, null);
 	}
 }
