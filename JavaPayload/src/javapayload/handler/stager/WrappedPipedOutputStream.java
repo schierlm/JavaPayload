@@ -51,7 +51,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 			if (closed && implicitClose) 
 				return;
 			if (closed)
-				throw new IOException("Stream is closed", firstClose);
+				throw new IOException("Stream is closed");
 			if ((off < 0) || (off > b.length) || (len < 0) || ((off + len) > b.length) || ((off + len) < 0))
 				throw new IndexOutOfBoundsException();
 			while (writePending) 
@@ -89,8 +89,6 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 		}
 	}
 	
-	Throwable firstClose;
-	
 	public synchronized void close() throws IOException {
 		try {
 			while (writePending) 
@@ -100,8 +98,7 @@ public class WrappedPipedOutputStream extends OutputStream implements Runnable {
 				return;
 			}
 			if (closed)
-				throw new IOException("Stream is closed", firstClose);
-			firstClose = new Throwable("First close");
+				throw new IOException("Stream is closed");
 			if (threadDead)
 				throw new IOException("Writer thread dead");
 			data = null;

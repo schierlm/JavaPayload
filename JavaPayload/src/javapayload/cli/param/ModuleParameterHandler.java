@@ -79,7 +79,11 @@ class ModuleParameterHandler extends ParameterHandler {
 		try {
 			return Module.loadAll(moduleType.getModuleClass());
 		} catch (Exception ex) {
-			throw new RuntimeException("Error while loading module list", ex);
+			/* #JDK1.4 */try {
+				throw new RuntimeException("Error while loading module list", ex);
+			} catch (NoSuchMethodError ex2) /**/{
+				throw new RuntimeException("Error while loading module list: " + ex.toString());
+			}
 		}
 	}
 
@@ -113,7 +117,11 @@ class ModuleParameterHandler extends ParameterHandler {
 		} catch (IllegalArgumentException ex) {
 			throw new ParameterFormatException("Module not found");
 		} catch (Exception ex) {
-			throw new RuntimeException("Error while loading module", ex);
+			/* #JDK1.4 */try {
+				throw new RuntimeException("Error while loading module", ex);
+			} catch (NoSuchMethodError ex2) /**/{
+				throw new RuntimeException("Error while loading module: " + ex.toString());
+			}
 		}
 		commandBuffer.append(getPrefix()).append(input).append(getSeparator(module));
 		return getNextHandlers(module);
@@ -240,7 +248,11 @@ class ModuleParameterHandler extends ParameterHandler {
 			try {
 				return HandlerModule.loadAll(moduleType.getModuleClass(), handler, target);
 			} catch (Exception ex) {
-				throw new RuntimeException("Error while loading module list", ex);
+				/* #JDK1.4 */try {
+					throw new RuntimeException("Error while loading module list", ex);
+				} catch (NoSuchMethodError ex2) /**/{
+					throw new RuntimeException("Error while loading module list: " + ex.toString());
+				}
 			}
 		}
 	}
@@ -308,7 +320,11 @@ class ModuleParameterHandler extends ParameterHandler {
 					return (HandlerModule[]) filtered.toArray(new HandlerModule[filtered.size()]);
 				}
 			} catch (Exception ex) {
-				throw new RuntimeException("Error while loading module list", ex);
+				/* #JDK1.4 */try {
+					throw new RuntimeException("Error while loading module list", ex);
+				} catch (NoSuchMethodError ex2) /**/{
+					throw new RuntimeException("Error while loading module list: " + ex.toString());
+				}
 			}
 		}
 
@@ -319,8 +335,8 @@ class ModuleParameterHandler extends ParameterHandler {
 			DynStagerHandler[] currentDynstagers = (DynStagerHandler[]) prevDynstagers.toArray(new DynStagerHandler[prevDynstagers.size()]);
 			ParameterHandler nextHandler = new StagerParameterHandler(context, origParameter, handler, target, currentDynstagers, extraArgTypes);
 			if (dsh.getCoupledStagers() != null) {
-				nextHandler = new RealStagerParameterHandler(context, origParameter, currentDynstagers, extraArgTypes, handler, target, dsh.getCoupledStagers());	
-			}			
+				nextHandler = new RealStagerParameterHandler(context, origParameter, currentDynstagers, extraArgTypes, handler, target, dsh.getCoupledStagers());
+			}
 			if (dsh.getExtraArg() != null) {
 				if (dsh.getExtraArg().isOptional())
 					throw new IllegalStateException("Dynstager extra arg may not be optional");
@@ -402,7 +418,11 @@ class ModuleParameterHandler extends ParameterHandler {
 				}
 				return (HandlerModule[]) secondFilter.toArray(new HandlerModule[secondFilter.size()]);
 			} catch (Exception ex) {
-				throw new RuntimeException("Error while loading module list", ex);
+				/* #JDK1.4 */try {
+					throw new RuntimeException("Error while loading module list", ex);
+				} catch (NoSuchMethodError ex2) /**/{
+					throw new RuntimeException("Error while loading module list: " + ex.toString());
+				}
 			}
 		}
 

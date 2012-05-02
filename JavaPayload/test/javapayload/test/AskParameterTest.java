@@ -176,7 +176,11 @@ public class AskParameterTest {
 						tempBuffer.setLength(0);
 					remainingHandlers.addAll(Arrays.asList(next));
 				} catch (ParameterFormatException ex) {
-					throw new RuntimeException("Exception while requesting command " + completions[i] + " of " + handler.getClass(), ex);
+					/* #JDK1.4 */try {
+						throw new RuntimeException("Exception while requesting command " + completions[i] + " of " + handler.getClass(), ex);
+					} catch (NoSuchMethodError ex2) /**/{
+						throw new RuntimeException("Exception while requesting command " + completions[i] + " of " + handler.getClass()+": "+ ex.toString());
+					}
 				}
 			}
 			if (++counter % 10000 == 0)

@@ -173,7 +173,7 @@ public class StageTest {
 		StringBuffer sb = new StringBuffer();
 		String delimiter = desc.readLine();
 		File markerFile = null;
-		if (delimiter.contains("|")) {
+		if (delimiter.indexOf('|') != -1) {
 			markerFile = new File(delimiter.substring(delimiter.indexOf('|')+1));
 			delimiter = delimiter.substring(0, delimiter.indexOf('|'));
 		}
