@@ -12,6 +12,13 @@ and inside this repo.
 
 The current home of this project is http://javapayload.sourceforge.net/ and its source is at http://javapayload.svn.sourceforge.net/.
 
+## Required libraries
+
+Since Git does not perform well with huge libraries inside the repository, the required libraries
+have been left out. They are available as a separate download at
+
+http://github.com/downloads/schierlm/JavaPayload/LibsBundle.zip
+
 ## Get in touch
 
 You can contact me at schierlm@users.sourceforge.net. Or, just fork and send pull requests. I will try my very best to get them merged into SVN (still a git newbie), or may even switch over to GitHub if contributions get overwhelming :-)
