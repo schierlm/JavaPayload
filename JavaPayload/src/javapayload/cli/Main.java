@@ -45,8 +45,8 @@ import javapayload.stage.StageMenu;
 
 public class Main {
 
-	public static final String VERSION = "0.3-rc1";
-	public static final String COPYRIGHT = "(c) 2010-2011 Michael 'mihi' Schierl";
+	public static final String VERSION = "0.5-beta1";
+	public static final String COPYRIGHT = "(c) 2010-2012 Michael 'mihi' Schierl";
 
 	// overwrite them if you want to redirect the stream elsewhere
 	public InputStream consoleIn = System.in;

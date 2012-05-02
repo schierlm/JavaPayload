@@ -53,7 +53,6 @@ import javapayload.builder.EmbeddedJarBuilder;
 import javapayload.builder.JarBuilder;
 import javapayload.builder.RMIInjector;
 import javapayload.builder.SpawnTemplate;
-import javapayload.crypter.Agent;
 import javapayload.crypter.JarLayout;
 import javapayload.crypter.MainClass;
 import javapayload.crypter.SignedApplet;
@@ -78,7 +77,7 @@ public class BuilderTest {
 				new LocalStageJarBuilderTestRunner(),
 				new JarCrypterTestRunner(new LocalStageJarBuilderTestRunner(), "LocalStage.jar", new MainClass(), new String[] {"StaLo"}),
 				/* #JDK1.5 */new BuilderTest15.AgentJarBuilderTestRunner(), /**/
-				/* #JDK1.5 */new JarCrypterTestRunner(new BuilderTest15.AgentJarBuilderTestRunner(), "Agent_*.jar", new Agent(), new String[0]), /**/
+				/* #JDK1.5 */new JarCrypterTestRunner(new BuilderTest15.AgentJarBuilderTestRunner(), "Agent_*.jar", new javapayload.crypter.Agent(), new String[0]), /**/
 				new AppletJarBuilderTestRunner(),
 				new NewNameAppletJarBuilderTestRunner(),
 				new EmbeddedAppletJarBuilderTestRunner(),
@@ -275,7 +274,7 @@ public class BuilderTest {
 		public void runBuilder(String[] args) throws Exception {
 			runner.runBuilder(args);
 			String jarName = this.jarName;
-			if (jarName.contains("*"))
+			if (jarName.indexOf('*') != -1)
 				jarName = Module.replaceString(jarName, "*", args[0]);
 			new File(jarName).renameTo(new File("uncrypted.jar"));
 			String[] crypterArgs = new String[] {

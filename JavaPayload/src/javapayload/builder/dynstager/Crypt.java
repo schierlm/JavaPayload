@@ -140,7 +140,11 @@ public class Crypt extends DynStagerBuilder {
 			try {
 				inner.getClass().getMethod("waitReady", new Class[0]).invoke(inner, new Object[0]);
 			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+				/* #JDK1.4 */try {
+					throw new RuntimeException(ex);
+				} catch (NoSuchMethodError ex2) /**/{
+					throw new RuntimeException(ex.toString());
+				}
 			}
 		}
 

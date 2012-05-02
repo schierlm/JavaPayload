@@ -74,7 +74,11 @@ public class SignedApplet extends TemplateBasedJarLayout {
 			try {
 				realApplet = (Applet) target.newInstance();
 			} catch (Exception ex) {
-				throw new RuntimeException(ex);
+				/* #JDK1.4 */try {
+					throw new RuntimeException(ex);
+				} catch (NoSuchMethodError ex2) /**/{
+					throw new RuntimeException(ex.toString());
+				}
 			}
 			realApplet.setStub(this);
 		}

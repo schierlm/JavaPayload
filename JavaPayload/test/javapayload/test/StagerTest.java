@@ -74,7 +74,7 @@ public class StagerTest {
 		String[] stagers = getStagers();
 		for (int i = 0; i < stagers.length; i++) {
 			String name = stagers[i];
-			testStager(name, name.contains("UDP") || name.contains("$"));
+			testStager(name, name.indexOf("UDP") != -1 || name.indexOf('$') != -1);
 		}
 		System.out.println("Stager tests finished.");
 		new ThreadWatchdogThread(5000).start();

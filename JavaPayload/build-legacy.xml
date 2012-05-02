@@ -24,7 +24,16 @@
 		</replace>
 		<delete file="src/javapayload/builder/AttachInjector.java" />
 		<delete file="src/javapayload/builder/AttachDiscovery.java" />
+		<delete file="src/javapayload/handler/stage/Scripting.java" />
+		<delete file="src/javapayload/stage/Scripting.java" />
 		<delete file="test/javapayload/test/BuilderTest16.java" />
+	</target>
+
+	<target name="notools" depends="jdk15">
+		<delete file="src/javapayload/builder/JDWPClassInjector.java" />
+		<delete file="src/javapayload/builder/JDWPInjector.java" />
+		<delete file="src/javapayload/builder/JDWPPollingCommunicationInterface.java" />
+		<delete file="src/javapayload/handler/stager/JDWPTunnel.java" />
 	</target>
 
 	<target name="jdk14" depends="jdk15">
@@ -38,6 +47,7 @@
 		<delete file="src/javapayload/exploit/CVE_2010_4465.java" />
 		<delete file="src/javapayload/exploit/CVE_2010_4465_Loader.java" />
 		<delete file="src/javapayload/builder/CVE_2010_4465_AppletJarBuilder.java" />
+		<delete file="src/javapayload/crypter/Agent.java" />
 		<delete file="test/javapayload/test/BuilderTest15.java" />
 	</target>
 
@@ -46,13 +56,20 @@
 			<include name="**/*.java" />
 		</replace>
 		<delete file="src/javapayload/builder/dynstager/AES.java" />
+		<delete file="src/javapayload/crypter/HashNames.java" />
+		<delete file="src/javapayload/crypter/RnR.java" />
 		<delete file="src/javapayload/handler/dynstager/AES.java" />
 		<delete file="src/javapayload/handler/dynstager/AESStageHandler.java" />
 		<delete file="src/javapayload/handler/stage/AES.java" />
 		<delete file="src/javapayload/stage/AES.java" />
 		<delete file="src/javapayload/stage/AESHelper.java" />
+		<delete file="src/javapayload/stage/JITShellcodeRunner.java" />
+		<delete file="src/javapayload/stage/Shellcode.java" />
 		<delete file="src/javapayload/handler/stager/ReverseSSL.java" />
+		<delete file="src/javapayload/handler/stager/MetasploitURL.java" />
+		<delete file="src/javapayload/handler/stage/Shellcode.java" />
 		<delete file="src/javapayload/stager/ReverseSSL.java" />
+		<delete file="src/javapayload/stager/MetasploitURL.java" />
 		<delete file="src/javapayload/builder/CVE_2008_5353_AppletJarBuilder.java" />
 		<delete file="src/javapayload/exploit/CVE_2008_5353.java" />
 		<delete file="src/javapayload/builder/CVE_2010_0840_AppletJarBuilder.java" />
@@ -81,6 +98,7 @@
 			<fileset dir="test/javapayload" includes="**/*.java" />
 			<fileset dir="src/javapayload/handler" includes="**/*.java" />
 			<fileset dir="src/javapayload/cli" includes="**/*.java" />
+			<fileset dir="src/javapayload/crypter" includes="**/*.java" />
 			<fileset dir="src/javapayload/builder">
 				<include name="*Builder.java" />
 				<include name="*Injector.java" />
@@ -101,6 +119,7 @@
 			<fileset dir="src/javapayload/loader/rmi" includes="**/Tunnel*.java" />
 			<fileset file="src/javapayload/stage/GZ.java" />
 			<fileset file="src/javapayload/stage/RMIInfo.java" />
+			<fileset file="src/javapayload/stage/Background.java" />
 		</delete>
 	</target>
 	

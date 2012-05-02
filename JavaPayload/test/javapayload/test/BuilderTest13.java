@@ -37,7 +37,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import javapayload.builder.JDWPInjector;
 import javapayload.handler.stage.TestStub;
 import javapayload.stage.StreamForwarder;
 
@@ -67,7 +66,7 @@ public class BuilderTest13 extends BuilderTest {
 			if (args[0].startsWith("Spawn_Spawn_"))
 				TestStub.wait=9000;
 			notifyReady();
-			JDWPInjector.main(injectorArgs);
+			/* #JDK1.6 */javapayload.builder.JDWPInjector.main(injectorArgs);/**/
 			if (proc.waitFor() != 0)
 				throw new IOException("Build result exited with error code " + proc.exitValue());
 		}
