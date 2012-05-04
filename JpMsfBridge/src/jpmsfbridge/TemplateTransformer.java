@@ -63,6 +63,8 @@ public class TemplateTransformer {
 		for (int i = 0; i < files.length; i++) {
 			String name = dirName+"/"+files[i].getName();
 			if (files[i].isDirectory()) {
+				if (files[i].getName().equalsIgnoreCase(".svn"))
+					continue;
 				transformDirectory(templateClass, name, info);
 			} else {
 				transformFile(templateClass, name, info);
