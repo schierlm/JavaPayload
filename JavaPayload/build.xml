@@ -18,6 +18,7 @@
 	<target name="compile">
 		<mkdir dir="build/bin${SUFFIX1}" />
 		<javac srcdir="src" destdir="build/bin${SUFFIX1}" source="1.1" target="1.1" debug="yes">
+			<compilerarg value="-XDignore.symbol.file" />
 			<classpath>
 				<pathelement path="${LIB}/asm-3.2.jar" />
 			</classpath>
@@ -30,6 +31,7 @@
 	<target name="compiletest" depends="compile">
 		<mkdir dir="build/testbin" />
 		<javac srcdir="test" destdir="build/testbin" source="1.1" target="1.1" debug="yes">
+			<compilerarg value="-XDignore.symbol.file" />
 			<classpath>
 				<pathelement path="build/bin${SUFFIX1}" />
 				<pathelement path="${LIB}/asm-3.2.jar" />
