@@ -61,6 +61,38 @@ public class Generator {
 			return;
 		}
 		Globals.instance.setJavaExecutable(javaExecutable.getPath());
+		Module[] dynstagers = Module.loadAll(DynStagerHandler.class);
+		List/*<DynStagerHandler>*/ remainingDynstagers = new ArrayList();
+		for (int i = 0; i < dynstagers.length; i++) {
+			DynStagerHandler d = (DynStagerHandler) dynstagers[i];
+			if ((d.getExtraArg() == null ? 0 : 1 ) + d.getParameters().length > 1) 
+				continue;
+			remainingDynstagers.add(d);
+		}
+		List/*<DynStagerHandler>*/ dynstagerList = new ArrayList();
+		while(remainingDynstagers.size() > 0) {
+			boolean changed = false;
+			for (int i = 0; i < remainingDynstagers.size(); i++) {
+				DynStagerHandler d1 = (DynStagerHandler) remainingDynstagers.get(i);
+				boolean mustWait = false;
+				for (int j = 0; j < remainingDynstagers.size(); j++) {
+					DynStagerHandler d2 = (DynStagerHandler) remainingDynstagers.get(j);
+					if (d2.isDynstagerUsableWith(new DynStagerHandler[] {d1}) && !d1.isDynstagerUsableWith(new DynStagerHandler[] {d2})) {
+						mustWait = true;
+						break;
+					}
+				}
+				if (!mustWait) {
+					changed = true;
+					dynstagerList.add(d1);
+					remainingDynstagers.remove(i);
+					i--;
+				}
+			}
+			if (!changed)
+				throw new RuntimeException("Dynstagers cannot be created due to circular dependencies between "+remainingDynstagers);
+		}
+		Globals.instance.setDynstagers((DynStagerHandler[]) dynstagerList.toArray(new DynStagerHandler[dynstagerList.size()]));
 		TemplateTransformer transformer = new TemplateTransformer(new File("template").getAbsoluteFile(), outDir);
 		System.out.println("Parsing global templates...");
 		transformer.transformDirectory("global/", ".", null);
