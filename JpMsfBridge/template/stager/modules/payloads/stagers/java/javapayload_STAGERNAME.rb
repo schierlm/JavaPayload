@@ -33,6 +33,7 @@ $$			'Handler'       => JpMsfBridge::Handler::JavaPayload_${info.name},
 $$#if (${info.parameters.size()} > 0)
 		register_options(
 			[
+				Msf::OptString.new('JAVAPAYLOAD_CRYPTER', [false, 'Crypter to use for dynamically generated classes', '']),
 $$#foreach($param in ${info.parameters})
 $$#if($foreach.hasNext)
 $$#set($comma=",")
@@ -59,7 +60,11 @@ $$#foreach($param in ${info.parameters})
 $$		" #{datastore['${param.parameter.name}']}" +
 $$#end
 		""
-		pp = IO.popen("#{JpMsfBridge::Config::JavaExecutable} -classpath #{JpMsfBridge::Config::ClassPath} jpmsfbridge.stager.StagerEncoder #{cmdline}")
+		crypter = ""
+		if datastore['JAVAPAYLOAD_CRYPTER']
+			crypter = "-Djavapayload.crypter=#{datastore['JAVAPAYLOAD_CRYPTER']} "
+		end
+		pp = IO.popen("#{JpMsfBridge::Config::JavaExecutable} -classpath #{JpMsfBridge::Config::ClassPath} #{crypter}jpmsfbridge.stager.StagerEncoder #{cmdline}")
 		c = pp.read
 		pp.close
 		c
