@@ -38,12 +38,14 @@ import java.net.URL;
 import java.net.URLClassLoader;
 
 import javapayload.Module;
+import javapayload.handler.dynstager.DynStagerHandler;
 
 public class Globals {
 	public static final Globals instance = new Globals();
 
 	private String classPath = null;
 	private String javaExecutable = null;
+	private DynStagerHandler[] dynstagers = null;
 
 	public String getClassPath() throws Exception {
 		if (classPath != null)
@@ -66,6 +68,14 @@ public class Globals {
 
 	protected void setJavaExecutable(String javaExecutable) {
 		this.javaExecutable = javaExecutable;
+	}
+	
+	public DynStagerHandler[] getDynstagers() {
+		return dynstagers;
+	}
+
+	protected void setDynstagers(DynStagerHandler[] dynstagers) {
+		this.dynstagers = dynstagers;
 	}
 
 	public String toLowerUnderscores(String input) {

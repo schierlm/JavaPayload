@@ -17,7 +17,7 @@ $$		"${info.connectionType}"
 	end
 	
 	def cmdline
-$$		"${info.name}" +
+$$		with_dynstagers("${info.name}") +
 $$#foreach($param in ${info.parameters})
 $$		" #{datastore['${param.parameter.name}']}" +
 $$#end

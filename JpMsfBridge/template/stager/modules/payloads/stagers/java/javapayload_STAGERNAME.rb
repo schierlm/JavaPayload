@@ -7,6 +7,8 @@ module Metasploit3
 
 	include Msf::Payload::Stager
 	include Msf::Payload::Java
+	
+	include JpMsfBridge::Handler::DynstagerSupport
 
 	def initialize(info = {})
 		super(merge_info(info,
@@ -52,7 +54,7 @@ $$#end
 	end
 
 	def config
-$$		cmdline = "${info.name}" +
+$$		cmdline = with_dynstagers("${info.name}") +
 $$#foreach($param in ${info.parameters})
 $$		" #{datastore['${param.parameter.name}']}" +
 $$#end
