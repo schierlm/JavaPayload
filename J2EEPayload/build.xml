@@ -8,10 +8,14 @@
 	</target>
 
 	<target name="compile">
+		<copy todir="." failonerror="false">
+			<fileset dir="../JavaPayload" includes="JavaPayload.jar" />
+		</copy>
 		<mkdir dir="build" />
 		<javac srcdir="src" destdir="build" source="1.1" target="1.1" debug="yes">
+			<compilerarg value="-XDignore.symbol.file" />
 			<classpath>
-				<pathelement path="${LIB}/JavaPayload.jar" />
+				<pathelement path="JavaPayload.jar" />
 				<pathelement path="${LIB}/servlet-api-2.2.jar" />
 				<pathelement path="${LIB}/ejb.jar" />
 				<pathelement path="${LIB}/asm-3.2.jar" />
@@ -22,6 +26,18 @@
 	</target>
 
 	<target name="jar" depends="compile">
-		<jar destfile="J2EEPayload.jar" basedir="build" />
+		<jar destfile="J2EEPayload.jar" basedir="build">
+			<manifest>
+				<attribute name="Main-Class" value="javapayload.cli.Main" />
+				<attribute name="Class-Path" value="JavaPayload.jar lib/servlet-api-2.2.jar lib/ejb.jar lib/jTCPfwd.jar lib/apache-apr-socket.jar" />
+			</manifest>
+		</jar>
+	</target>
+	
+	<target name="dist" depends="jar">
+		<mkdir dir="build/dist" />
+		<copy todir="build/dist">
+			<fileset dir="." includes="lib/**,src/**,*.xml,*.jar,index.html" />
+		</copy>
 	</target>
 </project>
