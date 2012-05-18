@@ -20,12 +20,9 @@ p {
 <p><i>&copy; 2010-2012 Michael 'mihi' Schierl, <tt>&lt;schierlm
 at users dot sourceforge dot net&gt;</tt></i></p>
 
-<p><a href="J2EEPayload-0.1.zip">Download J2EEPayload-0.1.zip</a>
-(both source and compiled classes, 478 KB)</p>
-
 <p>Based on <a
 	href="http://schierlm.users.sourceforge.net/JavaPayload/">JavaPayload
-0.2</a></p>
+0.5</a></p>
 
 <h2>Introduction</h2>
 
@@ -57,13 +54,14 @@ stager.</p>
 
 <ul>
 <li>JavaPayload (and J2EEPayload) is now hosted as a <a href="http://javapayload.sourceforge.net/">SourceForge project</a></li>
-<li>Updated JavaPayload to version 0.3-rc1</li>
+<li>Updated JavaPayload to version 0.5</li>
 <li>WarBuilder, EarBuilder: Support stripping debug info from classes.</li>
 <li>EarBuilder: Support giving a custom output filename, like WarBuilder already did.</li>
 <li>Add AarBuilder and Axis2 injector/tunnel.</li>
 <li>Add jTCPfwd dynstagers</li>
 <li>Add dynstager support to FindSock/Tunnel modules</li>
 <li>Add DeadConnect servlet and ConnectURL stager/handler</li>
+<li>Add JARLayout for crypting WAR files</li>
 </ul>
 
 <h2>System requirements</h2>
@@ -109,6 +107,9 @@ path starting with the WAR file name.</p>
 <p>In the following examples I assume that you have <tt>J2EEPayload.jar</tt>,
 <tt>JavaPayload.jar</tt>, <tt>jTCPfwd.jar</tt> and <tt>servlet-api-2.2.jar</tt>
 in your classpath.</p>
+
+<p>It is also possible to run <tt>java -jar J2EEPayload.jar</tt> to get into
+JavaPayload CLI with all the J2EE payloads already loaded.</p>
 
 <h3>Launching "normal" stagers on the servlet container</h3>
 

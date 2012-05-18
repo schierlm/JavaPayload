@@ -46,8 +46,11 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.StringTokenizer;
+import java.util.jar.Attributes;
+import java.util.jar.JarFile;
+import java.util.jar.Manifest;
 import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
 
 public abstract class Module implements NamedElement {
 
@@ -58,13 +61,26 @@ public abstract class Module implements NamedElement {
 		if (resultArray == null) {
 			String[] packageNames = getPackageNames(moduleType);
 			List resultClasses = new ArrayList();
-			URL[] urls = new URL[0];
+			List/* <URL> */urls = new ArrayList();
 			ClassLoader ucl = Module.class.getClassLoader();
 			if (ucl instanceof URLClassLoader)
-				urls = ((URLClassLoader) ucl).getURLs();
-			for (int i = 0; i < urls.length; i++) {
-				if (urls[i].getFile().endsWith(".jar")) {
-					ZipFile jarfile = new ZipFile(urlToFile(urls[i]));
+				urls.addAll(Arrays.asList(((URLClassLoader) ucl).getURLs()));
+			for (int i = 0; i < urls.size(); i++) {
+				URL url = (URL) urls.get(i);
+				if (url.getFile().endsWith(".jar")) {
+					JarFile jarfile = new JarFile(urlToFile(url));
+					Manifest m = jarfile.getManifest();
+					if (m != null && m.getMainAttributes() != null) {
+						String value = m.getMainAttributes().getValue(Attributes.Name.CLASS_PATH);
+						if (value != null) {
+							StringTokenizer st = new StringTokenizer(value);
+							while (st.hasMoreTokens()) {
+								URL newURL = new URL(url, st.nextToken());
+								if (!urls.contains(newURL) && urlToFile(newURL).exists())
+									urls.add(newURL);
+							}
+						}
+					}
 					Enumeration files = jarfile.entries();
 					while (files.hasMoreElements()) {
 						ZipEntry ze = (ZipEntry) files.nextElement();
@@ -84,7 +100,7 @@ public abstract class Module implements NamedElement {
 					jarfile.close();
 				} else {
 					for (int j = 0; j < packageNames.length; j++) {
-						String[] files = urlToFile(new URL(urls[i], packageNames[j].replace('.', '/'))).list();
+						String[] files = urlToFile(new URL(url, packageNames[j].replace('.', '/'))).list();
 						if (files != null) {
 							for (int k = 0; k < files.length; k++) {
 								if (files[k].endsWith(".class"))
