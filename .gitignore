@@ -1,0 +1,16 @@
+/J2EEPayload/build
+/J2EEPayload/*.jar
+/J2EEPayload/.settings
+/J2EEPayload/*.zip
+/J2EEPayload/lib/*.jar
+/JavaPayload/JavaPayload.jar
+/JavaPayload/JavaPayload-jre1.1.jar
+/JavaPayload/build
+/JavaPayload/*JavaPayload-*.zip
+/JavaPayload/lib/*.jar
+/JpMsfBridge/build
+/JpMsfBridge/bin
+/JpMsfBridge/*.jar
+/JpMsfBridge/lib/*.jar
+/*.zip
+/_*
