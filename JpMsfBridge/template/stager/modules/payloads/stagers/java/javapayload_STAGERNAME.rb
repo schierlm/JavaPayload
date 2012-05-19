@@ -1,7 +1,7 @@
 $$output	javapayload_${globals.toLowerUnderscores(${info.name})}.rb
 require 'msf/core'
 require "#{File.expand_path(File.dirname(__FILE__))}/../../../../lib/jpmsfbridge/config"
-$$require "#{JpMsfBridge::Config::Root}/handler/javapayload_${globals.toLowerUnderscores(${info.name})}"
+$$require "#{JpMsfBridge::Config::Root}/handler/javapayload"
 
 module Metasploit3
 
@@ -25,7 +25,7 @@ $$				${globals.indent(${info.module.description}, 4)}
 			'License'       => MSF_LICENSE,
 			'Platform'      => 'java',
 			'Arch'          => ARCH_JAVA,
-$$			'Handler'       => JpMsfBridge::Handler::JavaPayload_${info.name},
+$$			'Handler'       => JpMsfBridge::Handler::JavaPayload,
 			'Convention'    => 'javasocket',
 			'Stager'        => {'Payload' => ""}
 			))
@@ -54,12 +54,15 @@ $$#end
 		7500
 	end
 
+	def self.handler_type_alias
+$$		"javapayload_${globals.toLowerUnderscores(${info.name})}"
+	end
+ 
+	def connection_type
+$$		"${info.connectionType}"
+	end
+
 	def config
-$$		cmdline = with_dynstagers("${info.name}") +
-$$#foreach($param in ${info.parameters})
-$$		" #{datastore['${param.parameter.name}']}" +
-$$#end
-		""
 		crypter = ""
 		if datastore['JAVAPAYLOAD_CRYPTER']
 			crypter = "-Djavapayload.crypter=#{datastore['JAVAPAYLOAD_CRYPTER']} "
@@ -68,5 +71,13 @@ $$#end
 		c = pp.read
 		pp.close
 		c
+	end
+	
+	def cmdline
+$$		with_dynstagers("${info.name}") +
+$$#foreach($param in ${info.parameters})
+$$		" #{datastore['${param.parameter.name}']}" +
+$$#end
+		""
 	end
 end
