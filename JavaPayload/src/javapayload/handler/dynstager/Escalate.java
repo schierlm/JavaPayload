@@ -1,7 +1,7 @@
 /*
  * Java Payloads.
  * 
- * Copyright (c) 2010, 2011 Michael 'mihi' Schierl
+ * Copyright (c) 2012 Michael 'mihi' Schierl
  * All rights reserved.
  * 
  * Redistribution and use in source and binary forms, with or without
@@ -36,42 +36,37 @@ package javapayload.handler.dynstager;
 
 import javapayload.Parameter;
 
+public class Escalate extends DynStagerHandler {
 
-public class Spawn extends DynStagerHandler {
-
-	public Spawn() {
-		super("Run stager in a subprocess", true, true,
-				"Spawn a subprocess to run the stager in");
+	public Escalate() {
+		super("Escalate SecurityManager privileges", true, true,
+				"Escalate SecurityManager privileges and call the stager afterwards");
 	}
-	
+
 	public Parameter[] getParameters() {
 		return new Parameter[0];
 	}
-	
+
 	public Parameter getExtraArg() {
 		return null;
 	}
-	
+
 	public boolean isDynstagerUsableWith(DynStagerHandler[] dynstagers) {
-		for (int i = 0; i < dynstagers.length; i++) {
-			if (!(dynstagers[i] instanceof Spawn) && !(dynstagers[i] instanceof Escalate))
-				return false;
-		}
-		return true;
+		return dynstagers.length == 0;
 	}
-	
+
 	protected boolean prepare(String[] parametersToPrepare) throws Exception {
-		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Spawn_");
+		boolean fCutSpawn = parametersToPrepare.length >= 1 && parametersToPrepare[0].startsWith("Escalate_");
 		if (fCutSpawn)
-			parametersToPrepare[0] = parametersToPrepare[0].substring(6);
+			parametersToPrepare[0] = parametersToPrepare[0].substring(9);
 		try {
 			return super.prepare(parametersToPrepare);
 		} finally {
 			if (fCutSpawn)
-				parametersToPrepare[0] = "Spawn_" + parametersToPrepare[0];
+				parametersToPrepare[0] = "Escalate_" + parametersToPrepare[0];
 		}
 	}
-	
+
 	public String getTestExtraArg() {
 		return null;
 	}

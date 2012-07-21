@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.jar.Manifest;
 
+import javapayload.builder.ClassBuilder;
 import javapayload.builder.JarBuilder;
 import javapayload.builder.SpawnTemplate;
 import javapayload.handler.stager.StagerHandler;
@@ -77,9 +78,20 @@ public class EscalateTest {
 		JarBuilder.buildJarFromArgs(builderArgs, "", baseClasses, manifest, null, null);
 		for (int i = 0; i < privileges.length; i++) {
 			System.out.println("\t" + privileges[i]);
-			testEscalate(privileges[i]);
+			testEscalate(privileges[i], false);
 		}
 		if (!new File(builderArgs[0] + ".jar").delete())
+			throw new IOException("Unable to delete file");
+		if (!new File("escalatetest.policy").delete())
+			throw new IOException("Unable to delete file");
+		System.out.println("Testing Escalate dynstager...");
+		privileges = (String[]) Arrays.copyOf(privileges, privileges.length - 2);
+		new ClassBuilder().build(new String[] { "Escalate_ReverseTCP", "EscalateDynstagerTest" });
+		for (int i = 0; i < privileges.length; i++) {
+			System.out.println("\t" + privileges[i]);
+			testEscalate(privileges[i], true);
+		}
+		if (!new File("EscalateDynstagerTest.class").delete())
 			throw new IOException("Unable to delete file");
 		if (!new File("escalatetest.policy").delete())
 			throw new IOException("Unable to delete file");
@@ -87,8 +99,8 @@ public class EscalateTest {
 		new ThreadWatchdogThread(5000).start();
 	}
 
-	protected static void testEscalate(final String privilege) throws Exception {
-		final String[] args = StageMenu.splitArgs("ReverseTCP localhost # -- TestStub Fast");
+	protected static void testEscalate(final String privilege, final boolean dynstager) throws Exception {
+		final String[] args = StageMenu.splitArgs((dynstager ? "Escalate_" : "") + "ReverseTCP localhost # -- TestStub Fast");
 		final StagerHandler.Loader loader = new StagerHandler.Loader(args);
 		loader.handleBefore(System.err, null);
 		final Throwable[] tt = new Throwable[1];
@@ -98,7 +110,7 @@ public class EscalateTest {
 				try {
 					String[] payloadArgs = (String[]) loader.getArgs().clone();
 					payloadArgs[0] = "+" + payloadArgs[0];
-					runJavaAndWait(notify, args[0] + ".jar", "javapayload.escalate.EscalateLoader", "grant { " + privilege + " };", payloadArgs);
+					runJavaAndWait(notify, dynstager ? "." : args[0] + ".jar", dynstager ? "EscalateDynstagerTest" : "javapayload.escalate.EscalateLoader", "grant { " + privilege + " };", payloadArgs);
 				} catch (Throwable t) {
 					tt[0] = t;
 				}

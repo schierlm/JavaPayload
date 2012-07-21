@@ -135,14 +135,21 @@ public class ClassBuilder extends Builder {
 		final ClassWriter cw = new ClassWriter(0);
 
 		class MyMethodVisitor extends MethodAdapter {
-			private final String newClassName;
+			private final String newClassName, baseClassName;
 
 			public MyMethodVisitor(MethodVisitor mv, String newClassName) {
+				this(mv, newClassName, null);
+			}
+			
+			public MyMethodVisitor(MethodVisitor mv, String newClassName, String baseClassName) {
 				super(mv);
 				this.newClassName = newClassName;
+				this.baseClassName = baseClassName;
 			}
 
 			private String cleanType(String type) {
+				if (type.equals(baseClassName))
+					type = "java/lang/ClassLoader";
 				if (type.startsWith("javapayload/")) {
 					type = newClassName;
 				}
@@ -185,9 +192,9 @@ public class ClassBuilder extends Builder {
 			}
 
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
-				// strip constructors
+				// rewrite constructors
 				if (name.equals("<init>")) {
-					return null;
+					return new MyMethodVisitor(super.visitMethod(access, name, desc, signature, exceptions), classname, "javapayload/stager/Stager");
 				}
 				return new MyMethodVisitor(super.visitMethod(access, name, desc, signature, exceptions), classname);
 			}
@@ -204,6 +211,10 @@ public class ClassBuilder extends Builder {
 			}
 
 			public MethodVisitor visitMethod(int access, String name, String desc, String signature, String[] exceptions) {
+				// strip constructors
+				if (name.equals("<init>")) {
+					return null;
+				}				
 				// strip abstract bootstrap method
 				if ((name.equals("bootstrap") || name.equals("waitReady")) && (access & Opcodes.ACC_ABSTRACT) != 0) {
 					return null;
