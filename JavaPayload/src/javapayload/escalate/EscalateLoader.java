@@ -45,7 +45,7 @@ import javapayload.loader.StandaloneLoader;
  */
 public class EscalateLoader implements PrivilegedExceptionAction {
 
-	private static boolean escalate() throws Exception {
+	public static boolean escalate() throws Exception {
 		if (EscalateBasics.escalate())
 			return true;
 		if (escalateComplex())

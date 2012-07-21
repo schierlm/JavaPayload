@@ -123,7 +123,7 @@ public class BuilderTest {
 		}
 		if (runner.getName().indexOf("Embedded") == -1 && runner.getName().indexOf("Injector") == -1 && name.indexOf("Integrated$") != -1) 
 			return;
-		final String[] args = StageMenu.splitArgs(realName + " " + testArgs + " -- TestStub");
+		final String[] args = StageMenu.splitArgs(realName + " " + testArgs + " -- TestStub Fast");
 		final StagerHandler.Loader loader = (runner.getName().indexOf("Injector") != -1) ? null : new StagerHandler.Loader(args);
 		if (runner.getName().indexOf("[kill]") != -1) {
 			if (name.startsWith("Spawn"))

