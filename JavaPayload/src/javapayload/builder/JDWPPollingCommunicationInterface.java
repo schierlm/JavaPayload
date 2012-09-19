@@ -105,7 +105,7 @@ public class JDWPPollingCommunicationInterface extends Thread implements Polling
 									data = null;
 									notifyAll();
 								}
-								String response = ((StringReference) thiz.invokeMethod(tr, sendData, Arrays.asList(new Object[] { vm.mirrorOf(request) }), 0)).value();
+								String response = ((StringReference) thiz.invokeMethod(tr, sendData, Arrays.asList(new StringReference[] { vm.mirrorOf(request) }), 0)).value();
 								synchronized (this) {
 									while (!dataAvailable || data != null)
 										wait();

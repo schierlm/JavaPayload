@@ -52,7 +52,7 @@ public class TunnelInitializer {
 		TCPTransport currentTransport = (TCPTransport) ((ThreadLocal) f.get(null)).get();
 		Method m = TCPTransport.class.getDeclaredMethod("getEndpoint", new Class[0]);
 		m.setAccessible(true);
-		LiveRef lr = new LiveRef((ObjID) args[2], (TCPEndpoint) m.invoke(currentTransport, null), false);
+		LiveRef lr = new LiveRef((ObjID) args[2], (TCPEndpoint) m.invoke(currentTransport, (Object[]) null), false);
 		new UnicastServerRef(lr).exportObject(new PollingSenderImpl(stager), null, false);
 	}
 }
