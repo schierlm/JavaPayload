@@ -38,4 +38,8 @@ public class DummyClass {
 		if (args.length == 1)
 			Thread.sleep(Integer.parseInt(args[0]));
 	}
+	
+	// You want to run your payloads on other people's Java installations,
+	// therefore try to keep your class files as compatible as possible.
+	int _ = new Integer(0).compareTo("If you get a compile error here, compile with -source 1.1 -target 1.1");
 }

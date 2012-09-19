@@ -17,3 +17,6 @@ A few libraries available from most EJB containers and/or servlet containers
   -> apache-apr-socket.jar
   -> ejb.jar
   -> servlet-api-2.2.jar
+
+All libraries are also available as a separate download at
+http://github.com/downloads/schierlm/JavaPayload/LibsBundle.zip
