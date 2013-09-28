@@ -48,6 +48,8 @@ import javapayload.handler.stager.StagerHandler.Loader;
 import javapayload.loader.DynLoader;
 
 import com.sun.jdi.ClassType;
+import com.sun.jdi.IncompatibleThreadStateException;
+import com.sun.jdi.InternalException;
 import com.sun.jdi.ThreadReference;
 import com.sun.jdi.VirtualMachine;
 import com.sun.jdi.VirtualMachineManager;
@@ -70,7 +72,18 @@ public class JDWPInjector extends Injector {
 		}
 		for (int i = 0; i < vm.allThreads().size(); i++) {
 			final ThreadReference tr = (ThreadReference) vm.allThreads().get(i);
-			vm.eventRequestManager().createStepRequest(tr, StepRequest.STEP_MIN, StepRequest.STEP_INTO).enable();
+			tr.suspend();
+			try {
+				tr.frameCount();
+				vm.eventRequestManager().createStepRequest(tr, StepRequest.STEP_MIN, StepRequest.STEP_INTO).enable();
+			} catch (IncompatibleThreadStateException ex) {
+				// frameCount throws this in buggy JDWP implementations although all threads are suspended here;
+				// catch it as a guard; it would crash the JVM when creating a step request...
+				consoleOut.println("Unable to step thread "+i+":"+tr.name()+": "+ex.toString());
+			} catch (InternalException ex) {
+				consoleOut.println("Unable to step thread "+i+":"+tr.name()+": "+ex.toString());
+			}
+			tr.resume();
 		}
 		final com.sun.jdi.event.EventQueue q = vm.eventQueue();
 		boolean done = false;
